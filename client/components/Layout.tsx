@@ -47,7 +47,7 @@ export default function Layout({
                   <Lock className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
                 <h1 className="hidden sm:block font-bold text-lg md:text-xl text-foreground">
-                  SecureChat
+                  Voltex Everywhere
                 </h1>
               </Link>
             )}
