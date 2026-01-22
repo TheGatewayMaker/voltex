@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
-import {
-  signChallenge,
-  deriveUserIdFromPublicKey,
-} from "@/lib/crypto";
+import { signChallenge, deriveUserIdFromPublicKey } from "@/lib/crypto";
 import { hashPassphrase } from "@/lib/passphrase";
 import { toast } from "sonner";
 
@@ -90,23 +87,26 @@ export default function Recover() {
       // Sign the challenge with the passphrase (derive key from passphrase)
       // For recovery, we can't use the original private key, so we derive it from the passphrase
       // This is a simplified approach - in production, you'd want a proper key derivation function
-      
+
       // For now, we'll ask the user to use their original device or provide their private key
       // Let's redirect them to restore their keypair from their original device
-      
-      toast.error("To complete recovery, please use a device with your original cryptographic keys installed");
-      
+
+      toast.error(
+        "To complete recovery, please use a device with your original cryptographic keys installed",
+      );
+
       // Navigate back to signin
       setTimeout(() => {
         setStep("userId");
         setPassphraseInput("");
         setUserIdInput("");
       }, 2000);
-
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Account recovery failed");
-      toast.error(err instanceof Error ? err.message : "Account recovery failed");
+      toast.error(
+        err instanceof Error ? err.message : "Account recovery failed",
+      );
     }
   };
 
@@ -126,7 +126,9 @@ export default function Recover() {
             <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6">
               <Lock className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Recover Account</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Recover Account
+            </h1>
             <p className="text-muted-foreground text-center">
               Restore your account using your recovery passphrase
             </p>
@@ -182,7 +184,8 @@ export default function Recover() {
                   Recovery Process
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Enter your User ID and recovery passphrase. We'll verify your identity and help you restore access to your account.
+                  Enter your User ID and recovery passphrase. We'll verify your
+                  identity and help you restore access to your account.
                 </p>
               </div>
             </div>
@@ -286,7 +289,8 @@ export default function Recover() {
               ⚠️ Important
             </p>
             <p className="text-xs text-destructive/80 mt-2">
-              To complete account recovery, you'll need access to your original cryptographic keys or a device where they are installed.
+              To complete account recovery, you'll need access to your original
+              cryptographic keys or a device where they are installed.
             </p>
           </div>
         </div>

@@ -18,6 +18,7 @@ R2_ENDPOINT_URL=https://692721994bc25d00006b205c4b487e7f.r2.cloudflarestorage.co
 ## R2 Buckets Structure
 
 ### 1. **voltex-users** Bucket
+
 Stores all user-related data with the following structure:
 
 ```
@@ -28,12 +29,14 @@ voltex-users/
 ```
 
 **Data stored in accounts:**
+
 - userId (derived from public key)
 - publicKey (cryptographic public key)
 - createdAt (account creation timestamp)
 - updatedAt (last update timestamp)
 
 **Data stored in profiles:**
+
 - userId
 - publicKey
 - displayName
@@ -46,6 +49,7 @@ voltex-users/
 - updatedAt
 
 ### 2. **voltex-recovery** Bucket
+
 Stores account recovery data for passphrase-based restoration:
 
 ```
@@ -55,11 +59,13 @@ voltex-recovery/
 ```
 
 **Data stored:**
+
 - userId
 - passphraseHash (SHA-256 hash)
 - createdAt
 
 ### 3. **voltex-messages** Bucket
+
 Stores encrypted messages with metadata:
 
 ```
@@ -69,6 +75,7 @@ voltex-messages/
 ```
 
 **Data stored for each message:**
+
 - messageId (UUID)
 - senderId
 - recipientId
@@ -151,7 +158,9 @@ voltex-messages/
 ### Authentication Endpoints
 
 #### POST /api/auth/register
+
 **Request:**
+
 ```json
 {
   "publicKey": "base64-encoded-public-key",
@@ -160,6 +169,7 @@ voltex-messages/
 ```
 
 **Response:**
+
 ```json
 {
   "userId": "16-char-user-id",
@@ -168,11 +178,14 @@ voltex-messages/
 ```
 
 **R2 Actions:**
+
 - Stores account in voltex-users/accounts/{userId}.json
 - Stores passphrase hash in voltex-recovery/{userId}/passphrase.json
 
 #### POST /api/auth/recover
+
 **Request:**
+
 ```json
 {
   "userId": "16-char-user-id",
@@ -181,6 +194,7 @@ voltex-messages/
 ```
 
 **Response:**
+
 ```json
 {
   "userId": "16-char-user-id",
@@ -190,13 +204,16 @@ voltex-messages/
 ```
 
 **R2 Actions:**
+
 - Reads from voltex-recovery/{userId}/passphrase.json
 - Reads from voltex-users/accounts/{userId}.json
 
 ### Profile Endpoints
 
 #### GET /api/profile/me
+
 **Response:**
+
 ```json
 {
   "userId": "16-char-user-id",
@@ -211,10 +228,13 @@ voltex-messages/
 ```
 
 **R2 Actions:**
+
 - Reads from voltex-users/profiles/{userId}.json
 
 #### PUT /api/profile/me
+
 **Request:**
+
 ```json
 {
   "displayName": "New Display Name",
@@ -223,18 +243,24 @@ voltex-messages/
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Profile updated successfully",
-  "profile": { /* updated profile */ }
+  "profile": {
+    /* updated profile */
+  }
 }
 ```
 
 **R2 Actions:**
+
 - Writes to voltex-users/profiles/{userId}.json
 
 #### POST /api/profile/settings
+
 **Request:**
+
 ```json
 {
   "notifications": true,
@@ -244,12 +270,15 @@ voltex-messages/
 ```
 
 **R2 Actions:**
+
 - Writes to voltex-users/profiles/{userId}.json
 
 ### Message Endpoints
 
 #### POST /api/messages/send
+
 **Request:**
+
 ```json
 {
   "recipientId": "recipient-user-id",
@@ -260,6 +289,7 @@ voltex-messages/
 ```
 
 **R2 Actions:**
+
 - Writes to voltex-messages/conversations/{sortedUserIds}/{messageId}.json
 
 ## Security Considerations
@@ -288,11 +318,13 @@ voltex-messages/
 ## Data Persistence
 
 ### In-Memory Cache
+
 - Sessions and challenges are kept in memory for quick access
 - Challenges expire after 5 minutes for security
 - Sessions expire after 24 hours
 
 ### Persistent Storage (R2)
+
 - All user accounts and metadata
 - All messages (encrypted)
 - Account recovery data (hashed passphrases)
@@ -313,18 +345,21 @@ User {userId} registered and stored in R2
 ## Troubleshooting
 
 ### Account Data Not Appearing
+
 1. Check R2 credentials in environment variables
 2. Verify Cloudflare R2 bucket names exist
 3. Check server logs for R2 upload errors
 4. Ensure network connectivity to R2 endpoint
 
 ### Profile Updates Not Persisting
+
 1. Verify session token is valid
 2. Check R2 bucket write permissions
 3. Ensure correct userId is being used
 4. Check for any error messages in server logs
 
 ### Recovery Passphrase Issues
+
 1. Ensure passphrase is entered exactly as saved (spaces matter)
 2. Passphrase is case-sensitive
 3. Check that userId matches the account
@@ -335,6 +370,7 @@ User {userId} registered and stored in R2
 For production deployment on your Ubuntu 22 VPS:
 
 1. **Set environment variables:**
+
    ```bash
    export R2_API_TOKEN="..."
    export R2_ACCESS_KEY_ID="..."
@@ -343,11 +379,13 @@ For production deployment on your Ubuntu 22 VPS:
    ```
 
 2. **Build the application:**
+
    ```bash
    npm run build
    ```
 
 3. **Start the server:**
+
    ```bash
    npm start
    ```

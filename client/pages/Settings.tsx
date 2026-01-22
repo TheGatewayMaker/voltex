@@ -93,9 +93,29 @@ export default function Settings() {
       <Layout showProfileMenu={false}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <svg className="animate-spin h-8 w-8 mx-auto mb-4 text-primary" viewBox="0 0 50 50">
-              <circle className="opacity-30" cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" />
-              <circle cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" strokeDasharray="100" strokeDashoffset="75" />
+            <svg
+              className="animate-spin h-8 w-8 mx-auto mb-4 text-primary"
+              viewBox="0 0 50 50"
+            >
+              <circle
+                className="opacity-30"
+                cx="25"
+                cy="25"
+                r="20"
+                stroke="currentColor"
+                strokeWidth="5"
+                fill="none"
+              />
+              <circle
+                cx="25"
+                cy="25"
+                r="20"
+                stroke="currentColor"
+                strokeWidth="5"
+                fill="none"
+                strokeDasharray="100"
+                strokeDashoffset="75"
+              />
             </svg>
             <p className="text-muted-foreground">Loading settings...</p>
           </div>
@@ -159,9 +179,7 @@ export default function Settings() {
             <div className="flex items-start gap-3 mb-4">
               <Moon className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
               <div>
-                <h2 className="text-lg font-semibold text-foreground">
-                  Theme
-                </h2>
+                <h2 className="text-lg font-semibold text-foreground">Theme</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Choose your preferred color theme
                 </p>
@@ -191,7 +209,9 @@ export default function Settings() {
                     }
                     className="w-4 h-4"
                   />
-                  <span className="text-sm text-foreground">{option.label}</span>
+                  <span className="text-sm text-foreground">
+                    {option.label}
+                  </span>
                 </label>
               ))}
             </div>
@@ -268,8 +288,25 @@ export default function Settings() {
             {isSaving ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
-                  <circle className="opacity-30" cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" />
-                  <circle cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" strokeDasharray="100" strokeDashoffset="75" />
+                  <circle
+                    className="opacity-30"
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    stroke="currentColor"
+                    strokeWidth="5"
+                    fill="none"
+                  />
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    stroke="currentColor"
+                    strokeWidth="5"
+                    fill="none"
+                    strokeDasharray="100"
+                    strokeDashoffset="75"
+                  />
                 </svg>
                 Saving...
               </span>

@@ -131,9 +131,29 @@ export default function Account() {
       <Layout showProfileMenu={false}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <svg className="animate-spin h-8 w-8 mx-auto mb-4 text-primary" viewBox="0 0 50 50">
-              <circle className="opacity-30" cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" />
-              <circle cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" strokeDasharray="100" strokeDashoffset="75" />
+            <svg
+              className="animate-spin h-8 w-8 mx-auto mb-4 text-primary"
+              viewBox="0 0 50 50"
+            >
+              <circle
+                className="opacity-30"
+                cx="25"
+                cy="25"
+                r="20"
+                stroke="currentColor"
+                strokeWidth="5"
+                fill="none"
+              />
+              <circle
+                cx="25"
+                cy="25"
+                r="20"
+                stroke="currentColor"
+                strokeWidth="5"
+                fill="none"
+                strokeDasharray="100"
+                strokeDashoffset="75"
+              />
             </svg>
             <p className="text-muted-foreground">Loading profile...</p>
           </div>
@@ -204,7 +224,8 @@ export default function Account() {
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Your unique identifier derived from your cryptographic public key
+                  Your unique identifier derived from your cryptographic public
+                  key
                 </p>
               </div>
 
@@ -221,7 +242,9 @@ export default function Account() {
                     className="flex-1 px-3 py-2 bg-secondary border border-border text-foreground rounded-lg font-mono text-sm overflow-hidden text-ellipsis"
                   />
                   <button
-                    onClick={() => copyToClipboard(profile.publicKey || "", "Public Key")}
+                    onClick={() =>
+                      copyToClipboard(profile.publicKey || "", "Public Key")
+                    }
                     className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
                   >
                     {copiedField === "Public Key" ? (
@@ -290,13 +313,16 @@ export default function Account() {
                   type="text"
                   value={
                     profile.createdAt
-                      ? new Date(profile.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
+                      ? new Date(profile.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )
                       : "Unknown"
                   }
                   readOnly
@@ -315,7 +341,9 @@ export default function Account() {
                   Security Information
                 </p>
                 <p className="text-xs text-blue-600/90">
-                  Your cryptographic keys are stored securely on this device. Your private key is never sent to our servers and is only used to sign authentication challenges.
+                  Your cryptographic keys are stored securely on this device.
+                  Your private key is never sent to our servers and is only used
+                  to sign authentication challenges.
                 </p>
               </div>
             </div>
@@ -330,8 +358,25 @@ export default function Account() {
             {isSaving ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
-                  <circle className="opacity-30" cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" />
-                  <circle cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="5" fill="none" strokeDasharray="100" strokeDashoffset="75" />
+                  <circle
+                    className="opacity-30"
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    stroke="currentColor"
+                    strokeWidth="5"
+                    fill="none"
+                  />
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    stroke="currentColor"
+                    strokeWidth="5"
+                    fill="none"
+                    strokeDasharray="100"
+                    strokeDashoffset="75"
+                  />
                 </svg>
                 Saving...
               </span>

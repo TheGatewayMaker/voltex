@@ -23,7 +23,10 @@ function getConversationKey(userId1: string, userId2: string): string {
 export const handleSendMessage: RequestHandler = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
 
     if (!sessionToken) {
       return res.status(401).json({ error: "Unauthorized" });

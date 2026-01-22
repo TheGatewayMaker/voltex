@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListBucketsCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListBucketsCommand,
+} from "@aws-sdk/client-s3";
 import { sdkStreamMixin } from "@aws-sdk/util-stream-node";
 
 // Global R2 client instance
@@ -71,17 +77,17 @@ export async function downloadFromR2(
     });
 
     const response = await client.send(command);
-    
+
     // Convert stream to string
     if (response.Body) {
       const bodyStream = sdkStreamMixin(response.Body);
       const data = await bodyStream.transformToString();
       return data;
     }
-    
+
     return null;
   } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'NoSuchKey') {
+    if (error instanceof Error && error.name === "NoSuchKey") {
       console.log(`Key ${key} not found in R2`);
       return null;
     }
@@ -129,7 +135,7 @@ export async function fileExistsInR2(
     await client.send(command);
     return true;
   } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'NoSuchKey') {
+    if (error instanceof Error && error.name === "NoSuchKey") {
       return false;
     }
     console.error("Error checking file existence in R2:", error);
@@ -140,7 +146,10 @@ export async function fileExistsInR2(
 /**
  * Save user profile metadata to R2
  */
-export async function saveUserProfile(userId: string, profileData: any): Promise<void> {
+export async function saveUserProfile(
+  userId: string,
+  profileData: any,
+): Promise<void> {
   const bucketName = "voltex-users";
   const key = `profiles/${userId}.json`;
   const data = JSON.stringify({
@@ -197,7 +206,10 @@ export async function getMessage(messageId: string): Promise<any | null> {
 /**
  * Save user account to R2
  */
-export async function saveUserAccount(userId: string, accountData: any): Promise<void> {
+export async function saveUserAccount(
+  userId: string,
+  accountData: any,
+): Promise<void> {
   const bucketName = "voltex-users";
   const key = `accounts/${userId}.json`;
   const data = JSON.stringify({
@@ -242,7 +254,9 @@ export async function savePassphraseRecovery(
 /**
  * Get passphrase recovery data
  */
-export async function getPassphraseRecovery(userId: string): Promise<any | null> {
+export async function getPassphraseRecovery(
+  userId: string,
+): Promise<any | null> {
   const bucketName = "voltex-recovery";
   const key = `${userId}/passphrase.json`;
 

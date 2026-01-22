@@ -9,7 +9,10 @@ import { saveUserProfile, getUserProfile } from "../lib/r2-storage";
 export const handleGetProfile: RequestHandler = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
 
     if (!sessionToken) {
       return res.status(401).json({ error: "No session token provided" });
@@ -22,7 +25,7 @@ export const handleGetProfile: RequestHandler = async (req, res) => {
 
     // Get profile from R2
     const profile = await getUserProfile(session.userId);
-    
+
     if (!profile) {
       // Return basic profile if not found in R2
       return res.status(200).json({
@@ -47,7 +50,10 @@ export const handleGetProfile: RequestHandler = async (req, res) => {
 export const handleUpdateProfile: RequestHandler = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
 
     if (!sessionToken) {
       return res.status(401).json({ error: "No session token provided" });
@@ -104,7 +110,8 @@ export const handleUpdateProfile: RequestHandler = async (req, res) => {
  */
 export const handleGetPublicProfile: RequestHandler = async (req, res) => {
   try {
-    const userId = typeof req.params.userId === "string" ? req.params.userId : "";
+    const userId =
+      typeof req.params.userId === "string" ? req.params.userId : "";
 
     if (!userId) {
       return res.status(400).json({ error: "Invalid user ID" });
@@ -112,7 +119,7 @@ export const handleGetPublicProfile: RequestHandler = async (req, res) => {
 
     // Get profile from R2
     const profile = await getUserProfile(userId);
-    
+
     if (!profile) {
       return res.status(200).json({
         userId,
@@ -141,7 +148,10 @@ export const handleGetPublicProfile: RequestHandler = async (req, res) => {
 export const handleUploadAvatar: RequestHandler = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
 
     if (!sessionToken) {
       return res.status(401).json({ error: "No session token provided" });
@@ -191,7 +201,10 @@ export const handleUploadAvatar: RequestHandler = async (req, res) => {
 export const handleUpdateSettings: RequestHandler = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
 
     if (!sessionToken) {
       return res.status(401).json({ error: "No session token provided" });

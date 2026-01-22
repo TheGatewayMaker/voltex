@@ -267,7 +267,8 @@ export const handleVerifySession: RequestHandler = (req, res) => {
  */
 export const handleGetPublicKey: RequestHandler = async (req, res) => {
   try {
-    const userId = typeof req.params.userId === "string" ? req.params.userId : "";
+    const userId =
+      typeof req.params.userId === "string" ? req.params.userId : "";
 
     if (!userId) {
       return res.status(400).json({ error: "Invalid user ID" });
@@ -329,7 +330,8 @@ export const handleRecoverAccount: RequestHandler = async (req, res) => {
     return res.status(200).json({
       userId,
       publicKey: userAccount.publicKey,
-      message: "Account recovered successfully. Please sign the challenge to complete authentication.",
+      message:
+        "Account recovered successfully. Please sign the challenge to complete authentication.",
     });
   } catch (error) {
     console.error("Account recovery error:", error);
@@ -344,7 +346,10 @@ export const handleRecoverAccount: RequestHandler = async (req, res) => {
 export const handleLogout: RequestHandler = (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
 
     if (!sessionToken) {
       return res.status(400).json({ error: "No session token provided" });
