@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Lock, LogOut } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ export default function Conversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
-  const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+  const [currentDisplayName, setCurrentDisplayName] = useState("User");
 
   // Check authentication status
   useEffect(() => {
