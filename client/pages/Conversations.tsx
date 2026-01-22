@@ -269,7 +269,14 @@ export default function Conversations() {
         )}
 
         {/* Floating Action Button */}
-        <button className="absolute bottom-6 right-6 w-14 h-14 md:w-16 md:h-16 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all active:scale-95 md:bottom-8 md:right-8">
+        <button
+          onClick={() => {
+            // For demo, navigate to first conversation
+            // In production, would open modal to select/create conversation
+            navigate("/chat/demo-user-id12345");
+          }}
+          className="absolute bottom-6 right-6 w-14 h-14 md:w-16 md:h-16 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all active:scale-95 md:bottom-8 md:right-8"
+        >
           <svg
             className="w-6 h-6 md:w-7 md:h-7"
             fill="none"
