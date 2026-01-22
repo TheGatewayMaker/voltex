@@ -289,12 +289,62 @@ export const handleGetPublicKey: RequestHandler = async (req, res) => {
 };
 
 /**
+ * POST /api/auth/recover
+ * Recover account using passphrase hash
+ */
+export const handleRecoverAccount: RequestHandler = async (req, res) => {
+  try {
+    const { passphraseHash } = req.body;
+
+    if (!passphraseHash || typeof passphraseHash !== "string") {
+      return res.status(400).json({ error: "Passphrase hash is required" });
+    }
+
+    // In production, you would search through R2 to find the user with matching passphrase
+    // For now, we'll require the userId as well (user provides it)
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    // Get passphrase recovery data
+    const recoveryData = await getPassphraseRecovery(userId);
+    if (!recoveryData) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    // Verify passphrase hash matches
+    if (recoveryData.passphraseHash !== passphraseHash) {
+      return res.status(403).json({ error: "Invalid passphrase" });
+    }
+
+    // Get user account
+    const userAccount = await getUserAccount(userId);
+    if (!userAccount) {
+      return res.status(404).json({ error: "User account not found" });
+    }
+
+    // Return public key for the user to generate a challenge
+    return res.status(200).json({
+      userId,
+      publicKey: userAccount.publicKey,
+      message: "Account recovered successfully. Please sign the challenge to complete authentication.",
+    });
+  } catch (error) {
+    console.error("Account recovery error:", error);
+    return res.status(500).json({ error: "Account recovery failed" });
+  }
+};
+
+/**
  * POST /api/auth/logout
  * Invalidate a session
  */
 export const handleLogout: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+    const authHeader = req.headers.authorization;
+    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
 
     if (!sessionToken) {
       return res.status(400).json({ error: "No session token provided" });
