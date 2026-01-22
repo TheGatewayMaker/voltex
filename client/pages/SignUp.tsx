@@ -49,10 +49,7 @@ export default function SignUp() {
       );
 
       // Hash the mnemonic passphrase for recovery
-      const passphraseHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(mnemonicData.mnemonic));
-      const passphraseHashHex = Array.from(new Uint8Array(passphraseHash))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+      const passphraseHashHex = await hashPassphrase(mnemonicData.mnemonic);
 
       // Register account on server
       const registerResponse = await fetch("/api/auth/register", {
