@@ -205,9 +205,9 @@ export default function Conversations() {
         {/* Floating Action Button */}
         <button
           onClick={() => {
-            // For demo, navigate to first conversation
-            // In production, would open modal to select/create conversation
-            navigate("/chat/demo-user-id12345");
+            // TODO: Open modal to select user and start new conversation
+            // For now, show a placeholder message
+            toast.info("Feature coming soon: Start a new conversation");
           }}
           className="absolute bottom-6 right-6 w-14 h-14 md:w-16 md:h-16 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all active:scale-95 md:bottom-8 md:right-8"
         >
