@@ -19,6 +19,13 @@ import {
   handleDeleteConversation,
 } from "./routes/messages";
 import {
+  handleGetProfile,
+  handleUpdateProfile,
+  handleGetPublicProfile,
+  handleUploadAvatar,
+  handleUpdateSettings,
+} from "./routes/profile";
+import {
   registerUserConnection,
   unregisterUserConnection,
   deliverMessage,
