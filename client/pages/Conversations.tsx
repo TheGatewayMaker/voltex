@@ -17,7 +17,7 @@ interface Conversation {
 
 export default function Conversations() {
   const navigate = useNavigate();
-  const [conversations, setConversations] = useState(MOCK_CONVERSATIONS);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
