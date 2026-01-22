@@ -20,9 +20,11 @@ function getConversationKey(userId1: string, userId2: string): string {
  * POST /api/messages/send
  * Store an encrypted message
  */
-export const handleSendMessage: RequestHandler = (req, res) => {
+export const handleSendMessage: RequestHandler = async (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+    const authHeader = req.headers.authorization;
+    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
+
     if (!sessionToken) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -41,6 +43,9 @@ export const handleSendMessage: RequestHandler = (req, res) => {
       });
     }
 
+    // Generate unique message ID
+    const messageId = uuidv4();
+
     // Create encrypted message object
     const message: EncryptedMessage = {
       nonce,
@@ -50,7 +55,7 @@ export const handleSendMessage: RequestHandler = (req, res) => {
       timestamp,
     };
 
-    // Store in conversation history
+    // Store in conversation history (in-memory for current session)
     const conversationKey = getConversationKey(session.userId, recipientId);
     if (!conversationHistory.has(conversationKey)) {
       conversationHistory.set(conversationKey, []);
@@ -58,6 +63,19 @@ export const handleSendMessage: RequestHandler = (req, res) => {
 
     const messages = conversationHistory.get(conversationKey)!;
     messages.push(message);
+
+    // Also store in R2 for persistence
+    try {
+      await saveMessageWithMetadata(messageId, session.userId, recipientId, {
+        nonce,
+        ciphertext,
+        timestamp,
+      });
+      console.log(`Message ${messageId} stored in R2`);
+    } catch (r2Error) {
+      console.error("Failed to store message in R2:", r2Error);
+      // Continue anyway, message is in memory
+    }
 
     // Keep only last 1000 messages per conversation
     if (messages.length > 1000) {
