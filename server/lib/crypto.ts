@@ -1,7 +1,16 @@
 import nacl from 'tweetnacl';
 import { EncryptedMessage } from '@shared/crypto';
 
-const { encode: utf8Encode, decode: utf8Decode } = nacl.utils;
+// Utility functions for encoding/decoding
+function utf8Encode(str: string): Uint8Array {
+  const encoder = new TextEncoder();
+  return encoder.encode(str);
+}
+
+function utf8Decode(bytes: Uint8Array): string {
+  const decoder = new TextDecoder();
+  return decoder.decode(bytes);
+}
 
 /**
  * Verify a signed challenge from client
