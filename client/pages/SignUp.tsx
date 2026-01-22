@@ -24,7 +24,7 @@ export default function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -36,7 +36,7 @@ export default function SignUp() {
     }
 
     setIsLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
@@ -139,10 +139,7 @@ export default function SignUp() {
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg
-                  className="animate-spin h-4 w-4"
-                  viewBox="0 0 50 50"
-                >
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
                   <circle
                     className="opacity-30"
                     cx="25"
@@ -186,7 +183,9 @@ export default function SignUp() {
         {/* Divider */}
         <div className="flex items-center gap-3 mb-8">
           <div className="flex-1 h-px bg-border"></div>
-          <span className="text-muted-foreground text-sm">Already have an account?</span>
+          <span className="text-muted-foreground text-sm">
+            Already have an account?
+          </span>
           <div className="flex-1 h-px bg-border"></div>
         </div>
 
@@ -207,7 +206,8 @@ export default function SignUp() {
                 Privacy First
               </p>
               <p className="text-xs text-muted-foreground">
-                We never store your messages. All conversations are encrypted end-to-end.
+                We never store your messages. All conversations are encrypted
+                end-to-end.
               </p>
             </div>
           </div>

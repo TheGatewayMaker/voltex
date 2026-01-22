@@ -156,8 +156,8 @@ export default function Conversations() {
               No conversations yet
             </h3>
             <p className="text-muted-foreground text-sm md:text-base text-center max-w-sm">
-              All your messages are end-to-end encrypted. Start a new conversation
-              to begin chatting securely.
+              All your messages are end-to-end encrypted. Start a new
+              conversation to begin chatting securely.
             </p>
           </div>
         )}

@@ -72,7 +72,7 @@ export default function Chat() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>(
-    MOCK_MESSAGES[id || "1"] || []
+    MOCK_MESSAGES[id || "1"] || [],
   );
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -108,7 +108,11 @@ export default function Chat() {
   };
 
   return (
-    <Layout showBack={true} title={conversationName} onBackClick={handleBackClick}>
+    <Layout
+      showBack={true}
+      title={conversationName}
+      onBackClick={handleBackClick}
+    >
       <div className="flex flex-col h-full bg-background">
         {/* Messages Container */}
         <div

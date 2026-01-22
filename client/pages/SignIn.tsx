@@ -11,7 +11,7 @@ export default function SignIn() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
@@ -28,9 +28,7 @@ export default function SignIn() {
           <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6">
             <Lock className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Voltex
-          </h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Voltex</h1>
           <p className="text-muted-foreground text-center">
             Secure messaging, end-to-end encrypted
           </p>
@@ -73,10 +71,7 @@ export default function SignIn() {
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg
-                  className="animate-spin h-4 w-4"
-                  viewBox="0 0 50 50"
-                >
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
                   <circle
                     className="opacity-30"
                     cx="25"
@@ -136,7 +131,8 @@ export default function SignIn() {
                 End-to-End Encrypted
               </p>
               <p className="text-xs text-muted-foreground">
-                Your messages are encrypted and can only be read by you and the people you send them to.
+                Your messages are encrypted and can only be read by you and the
+                people you send them to.
               </p>
             </div>
           </div>
