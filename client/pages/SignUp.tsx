@@ -1,27 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, Copy, Check } from "lucide-react";
+import { Lock } from "lucide-react";
 import {
   generateKeyPair,
   generateMnemonicPhrase,
   deriveUserIdFromPublicKey,
   storeKeyPair,
   storeMnemonic,
+  signChallenge,
 } from "@/lib/crypto";
 import { toast } from "sonner";
 
-type SignUpStep = "info" | "generating" | "mnemonic" | "created";
-
 export default function SignUp() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<SignUpStep>("info");
   const [displayName, setDisplayName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [mnemonicPhrase, setMnemonicPhrase] = useState("");
-  const [userId, setUserId] = useState("");
-  const [publicKey, setPublicKey] = useState("");
-  const [copiedMnemonic, setCopiedMnemonic] = useState(false);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,19 +29,16 @@ export default function SignUp() {
     setError("");
 
     try {
-      // Step 1: Generate key pair locally
-      setStep("generating");
+      // Generate key pair locally (non-blocking)
       const keyPair = generateKeyPair();
 
-      // Step 2: Generate mnemonic for recovery
+      // Generate mnemonic for recovery
       const mnemonic = generateMnemonicPhrase();
 
-      // Step 3: Derive user ID from public key
-      const derivedUserId = await deriveUserIdFromPublicKey(
-        keyPair.publicKeyBase64,
-      );
+      // Derive user ID from public key
+      const userId = await deriveUserIdFromPublicKey(keyPair.publicKeyBase64);
 
-      // Step 4: Register account on server
+      // Register account on server
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,39 +52,60 @@ export default function SignUp() {
         throw new Error(errorData.error || "Registration failed");
       }
 
-      // Step 5: Store keys locally (encrypted in production)
+      // Get challenge for authentication
+      const challengeResponse = await fetch("/api/auth/challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          publicKey: keyPair.publicKeyBase64,
+        }),
+      });
+
+      if (!challengeResponse.ok) {
+        const errorData = await challengeResponse.json();
+        throw new Error(errorData.error || "Failed to get challenge");
+      }
+
+      const { challenge } = await challengeResponse.json();
+
+      // Sign challenge with private key
+      const signature = signChallenge(challenge, keyPair.privateKeyBase64);
+
+      // Verify challenge and get session token
+      const verifyResponse = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          challenge,
+          signature,
+          publicKey: keyPair.publicKeyBase64,
+        }),
+      });
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.error || "Authentication failed");
+      }
+
+      const { sessionToken } = await verifyResponse.json();
+
+      // Store keys and session locally
       storeKeyPair(keyPair);
       storeMnemonic(mnemonic.mnemonic);
+      localStorage.setItem("session_token", sessionToken);
+      localStorage.setItem("current_user_id", userId);
+      localStorage.setItem("current_public_key", keyPair.publicKeyBase64);
 
-      // Set state for display
-      setMnemonicPhrase(mnemonic.mnemonic);
-      setUserId(derivedUserId);
-      setPublicKey(keyPair.publicKeyBase64);
-      setStep("mnemonic");
-
-      setIsLoading(false);
+      // Navigate to conversations page
+      navigate("/");
     } catch (err) {
-      setIsLoading(false);
       setError(err instanceof Error ? err.message : "Account creation failed");
+      toast.error(err instanceof Error ? err.message : "Account creation failed");
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleSaveMnemonic = () => {
-    // In production, user should confirm they've saved the mnemonic
-    setStep("created");
-  };
-
-  const copyMnemonic = () => {
-    navigator.clipboard.writeText(mnemonicPhrase);
-    setCopiedMnemonic(true);
-    toast.success("Mnemonic copied to clipboard");
-    setTimeout(() => setCopiedMnemonic(false), 2000);
-  };
-
-  const handleContinue = () => {
-    // Store in session that user is logged in
-    localStorage.setItem("current_user_id", userId);
-    navigate("/");
   };
 
   // Step 1: Account Information
