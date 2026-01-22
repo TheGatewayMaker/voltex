@@ -40,10 +40,10 @@ export default function SignUp() {
       const keyPair = generateKeyPair();
 
       // Generate mnemonic for recovery
-      const mnemonic = generateMnemonicPhrase();
+      const mnemonicData = generateMnemonicPhrase();
 
       // Derive user ID from public key
-      const userId = await deriveUserIdFromPublicKey(keyPair.publicKeyBase64);
+      const derivedUserId = await deriveUserIdFromPublicKey(keyPair.publicKeyBase64);
 
       // Register account on server
       const registerResponse = await fetch("/api/auth/register", {
@@ -64,7 +64,7 @@ export default function SignUp() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
+          userId: derivedUserId,
           publicKey: keyPair.publicKeyBase64,
         }),
       });
@@ -84,7 +84,7 @@ export default function SignUp() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
+          userId: derivedUserId,
           challenge,
           signature,
           publicKey: keyPair.publicKeyBase64,
@@ -96,23 +96,39 @@ export default function SignUp() {
         throw new Error(errorData.error || "Authentication failed");
       }
 
-      const { sessionToken } = await verifyResponse.json();
+      const { sessionToken: token } = await verifyResponse.json();
 
       // Store keys and session locally
       storeKeyPair(keyPair);
-      storeMnemonic(mnemonic.mnemonic);
-      localStorage.setItem("session_token", sessionToken);
-      localStorage.setItem("current_user_id", userId);
+      storeMnemonic(mnemonicData.mnemonic);
+      localStorage.setItem("session_token", token);
+      localStorage.setItem("current_user_id", derivedUserId);
       localStorage.setItem("current_public_key", keyPair.publicKeyBase64);
 
-      // Navigate to conversations page
-      navigate("/");
+      // Show passphrase screen before completing
+      setMnemonic(mnemonicData.mnemonic);
+      setUserId(derivedUserId);
+      setSessionToken(token);
+      setStep("passphrase");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Account creation failed");
       toast.error(err instanceof Error ? err.message : "Account creation failed");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleConfirmPassphrase = () => {
+    setStep("completed");
+    toast.success("Account created successfully! You're now logged in.");
+    navigate("/");
+  };
+
+  const copyPassphrase = () => {
+    navigator.clipboard.writeText(mnemonic);
+    setCopiedPassphrase(true);
+    toast.success("Passphrase copied to clipboard");
+    setTimeout(() => setCopiedPassphrase(false), 2000);
   };
 
   return (
