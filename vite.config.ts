@@ -26,14 +26,32 @@ export default defineConfig(({ mode }) => ({
 }));
 
 function expressPlugin(): Plugin {
+  let httpServer: any;
+
   return {
     name: "express-plugin",
     apply: "serve", // Only apply during development (serve mode)
     configureServer(server) {
-      const app = createServer();
+      const { app, wss } = createServer();
 
       // Add Express app as middleware to Vite dev server
       server.middlewares.use(app);
+
+      // Store the HTTP server reference
+      return () => {
+        httpServer = server.httpServer;
+
+        // Handle WebSocket upgrades
+        if (httpServer) {
+          httpServer.on("upgrade", (req: any, socket: any, head: any) => {
+            if (req.url?.startsWith("/ws")) {
+              wss.handleUpgrade(req, socket, head, (ws: any) => {
+                wss.emit("connection", ws, req);
+              });
+            }
+          });
+        }
+      };
     },
   };
 }
