@@ -95,23 +95,17 @@ export default function Conversations() {
     setIsAuthenticated(true);
   }, [navigate]);
 
-  // Set up WebSocket connection
+  // Set up WebSocket connection (optional feature)
   const { isConnected } = useWebSocket({
     onMessage: (message) => {
       console.log("Received message:", message);
       toast.success("New message received");
     },
-    onError: (error) => {
-      console.error("WebSocket error:", error);
-      toast.error(error);
-    },
     onConnected: () => {
       console.log("WebSocket connected");
-      toast.success("Connected");
     },
     onDisconnected: () => {
       console.log("WebSocket disconnected");
-      toast.error("Disconnected");
     },
   });
 
