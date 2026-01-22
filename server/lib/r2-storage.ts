@@ -193,3 +193,108 @@ export async function getMessage(messageId: string): Promise<any | null> {
 
   return JSON.parse(data);
 }
+
+/**
+ * Save user account to R2
+ */
+export async function saveUserAccount(userId: string, accountData: any): Promise<void> {
+  const bucketName = "voltex-users";
+  const key = `accounts/${userId}.json`;
+  const data = JSON.stringify({
+    ...accountData,
+    updatedAt: Date.now(),
+  });
+
+  await uploadToR2(bucketName, key, data, "application/json");
+}
+
+/**
+ * Get user account from R2
+ */
+export async function getUserAccount(userId: string): Promise<any | null> {
+  const bucketName = "voltex-users";
+  const key = `accounts/${userId}.json`;
+
+  const data = await downloadFromR2(bucketName, key);
+  if (!data) return null;
+
+  return JSON.parse(data);
+}
+
+/**
+ * Store passphrase recovery data (hashed)
+ */
+export async function savePassphraseRecovery(
+  userId: string,
+  passphraseHash: string,
+): Promise<void> {
+  const bucketName = "voltex-recovery";
+  const key = `${userId}/passphrase.json`;
+  const data = JSON.stringify({
+    userId,
+    passphraseHash,
+    createdAt: Date.now(),
+  });
+
+  await uploadToR2(bucketName, key, data, "application/json");
+}
+
+/**
+ * Get passphrase recovery data
+ */
+export async function getPassphraseRecovery(userId: string): Promise<any | null> {
+  const bucketName = "voltex-recovery";
+  const key = `${userId}/passphrase.json`;
+
+  const data = await downloadFromR2(bucketName, key);
+  if (!data) return null;
+
+  return JSON.parse(data);
+}
+
+/**
+ * Save message with full metadata to R2
+ */
+export async function saveMessageWithMetadata(
+  messageId: string,
+  senderId: string,
+  recipientId: string,
+  messageData: any,
+): Promise<void> {
+  const bucketName = "voltex-messages";
+  const conversationKey = [senderId, recipientId].sort().join(":");
+  const key = `conversations/${conversationKey}/${messageId}.json`;
+
+  const data = JSON.stringify({
+    messageId,
+    senderId,
+    recipientId,
+    createdAt: Date.now(),
+    ...messageData,
+  });
+
+  await uploadToR2(bucketName, key, data, "application/json");
+}
+
+/**
+ * Get conversation messages from R2
+ */
+export async function getConversationMessages(
+  userId1: string,
+  userId2: string,
+): Promise<any[]> {
+  // Note: This is a simplified version. For production, you'd want to list
+  // all objects in a prefix and retrieve them
+  const bucketName = "voltex-messages";
+  const conversationKey = [userId1, userId2].sort().join(":");
+
+  try {
+    const client = initializeR2Client();
+    // For now, we'll return an empty array as listing objects requires more setup
+    // In production, you'd use ListObjectsV2Command to get all messages in a conversation
+    return [];
+  } catch (error) {
+    console.error("Error getting conversation messages:", error);
+    return [];
+  }
+}
