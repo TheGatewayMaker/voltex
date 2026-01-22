@@ -64,15 +64,24 @@ export async function deriveUserIdFromPublicKey(
 }
 
 /**
- * Generate a mnemonic recovery phrase (BIP39)
+ * Generate a simple mnemonic recovery phrase
+ * Generates 24 random words from a predefined word list
  * Can be used to restore the account on other devices
  */
 export function generateMnemonicPhrase(): MnemonicData {
-  const mnemonic = generateMnemonic(256); // 24-word phrase
+  const words: string[] = [];
+
+  // Generate 24 random words
+  for (let i = 0; i < 24; i++) {
+    const randomIndex = Math.floor(Math.random() * MNEMONIC_WORDS.length);
+    words.push(MNEMONIC_WORDS[randomIndex]);
+  }
+
+  const mnemonic = words.join(" ");
 
   return {
     mnemonic,
-    seed: "", // Seed generation requires Node.js Buffer - not needed for basic recovery
+    seed: "", // Not needed for basic recovery
   };
 }
 
