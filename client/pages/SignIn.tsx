@@ -198,9 +198,17 @@ export default function SignIn() {
           {/* Sign Up Link */}
           <Link
             to="/signup"
-            className="block w-full py-3 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary/10 transition-all text-center"
+            className="block w-full py-3 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary/10 transition-all text-center mb-3"
           >
             Create Account
+          </Link>
+
+          {/* Recovery Link */}
+          <Link
+            to="/recover"
+            className="block w-full py-2 text-sm text-primary hover:text-primary/80 transition-all text-center font-medium"
+          >
+            Recover using passphrase
           </Link>
 
           {/* Info */}
