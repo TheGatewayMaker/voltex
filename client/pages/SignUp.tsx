@@ -131,117 +131,200 @@ export default function SignUp() {
     setTimeout(() => setCopiedPassphrase(false), 2000);
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        {/* Logo & Title */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6">
-            <Lock className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Join Voltex
-          </h1>
-          <p className="text-muted-foreground text-center">
-            Create your secure account with cryptographic protection
-          </p>
-        </div>
-
-        {/* Sign Up Form */}
-        <form onSubmit={handleCreateAccount} className="space-y-4 mb-6">
-          {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive text-destructive rounded-lg text-sm">
-              {error}
+  // Step 1: Signup Form
+  if (step === "form") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          {/* Logo & Title */}
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6">
+              <Lock className="w-8 h-8 text-white" />
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => {
-                setDisplayName(e.target.value);
-                setError("");
-              }}
-              placeholder="Your Name"
-              required
-              disabled={isLoading}
-              className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            />
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Join Voltex
+            </h1>
+            <p className="text-muted-foreground text-center">
+              Create your secure account with cryptographic protection
+            </p>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
-                  <circle
-                    className="opacity-30"
-                    cx="25"
-                    cy="25"
-                    r="20"
-                    stroke="currentColor"
-                    strokeWidth="5"
-                    fill="none"
-                  />
-                  <circle
-                    cx="25"
-                    cy="25"
-                    r="20"
-                    stroke="currentColor"
-                    strokeWidth="5"
-                    fill="none"
-                    strokeDasharray="100"
-                    strokeDashoffset="75"
-                  />
-                </svg>
-                Creating Account...
-              </span>
-            ) : (
-              "Create Account"
+          {/* Sign Up Form */}
+          <form onSubmit={handleCreateAccount} className="space-y-4 mb-6">
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive text-destructive rounded-lg text-sm">
+                {error}
+              </div>
             )}
-          </button>
-        </form>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="flex-1 h-px bg-border"></div>
-          <span className="text-muted-foreground text-sm">
-            Already have an account?
-          </span>
-          <div className="flex-1 h-px bg-border"></div>
-        </div>
-
-        {/* Sign In Link */}
-        <Link
-          to="/signin"
-          className="block w-full py-3 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary/10 transition-all text-center"
-        >
-          Sign In
-        </Link>
-
-        {/* Security Note */}
-        <div className="mt-12 p-4 bg-secondary border border-border rounded-lg">
-          <div className="flex gap-3">
-            <Lock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-foreground mb-1">
-                Privacy First
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Your account is secured with a cryptographic key pair. Only
-                you can decrypt your messages.
-              </p>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => {
+                  setDisplayName(e.target.value);
+                  setError("");
+                }}
+                placeholder="Your Name"
+                required
+                disabled={isLoading}
+                className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
+                    <circle
+                      className="opacity-30"
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                    />
+                    <circle
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                      strokeDasharray="100"
+                      strokeDashoffset="75"
+                    />
+                  </svg>
+                  Creating Account...
+                </span>
+              ) : (
+                "Create Account"
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="flex-1 h-px bg-border"></div>
+            <span className="text-muted-foreground text-sm">
+              Already have an account?
+            </span>
+            <div className="flex-1 h-px bg-border"></div>
+          </div>
+
+          {/* Sign In Link */}
+          <Link
+            to="/signin"
+            className="block w-full py-3 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary/10 transition-all text-center"
+          >
+            Sign In
+          </Link>
+
+          {/* Security Note */}
+          <div className="mt-12 p-4 bg-secondary border border-border rounded-lg">
+            <div className="flex gap-3">
+              <Lock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Privacy First
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your account is secured with a cryptographic key pair. Only
+                  you can decrypt your messages.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Step 2: Recovery Passphrase
+  if (step === "passphrase") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl flex items-center justify-center mb-6">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Save Your Recovery Passphrase
+            </h1>
+            <p className="text-muted-foreground text-center text-sm">
+              This 24-word passphrase is the only way to recover your account if you lose access to this device. Write it down and store it safely.
+            </p>
+          </div>
+
+          {/* Passphrase Display */}
+          <div className="bg-secondary border-2 border-yellow-500/50 rounded-lg p-6 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {mnemonic.split(" ").map((word, index) => (
+                <div
+                  key={index}
+                  className="bg-background rounded px-3 py-2 text-center text-sm font-mono"
+                >
+                  <span className="text-muted-foreground mr-2">{index + 1}.</span>
+                  <span className="font-semibold">{word}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={copyPassphrase}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-background border border-border rounded hover:bg-primary/10 transition-all text-sm font-medium"
+            >
+              {copiedPassphrase ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copy Passphrase
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Warning */}
+          <div className="bg-destructive/10 border border-destructive rounded-lg p-4 mb-6">
+            <p className="text-sm text-destructive font-semibold">
+              ⚠️ Important Security Notice
+            </p>
+            <p className="text-xs text-destructive/80 mt-2">
+              • Never share this passphrase with anyone<br />
+              • Store it securely (write it down, password manager, etc.)<br />
+              • Anyone with this passphrase can access your account<br />
+              • There is no way to recover your account without this phrase
+            </p>
+          </div>
+
+          {/* Action */}
+          <button
+            onClick={handleConfirmPassphrase}
+            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all"
+          >
+            I've Saved My Passphrase
+          </button>
+
+          <p className="text-xs text-muted-foreground text-center mt-6">
+            Your account has been created and you're logged in. Your recovery passphrase and private key are stored safely on this device.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
