@@ -76,7 +76,13 @@ export default function Conversations() {
   }
 
   return (
-    <Layout>
+    <Layout
+      showProfileMenu={true}
+      profileData={{
+        userId: currentUserId,
+        displayName: currentDisplayName,
+      }}
+    >
       <div className="flex flex-col h-full bg-background">
         {/* Header with User Info */}
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border flex items-center justify-between">
@@ -92,23 +98,6 @@ export default function Conversations() {
                 isConnected ? "bg-green-500" : "bg-gray-500"
               }`}
             />
-            <button
-              onClick={() => setShowLogoutMenu(!showLogoutMenu)}
-              className="p-2 hover:bg-secondary rounded-lg transition-colors relative"
-            >
-              <LogOut className="w-5 h-5 text-foreground" />
-
-              {showLogoutMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-10">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary rounded-lg transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </button>
           </div>
         </div>
 
