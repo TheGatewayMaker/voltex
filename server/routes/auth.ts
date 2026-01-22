@@ -106,8 +106,8 @@ export const handleGetChallenge: RequestHandler = async (req, res) => {
         .json({ error: "Public key does not match userId" });
     }
 
-    // Check if user exists
-    const userAccount = users.get(userId);
+    // Check if user exists in R2
+    const userAccount = await getUserAccount(userId);
     if (!userAccount) {
       return res.status(404).json({ error: "User not found" });
     }
