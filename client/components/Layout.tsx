@@ -1,6 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
+import ProfileMenu from "./ProfileMenu";
 
 interface LayoutProps {
   children: ReactNode;
