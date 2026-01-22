@@ -27,6 +27,8 @@ export default function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/" element={<Conversations />} />
             <Route path="/chat/:id" element={<Chat />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
