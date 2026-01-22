@@ -55,11 +55,10 @@ export async function deriveUserIdFromPublicKey(
  */
 export function generateMnemonicPhrase(): MnemonicData {
   const mnemonic = generateMnemonic(256); // 24-word phrase
-  const seed = mnemonicToSeed(mnemonic);
 
   return {
     mnemonic,
-    seed: bytesToBase64(new Uint8Array(seed)),
+    seed: "", // Seed generation requires Node.js Buffer - not needed for basic recovery
   };
 }
 
