@@ -13,6 +13,12 @@ import {
   getSessionFromToken,
 } from "./routes/auth";
 import {
+  handleSendMessage,
+  handleGetConversation,
+  handleGetConversations,
+  handleDeleteConversation,
+} from "./routes/messages";
+import {
   registerUserConnection,
   unregisterUserConnection,
   deliverMessage,
