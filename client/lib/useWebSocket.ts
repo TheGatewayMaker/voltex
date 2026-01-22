@@ -63,7 +63,10 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         };
 
         ws.onerror = (error) => {
-          console.warn("WebSocket connection failed (optional feature):", error);
+          console.warn(
+            "WebSocket connection failed (optional feature):",
+            error,
+          );
           setIsConnecting(false);
           // Don't call onError - WebSocket is optional
         };

@@ -43,7 +43,9 @@ export default function SignUp() {
       const mnemonicData = generateMnemonicPhrase();
 
       // Derive user ID from public key
-      const derivedUserId = await deriveUserIdFromPublicKey(keyPair.publicKeyBase64);
+      const derivedUserId = await deriveUserIdFromPublicKey(
+        keyPair.publicKeyBase64,
+      );
 
       // Register account on server
       const registerResponse = await fetch("/api/auth/register", {
@@ -112,7 +114,9 @@ export default function SignUp() {
       setStep("passphrase");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Account creation failed");
-      toast.error(err instanceof Error ? err.message : "Account creation failed");
+      toast.error(
+        err instanceof Error ? err.message : "Account creation failed",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -261,7 +265,8 @@ export default function SignUp() {
               Save Your Recovery Passphrase
             </h1>
             <p className="text-muted-foreground text-center text-sm">
-              This 24-word passphrase is the only way to recover your account if you lose access to this device. Write it down and store it safely.
+              This 24-word passphrase is the only way to recover your account if
+              you lose access to this device. Write it down and store it safely.
             </p>
           </div>
 
@@ -273,7 +278,9 @@ export default function SignUp() {
                   key={index}
                   className="bg-background rounded px-3 py-2 text-center text-sm font-mono"
                 >
-                  <span className="text-muted-foreground mr-2">{index + 1}.</span>
+                  <span className="text-muted-foreground mr-2">
+                    {index + 1}.
+                  </span>
                   <span className="font-semibold">{word}</span>
                 </div>
               ))}
@@ -303,10 +310,13 @@ export default function SignUp() {
               ⚠️ Important Security Notice
             </p>
             <p className="text-xs text-destructive/80 mt-2">
-              • Never share this passphrase with anyone<br />
-              • Store it securely (write it down, password manager, etc.)<br />
-              • Anyone with this passphrase can access your account<br />
-              • There is no way to recover your account without this phrase
+              • Never share this passphrase with anyone
+              <br />
+              • Store it securely (write it down, password manager, etc.)
+              <br />
+              • Anyone with this passphrase can access your account
+              <br />• There is no way to recover your account without this
+              phrase
             </p>
           </div>
 
@@ -319,7 +329,8 @@ export default function SignUp() {
           </button>
 
           <p className="text-xs text-muted-foreground text-center mt-6">
-            Your account has been created and you're logged in. Your recovery passphrase and private key are stored safely on this device.
+            Your account has been created and you're logged in. Your recovery
+            passphrase and private key are stored safely on this device.
           </p>
         </div>
       </div>
