@@ -104,7 +104,11 @@ export const handleUpdateProfile: RequestHandler = async (req, res) => {
  */
 export const handleGetPublicProfile: RequestHandler = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = typeof req.params.userId === "string" ? req.params.userId : "";
+
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
 
     // Get profile from R2
     const profile = await getUserProfile(userId);
