@@ -10,6 +10,7 @@ import {
   handleVerifySession,
   handleGetPublicKey,
   handleLogout,
+  handleRecoverAccount,
   getSessionFromToken,
 } from "./routes/auth";
 import {
