@@ -1,0 +1,309 @@
+import { RequestHandler } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  verifySignedChallenge,
+  deriveUserIdFromPublicKey,
+  generateChallenge,
+  isChallengeExpired,
+  isValidPublicKey,
+  isValidSignature,
+} from '../lib/crypto';
+import {
+  UserAccount,
+  AuthChallenge,
+  AuthResponse,
+  SessionData,
+} from '@shared/crypto';
+
+// In-memory storage (replace with database in production)
+const users = new Map<string, UserAccount>();
+const challenges = new Map<string, AuthChallenge>();
+const sessions = new Map<string, SessionData>();
+
+/**
+ * POST /api/auth/register
+ * Create a new account with public key
+ */
+export const handleRegister: RequestHandler = async (req, res) => {
+  try {
+    const { publicKey } = req.body;
+
+    if (!publicKey || typeof publicKey !== 'string') {
+      return res.status(400).json({ error: 'Public key is required' });
+    }
+
+    if (!isValidPublicKey(publicKey)) {
+      return res.status(400).json({ error: 'Invalid public key format' });
+    }
+
+    // Derive user ID from public key
+    const userId = await deriveUserIdFromPublicKey(publicKey);
+
+    // Check if user already exists
+    if (users.has(userId)) {
+      return res.status(409).json({ error: 'User already registered' });
+    }
+
+    // Create new user account
+    const userAccount: UserAccount = {
+      userId,
+      publicKey,
+      createdAt: Date.now(),
+    };
+
+    users.set(userId, userAccount);
+
+    return res.status(201).json({
+      userId,
+      message: 'Account created successfully',
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return res.status(500).json({ error: 'Registration failed' });
+  }
+};
+
+/**
+ * POST /api/auth/challenge
+ * Generate a challenge for the user to sign
+ */
+export const handleGetChallenge: RequestHandler = async (req, res) => {
+  try {
+    const { userId, publicKey } = req.body;
+
+    if (!userId || !publicKey) {
+      return res.status(400).json({ error: 'userId and publicKey are required' });
+    }
+
+    if (!isValidPublicKey(publicKey)) {
+      return res.status(400).json({ error: 'Invalid public key format' });
+    }
+
+    // Verify that the provided userId matches the public key
+    const derivedUserId = await deriveUserIdFromPublicKey(publicKey);
+    if (userId !== derivedUserId) {
+      return res.status(403).json({ error: 'Public key does not match userId' });
+    }
+
+    // Check if user exists
+    const userAccount = users.get(userId);
+    if (!userAccount) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate challenge
+    const challenge = generateChallenge();
+    const timestamp = Date.now();
+    const expiresAt = timestamp + 5 * 60 * 1000; // 5 minutes
+
+    const authChallenge: AuthChallenge = {
+      userId,
+      challenge,
+      timestamp,
+      expiresAt,
+    };
+
+    challenges.set(challenge, authChallenge);
+
+    return res.status(200).json({
+      challenge,
+      expiresAt,
+    });
+  } catch (error) {
+    console.error('Challenge generation error:', error);
+    return res.status(500).json({ error: 'Failed to generate challenge' });
+  }
+};
+
+/**
+ * POST /api/auth/verify
+ * Verify the signed challenge and create a session
+ */
+export const handleVerifyChallenge: RequestHandler = async (req, res) => {
+  try {
+    const { userId, challenge, signature, publicKey } = req.body as AuthResponse & { challenge: string };
+
+    if (!userId || !challenge || !signature || !publicKey) {
+      return res.status(400).json({
+        error: 'userId, challenge, signature, and publicKey are required',
+      });
+    }
+
+    if (!isValidPublicKey(publicKey)) {
+      return res.status(400).json({ error: 'Invalid public key format' });
+    }
+
+    if (!isValidSignature(signature)) {
+      return res.status(400).json({ error: 'Invalid signature format' });
+    }
+
+    // Retrieve challenge
+    const authChallenge = challenges.get(challenge);
+    if (!authChallenge) {
+      return res.status(400).json({ error: 'Challenge not found' });
+    }
+
+    // Check challenge expiration
+    if (isChallengeExpired(authChallenge.timestamp)) {
+      challenges.delete(challenge);
+      return res.status(400).json({ error: 'Challenge expired' });
+    }
+
+    // Verify userId matches challenge
+    if (userId !== authChallenge.userId) {
+      return res.status(403).json({ error: 'userId does not match challenge' });
+    }
+
+    // Verify user exists
+    const userAccount = users.get(userId);
+    if (!userAccount) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify public key matches stored user
+    if (userAccount.publicKey !== publicKey) {
+      return res.status(403).json({ error: 'Public key does not match registered user' });
+    }
+
+    // Verify the signature
+    const isSignatureValid = verifySignedChallenge(challenge, signature, publicKey);
+    if (!isSignatureValid) {
+      return res.status(403).json({ error: 'Invalid signature' });
+    }
+
+    // Clean up used challenge
+    challenges.delete(challenge);
+
+    // Create session
+    const sessionToken = uuidv4();
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+    const sessionData: SessionData = {
+      userId,
+      publicKey,
+      sessionToken,
+      expiresAt,
+    };
+
+    sessions.set(sessionToken, sessionData);
+
+    return res.status(200).json({
+      sessionToken,
+      userId,
+      expiresAt,
+      message: 'Authentication successful',
+    });
+  } catch (error) {
+    console.error('Challenge verification error:', error);
+    return res.status(500).json({ error: 'Verification failed' });
+  }
+};
+
+/**
+ * GET /api/auth/verify-session
+ * Verify a session token
+ */
+export const handleVerifySession: RequestHandler = (req, res) => {
+  try {
+    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'No session token provided' });
+    }
+
+    const session = sessions.get(sessionToken);
+    if (!session) {
+      return res.status(401).json({ error: 'Invalid session' });
+    }
+
+    if (session.expiresAt < Date.now()) {
+      sessions.delete(sessionToken);
+      return res.status(401).json({ error: 'Session expired' });
+    }
+
+    return res.status(200).json({
+      userId: session.userId,
+      publicKey: session.publicKey,
+      expiresAt: session.expiresAt,
+    });
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return res.status(500).json({ error: 'Verification failed' });
+  }
+};
+
+/**
+ * GET /api/auth/public-key/:userId
+ * Get a user's public key for encryption
+ * Public endpoint - anyone can request this
+ */
+export const handleGetPublicKey: RequestHandler = (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const userAccount = users.get(userId);
+    if (!userAccount) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.status(200).json({
+      userId,
+      publicKey: userAccount.publicKey,
+    });
+  } catch (error) {
+    console.error('Get public key error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve public key' });
+  }
+};
+
+/**
+ * POST /api/auth/logout
+ * Invalidate a session
+ */
+export const handleLogout: RequestHandler = (req, res) => {
+  try {
+    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!sessionToken) {
+      return res.status(400).json({ error: 'No session token provided' });
+    }
+
+    sessions.delete(sessionToken);
+
+    return res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ error: 'Logout failed' });
+  }
+};
+
+/**
+ * Utility: Get session from token
+ * Used by other routes to verify authentication
+ */
+export function getSessionFromToken(sessionToken: string): SessionData | null {
+  const session = sessions.get(sessionToken);
+
+  if (!session) return null;
+
+  if (session.expiresAt < Date.now()) {
+    sessions.delete(sessionToken);
+    return null;
+  }
+
+  return session;
+}
+
+/**
+ * Utility: Get all users (admin only - for demo)
+ */
+export function getAllUsers(): UserAccount[] {
+  return Array.from(users.values());
+}
+
+/**
+ * Utility: Get user by ID
+ */
+export function getUserById(userId: string): UserAccount | undefined {
+  return users.get(userId);
+}
