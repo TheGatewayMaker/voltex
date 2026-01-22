@@ -128,11 +128,29 @@ export default function SignUp() {
     navigate("/");
   };
 
-  const copyPassphrase = () => {
-    navigator.clipboard.writeText(mnemonic);
-    setCopiedPassphrase(true);
-    toast.success("Passphrase copied to clipboard");
-    setTimeout(() => setCopiedPassphrase(false), 2000);
+  const copyPassphrase = async () => {
+    try {
+      await navigator.clipboard.writeText(mnemonic);
+      setCopiedPassphrase(true);
+      toast.success("Passphrase copied to clipboard");
+      setTimeout(() => setCopiedPassphrase(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy to clipboard:", err);
+      // Fallback: create a text area and copy manually
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = mnemonic;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setCopiedPassphrase(true);
+        toast.success("Passphrase copied to clipboard");
+        setTimeout(() => setCopiedPassphrase(false), 2000);
+      } catch {
+        toast.error("Failed to copy passphrase to clipboard");
+      }
+    }
   };
 
   // Step 1: Signup Form
