@@ -5,6 +5,7 @@ import {
   signChallenge,
   deriveUserIdFromPublicKey,
 } from "@/lib/crypto";
+import { hashPassphrase } from "@/lib/passphrase";
 import { toast } from "sonner";
 
 type RecoverStep = "userId" | "passphrase" | "authenticating" | "success";
