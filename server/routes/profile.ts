@@ -136,7 +136,8 @@ export const handleGetPublicProfile: RequestHandler = async (req, res) => {
  */
 export const handleUploadAvatar: RequestHandler = async (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+    const authHeader = req.headers.authorization;
+    const sessionToken = typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined;
 
     if (!sessionToken) {
       return res.status(401).json({ error: "No session token provided" });
