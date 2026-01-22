@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Lock } from "lucide-react";
+import { Lock, LogOut } from "lucide-react";
+import { useWebSocket } from "@/lib/useWebSocket";
+import { toast } from "sonner";
 
 interface Conversation {
   id: string;
@@ -72,11 +74,115 @@ const MOCK_CONVERSATIONS: Conversation[] = [
 ];
 
 export default function Conversations() {
-  const [conversations] = useState(MOCK_CONVERSATIONS);
+  const navigate = useNavigate();
+  const [conversations, setConversations] = useState(MOCK_CONVERSATIONS);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const userId = localStorage.getItem("current_user_id");
+    const sessionToken = localStorage.getItem("session_token");
+
+    if (!userId || !sessionToken) {
+      // Not authenticated, redirect to signin
+      navigate("/signin");
+      return;
+    }
+
+    setCurrentUserId(userId);
+    setIsAuthenticated(true);
+  }, [navigate]);
+
+  // Set up WebSocket connection
+  const { isConnected } = useWebSocket({
+    onMessage: (message) => {
+      console.log("Received message:", message);
+      toast.success("New message received");
+    },
+    onError: (error) => {
+      console.error("WebSocket error:", error);
+      toast.error(error);
+    },
+    onConnected: () => {
+      console.log("WebSocket connected");
+      toast.success("Connected");
+    },
+    onDisconnected: () => {
+      console.log("WebSocket disconnected");
+      toast.error("Disconnected");
+    },
+  });
+
+  const handleLogout = async () => {
+    try {
+      const sessionToken = localStorage.getItem("session_token");
+      if (sessionToken) {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${sessionToken}`,
+          },
+        });
+      }
+
+      // Clear stored data
+      localStorage.removeItem("session_token");
+      localStorage.removeItem("current_user_id");
+      localStorage.removeItem("current_public_key");
+
+      toast.success("Logged out successfully");
+      navigate("/signin");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
+  };
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <Layout>
       <div className="flex flex-col h-full bg-background">
+        {/* Header with User Info */}
+        <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              Messages
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              User ID: {currentUserId.substring(0, 8)}...
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? "bg-green-500" : "bg-gray-500"
+              }`}
+            />
+            <button
+              onClick={() => setShowLogoutMenu(!showLogoutMenu)}
+              className="p-2 hover:bg-secondary rounded-lg transition-colors relative"
+            >
+              <LogOut className="w-5 h-5 text-foreground" />
+
+              {showLogoutMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-10">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary rounded-lg transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border">
           <div className="relative">
