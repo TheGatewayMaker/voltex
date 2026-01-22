@@ -176,8 +176,8 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
       return res.status(403).json({ error: "userId does not match challenge" });
     }
 
-    // Verify user exists
-    const userAccount = users.get(userId);
+    // Verify user exists in R2
+    const userAccount = await getUserAccount(userId);
     if (!userAccount) {
       return res.status(404).json({ error: "User not found" });
     }
