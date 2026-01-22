@@ -1,8 +1,15 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListBucketsCommand } from "@aws-sdk/client-s3";
 import { sdkStreamMixin } from "@aws-sdk/util-stream-node";
 
+// Global R2 client instance
+let r2Client: S3Client | null = null;
+
 // Initialize R2 client with Cloudflare credentials
-function initializeR2Client() {
+function initializeR2Client(): S3Client {
+  if (r2Client) {
+    return r2Client;
+  }
+
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   const endpoint = process.env.R2_ENDPOINT_URL;
@@ -11,7 +18,7 @@ function initializeR2Client() {
     throw new Error("Missing R2 credentials in environment variables");
   }
 
-  return new S3Client({
+  r2Client = new S3Client({
     region: "auto",
     endpoint: endpoint,
     credentials: {
@@ -19,6 +26,8 @@ function initializeR2Client() {
       secretAccessKey,
     },
   });
+
+  return r2Client;
 }
 
 /**
