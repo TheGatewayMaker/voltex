@@ -47,12 +47,19 @@ export default function SignUp() {
         keyPair.publicKeyBase64,
       );
 
+      // Hash the mnemonic passphrase for recovery
+      const passphraseHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(mnemonicData.mnemonic));
+      const passphraseHashHex = Array.from(new Uint8Array(passphraseHash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
       // Register account on server
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           publicKey: keyPair.publicKeyBase64,
+          passphraseHash: passphraseHashHex,
         }),
       });
 
