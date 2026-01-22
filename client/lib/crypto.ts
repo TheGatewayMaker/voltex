@@ -33,11 +33,11 @@ function utf8Decode(bytes: Uint8Array): string {
 }
 
 /**
- * Generate a new cryptographic key pair
+ * Generate a new cryptographic key pair for signing
  * Returns both raw Uint8Array and base64-encoded versions
  */
 export function generateKeyPair(): CryptoKeyPair {
-  const keypair = nacl.box.keyPair();
+  const keypair = nacl.sign.keyPair();
 
   return {
     publicKey: keypair.publicKey,
