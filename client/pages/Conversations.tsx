@@ -22,7 +22,7 @@ export default function Conversations() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [currentDisplayName, setCurrentDisplayName] = useState("User");
 
-  // Check authentication status
+  // Check authentication status and fetch user profile
   useEffect(() => {
     const userId = localStorage.getItem("current_user_id");
     const sessionToken = localStorage.getItem("session_token");
@@ -35,7 +35,27 @@ export default function Conversations() {
 
     setCurrentUserId(userId);
     setIsAuthenticated(true);
+
+    // Fetch user profile
+    fetchUserProfile(sessionToken);
   }, [navigate]);
+
+  const fetchUserProfile = async (sessionToken: string) => {
+    try {
+      const response = await fetch("/api/profile/me", {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentDisplayName(data.displayName || "User");
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
+  };
 
   // Set up WebSocket connection (optional feature)
   const { isConnected } = useWebSocket({
@@ -50,31 +70,6 @@ export default function Conversations() {
       console.log("WebSocket disconnected");
     },
   });
-
-  const handleLogout = async () => {
-    try {
-      const sessionToken = localStorage.getItem("session_token");
-      if (sessionToken) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-        });
-      }
-
-      // Clear stored data
-      localStorage.removeItem("session_token");
-      localStorage.removeItem("current_user_id");
-      localStorage.removeItem("current_public_key");
-
-      toast.success("Logged out successfully");
-      navigate("/signin");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Failed to logout");
-    }
-  };
 
   if (!isAuthenticated) {
     return null;
