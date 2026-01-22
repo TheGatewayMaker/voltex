@@ -1,11 +1,25 @@
 import nacl from "tweetnacl";
-import { generateMnemonic } from "bip39";
 import {
   CryptoKeyPair,
   EncryptedMessage,
   DecryptedMessage,
   MnemonicData,
 } from "@shared/crypto";
+
+// Simple word list for mnemonic generation (subset of BIP39 words)
+const MNEMONIC_WORDS = [
+  "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "abuse", "access",
+  "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action",
+  "actor", "acts", "actual", "acute", "acuity", "achieve", "add", "adder", "adding", "address",
+  "adjust", "admin", "admit", "adobe", "adopt", "adore", "adorn", "adult", "advance", "advent",
+  "adverse", "advice", "advise", "advocated", "advowee", "affect", "affidavit", "afford", "afraid", "after",
+  "again", "against", "agent", "agenda", "agile", "aging", "agitated", "agony", "agree", "agreement",
+  "ahead", "aider", "aiding", "ailment", "aimed", "aiming", "air", "airy", "aisle", "ajar",
+  "alarm", "album", "albeit", "alert", "algebra", "alibi", "alien", "align", "alike", "alive",
+  "all", "allay", "allege", "alley", "allied", "allocate", "allot", "allow", "alloy", "allure",
+  "almost", "alone", "along", "aloof", "aloud", "already", "also", "altar", "alter", "always",
+  "am", "amateur", "amaze", "amber", "ambiance", "ambient", "ambiguity", "ambition", "ambush", "amend",
+];
 
 // Utility functions for encoding/decoding
 function utf8Encode(str: string): Uint8Array {
