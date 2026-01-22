@@ -9,6 +9,8 @@ import Conversations from "./pages/Conversations";
 import Chat from "./pages/Chat";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import Account from "./pages/Account";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
