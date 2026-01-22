@@ -44,14 +44,8 @@ export default function Recover() {
     setError("");
 
     try {
-      // Hash the passphrase using SHA-256
-      const passphraseHash = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(passphraseInput)
-      );
-      const passphraseHashHex = Array.from(new Uint8Array(passphraseHash))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+      // Hash the passphrase
+      const passphraseHashHex = await hashPassphrase(passphraseInput);
 
       // Request account recovery
       const recoveryResponse = await fetch("/api/auth/recover", {
