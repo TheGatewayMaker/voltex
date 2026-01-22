@@ -7,21 +7,22 @@ import {
   deriveUserIdFromPublicKey,
   storeKeyPair,
   storeMnemonic,
+  signChallenge,
 } from "@/lib/crypto";
 import { toast } from "sonner";
 
-type SignUpStep = "info" | "generating" | "mnemonic" | "created";
+type SignUpStep = "form" | "passphrase" | "completed";
 
 export default function SignUp() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<SignUpStep>("info");
+  const [step, setStep] = useState<SignUpStep>("form");
   const [displayName, setDisplayName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [mnemonicPhrase, setMnemonicPhrase] = useState("");
+  const [mnemonic, setMnemonic] = useState("");
   const [userId, setUserId] = useState("");
-  const [publicKey, setPublicKey] = useState("");
-  const [copiedMnemonic, setCopiedMnemonic] = useState(false);
+  const [sessionToken, setSessionToken] = useState("");
+  const [copiedPassphrase, setCopiedPassphrase] = useState(false);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,19 +36,18 @@ export default function SignUp() {
     setError("");
 
     try {
-      // Step 1: Generate key pair locally
-      setStep("generating");
+      // Generate key pair locally (non-blocking)
       const keyPair = generateKeyPair();
 
-      // Step 2: Generate mnemonic for recovery
-      const mnemonic = generateMnemonicPhrase();
+      // Generate mnemonic for recovery
+      const mnemonicData = generateMnemonicPhrase();
 
-      // Step 3: Derive user ID from public key
+      // Derive user ID from public key
       const derivedUserId = await deriveUserIdFromPublicKey(
         keyPair.publicKeyBase64,
       );
 
-      // Step 4: Register account on server
+      // Register account on server
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,43 +61,82 @@ export default function SignUp() {
         throw new Error(errorData.error || "Registration failed");
       }
 
-      // Step 5: Store keys locally (encrypted in production)
+      // Get challenge for authentication
+      const challengeResponse = await fetch("/api/auth/challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: derivedUserId,
+          publicKey: keyPair.publicKeyBase64,
+        }),
+      });
+
+      if (!challengeResponse.ok) {
+        const errorData = await challengeResponse.json();
+        throw new Error(errorData.error || "Failed to get challenge");
+      }
+
+      const { challenge } = await challengeResponse.json();
+
+      // Sign challenge with private key
+      const signature = signChallenge(challenge, keyPair.privateKeyBase64);
+
+      // Verify challenge and get session token
+      const verifyResponse = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: derivedUserId,
+          challenge,
+          signature,
+          publicKey: keyPair.publicKeyBase64,
+        }),
+      });
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.error || "Authentication failed");
+      }
+
+      const { sessionToken: token } = await verifyResponse.json();
+
+      // Store keys and session locally
       storeKeyPair(keyPair);
-      storeMnemonic(mnemonic.mnemonic);
+      storeMnemonic(mnemonicData.mnemonic);
+      localStorage.setItem("session_token", token);
+      localStorage.setItem("current_user_id", derivedUserId);
+      localStorage.setItem("current_public_key", keyPair.publicKeyBase64);
 
-      // Set state for display
-      setMnemonicPhrase(mnemonic.mnemonic);
+      // Show passphrase screen before completing
+      setMnemonic(mnemonicData.mnemonic);
       setUserId(derivedUserId);
-      setPublicKey(keyPair.publicKeyBase64);
-      setStep("mnemonic");
-
-      setIsLoading(false);
+      setSessionToken(token);
+      setStep("passphrase");
     } catch (err) {
-      setIsLoading(false);
       setError(err instanceof Error ? err.message : "Account creation failed");
+      toast.error(
+        err instanceof Error ? err.message : "Account creation failed",
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSaveMnemonic = () => {
-    // In production, user should confirm they've saved the mnemonic
-    setStep("created");
-  };
-
-  const copyMnemonic = () => {
-    navigator.clipboard.writeText(mnemonicPhrase);
-    setCopiedMnemonic(true);
-    toast.success("Mnemonic copied to clipboard");
-    setTimeout(() => setCopiedMnemonic(false), 2000);
-  };
-
-  const handleContinue = () => {
-    // Store in session that user is logged in
-    localStorage.setItem("current_user_id", userId);
+  const handleConfirmPassphrase = () => {
+    setStep("completed");
+    toast.success("Account created successfully! You're now logged in.");
     navigate("/");
   };
 
-  // Step 1: Account Information
-  if (step === "info") {
+  const copyPassphrase = () => {
+    navigator.clipboard.writeText(mnemonic);
+    setCopiedPassphrase(true);
+    toast.success("Passphrase copied to clipboard");
+    setTimeout(() => setCopiedPassphrase(false), 2000);
+  };
+
+  // Step 1: Signup Form
+  if (step === "form") {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
@@ -135,11 +174,9 @@ export default function SignUp() {
                 }}
                 placeholder="Your Name"
                 required
-                className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                disabled={isLoading}
+                className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              <p className="text-xs text-muted-foreground mt-2">
-                This is your display name for other users
-              </p>
             </div>
 
             <button
@@ -215,49 +252,8 @@ export default function SignUp() {
     );
   }
 
-  // Step 2: Generating Keys
-  if (step === "generating") {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center">
-          <div className="mb-8">
-            <svg
-              className="animate-spin h-12 w-12 mx-auto text-primary"
-              viewBox="0 0 50 50"
-            >
-              <circle
-                className="opacity-30"
-                cx="25"
-                cy="25"
-                r="20"
-                stroke="currentColor"
-                strokeWidth="5"
-                fill="none"
-              />
-              <circle
-                cx="25"
-                cy="25"
-                r="20"
-                stroke="currentColor"
-                strokeWidth="5"
-                fill="none"
-                strokeDasharray="100"
-                strokeDashoffset="75"
-              />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Generating Keys</h2>
-          <p className="text-muted-foreground">
-            Creating your secure cryptographic key pair. This may take a
-            moment...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 3: Mnemonic Recovery Phrase
-  if (step === "mnemonic") {
+  // Step 2: Recovery Passphrase
+  if (step === "passphrase") {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
@@ -266,18 +262,18 @@ export default function SignUp() {
               <Lock className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Save Your Recovery Phrase
+              Save Your Recovery Passphrase
             </h1>
-            <p className="text-muted-foreground text-center">
-              This phrase can restore your account on any device. Keep it safe
-              and secret.
+            <p className="text-muted-foreground text-center text-sm">
+              This 24-word passphrase is the only way to recover your account if
+              you lose access to this device. Write it down and store it safely.
             </p>
           </div>
 
-          {/* Mnemonic Display */}
+          {/* Passphrase Display */}
           <div className="bg-secondary border-2 border-yellow-500/50 rounded-lg p-6 mb-6">
             <div className="grid grid-cols-2 gap-3 mb-4">
-              {mnemonicPhrase.split(" ").map((word, index) => (
+              {mnemonic.split(" ").map((word, index) => (
                 <div
                   key={index}
                   className="bg-background rounded px-3 py-2 text-center text-sm font-mono"
@@ -291,10 +287,10 @@ export default function SignUp() {
             </div>
 
             <button
-              onClick={copyMnemonic}
+              onClick={copyPassphrase}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-background border border-border rounded hover:bg-primary/10 transition-all text-sm font-medium"
             >
-              {copiedMnemonic ? (
+              {copiedPassphrase ? (
                 <>
                   <Check className="w-4 h-4" />
                   Copied!
@@ -302,7 +298,7 @@ export default function SignUp() {
               ) : (
                 <>
                   <Copy className="w-4 h-4" />
-                  Copy to Clipboard
+                  Copy Passphrase
                 </>
               )}
             </button>
@@ -311,112 +307,31 @@ export default function SignUp() {
           {/* Warning */}
           <div className="bg-destructive/10 border border-destructive rounded-lg p-4 mb-6">
             <p className="text-sm text-destructive font-semibold">
-              ⚠️ Store this phrase securely
+              ⚠️ Important Security Notice
             </p>
             <p className="text-xs text-destructive/80 mt-2">
-              • Never share this phrase with anyone
+              • Never share this passphrase with anyone
               <br />
-              • Save it in a secure location (password manager, safe, etc.)
-              <br />• Anyone with this phrase can access your account
+              • Store it securely (write it down, password manager, etc.)
+              <br />
+              • Anyone with this passphrase can access your account
+              <br />• There is no way to recover your account without this
+              phrase
             </p>
           </div>
 
           {/* Action */}
           <button
-            onClick={handleSaveMnemonic}
+            onClick={handleConfirmPassphrase}
             className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all"
           >
-            I've Saved My Recovery Phrase
+            I've Saved My Passphrase
           </button>
 
           <p className="text-xs text-muted-foreground text-center mt-6">
-            Your account has been created on the server. Your private key is
-            stored locally on this device only.
+            Your account has been created and you're logged in. Your recovery
+            passphrase and private key are stored safely on this device.
           </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 4: Account Created
-  if (step === "created") {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mb-6">
-              <Check className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Account Created!
-            </h1>
-            <p className="text-muted-foreground text-center">
-              Your secure account is ready to use
-            </p>
-          </div>
-
-          {/* Account Info */}
-          <div className="bg-secondary border border-border rounded-lg p-6 mb-6 space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Your User ID</p>
-              <p className="font-mono text-sm font-semibold break-all text-primary">
-                {userId}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Public Key (for encryption)
-              </p>
-              <p className="font-mono text-xs font-semibold break-all text-muted-foreground">
-                {publicKey.substring(0, 32)}...
-              </p>
-            </div>
-          </div>
-
-          {/* Features */}
-          <div className="space-y-3 mb-8">
-            <div className="flex gap-3">
-              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-sm">End-to-End Encrypted</p>
-                <p className="text-xs text-muted-foreground">
-                  Only you can read your messages
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-sm">Private Key Secure</p>
-                <p className="text-xs text-muted-foreground">
-                  Stored only on your device
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-sm">Recovery Phrase</p>
-                <p className="text-xs text-muted-foreground">
-                  Restore your account anytime
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={handleContinue}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all mb-3"
-          >
-            Continue to Conversations
-          </button>
-
-          <Link
-            to="/signin"
-            className="block w-full py-3 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary/10 transition-all text-center"
-          >
-            Sign In on Another Device
-          </Link>
         </div>
       </div>
     );

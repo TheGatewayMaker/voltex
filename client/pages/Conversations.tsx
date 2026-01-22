@@ -15,67 +15,9 @@ interface Conversation {
   online: boolean;
 }
 
-// Mock conversations data
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    avatar: "SJ",
-    lastMessage: "Thanks! See you tomorrow 😊",
-    timestamp: "2:45 PM",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: "2",
-    name: "Alex Chen",
-    avatar: "AC",
-    lastMessage: "Can you review the document?",
-    timestamp: "1:30 PM",
-    unread: 2,
-    online: true,
-  },
-  {
-    id: "3",
-    name: "Team Project",
-    avatar: "TP",
-    lastMessage: "Project deadline moved to Friday",
-    timestamp: "11:15 AM",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "4",
-    name: "Emma Wilson",
-    avatar: "EW",
-    lastMessage: "You: That sounds great!",
-    timestamp: "Yesterday",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "5",
-    name: "David Park",
-    avatar: "DP",
-    lastMessage: "Let's catch up soon",
-    timestamp: "2 days ago",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "6",
-    name: "Lisa Brown",
-    avatar: "LB",
-    lastMessage: "Thanks for the help!",
-    timestamp: "3 days ago",
-    unread: 0,
-    online: false,
-  },
-];
-
 export default function Conversations() {
   const navigate = useNavigate();
-  const [conversations, setConversations] = useState(MOCK_CONVERSATIONS);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
@@ -95,23 +37,17 @@ export default function Conversations() {
     setIsAuthenticated(true);
   }, [navigate]);
 
-  // Set up WebSocket connection
+  // Set up WebSocket connection (optional feature)
   const { isConnected } = useWebSocket({
     onMessage: (message) => {
       console.log("Received message:", message);
       toast.success("New message received");
     },
-    onError: (error) => {
-      console.error("WebSocket error:", error);
-      toast.error(error);
-    },
     onConnected: () => {
       console.log("WebSocket connected");
-      toast.success("Connected");
     },
     onDisconnected: () => {
       console.log("WebSocket disconnected");
-      toast.error("Disconnected");
     },
   });
 
@@ -269,9 +205,9 @@ export default function Conversations() {
         {/* Floating Action Button */}
         <button
           onClick={() => {
-            // For demo, navigate to first conversation
-            // In production, would open modal to select/create conversation
-            navigate("/chat/demo-user-id12345");
+            // TODO: Open modal to select user and start new conversation
+            // For now, show a placeholder message
+            toast.info("Feature coming soon: Start a new conversation");
           }}
           className="absolute bottom-6 right-6 w-14 h-14 md:w-16 md:h-16 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all active:scale-95 md:bottom-8 md:right-8"
         >

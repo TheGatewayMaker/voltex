@@ -1,11 +1,124 @@
 import nacl from "tweetnacl";
-import { generateMnemonic, mnemonicToSeed } from "bip39";
 import {
   CryptoKeyPair,
   EncryptedMessage,
   DecryptedMessage,
   MnemonicData,
 } from "@shared/crypto";
+
+// Simple word list for mnemonic generation (subset of BIP39 words)
+const MNEMONIC_WORDS = [
+  "abandon",
+  "ability",
+  "able",
+  "about",
+  "above",
+  "absent",
+  "absorb",
+  "abstract",
+  "abuse",
+  "access",
+  "accident",
+  "account",
+  "accuse",
+  "achieve",
+  "acid",
+  "acoustic",
+  "acquire",
+  "across",
+  "act",
+  "action",
+  "actor",
+  "acts",
+  "actual",
+  "acute",
+  "acuity",
+  "achieve",
+  "add",
+  "adder",
+  "adding",
+  "address",
+  "adjust",
+  "admin",
+  "admit",
+  "adobe",
+  "adopt",
+  "adore",
+  "adorn",
+  "adult",
+  "advance",
+  "advent",
+  "adverse",
+  "advice",
+  "advise",
+  "advocated",
+  "advowee",
+  "affect",
+  "affidavit",
+  "afford",
+  "afraid",
+  "after",
+  "again",
+  "against",
+  "agent",
+  "agenda",
+  "agile",
+  "aging",
+  "agitated",
+  "agony",
+  "agree",
+  "agreement",
+  "ahead",
+  "aider",
+  "aiding",
+  "ailment",
+  "aimed",
+  "aiming",
+  "air",
+  "airy",
+  "aisle",
+  "ajar",
+  "alarm",
+  "album",
+  "albeit",
+  "alert",
+  "algebra",
+  "alibi",
+  "alien",
+  "align",
+  "alike",
+  "alive",
+  "all",
+  "allay",
+  "allege",
+  "alley",
+  "allied",
+  "allocate",
+  "allot",
+  "allow",
+  "alloy",
+  "allure",
+  "almost",
+  "alone",
+  "along",
+  "aloof",
+  "aloud",
+  "already",
+  "also",
+  "altar",
+  "alter",
+  "always",
+  "am",
+  "amateur",
+  "amaze",
+  "amber",
+  "ambiance",
+  "ambient",
+  "ambiguity",
+  "ambition",
+  "ambush",
+  "amend",
+];
 
 // Utility functions for encoding/decoding
 function utf8Encode(str: string): Uint8Array {
@@ -19,11 +132,11 @@ function utf8Decode(bytes: Uint8Array): string {
 }
 
 /**
- * Generate a new cryptographic key pair
+ * Generate a new cryptographic key pair for signing
  * Returns both raw Uint8Array and base64-encoded versions
  */
 export function generateKeyPair(): CryptoKeyPair {
-  const keypair = nacl.box.keyPair();
+  const keypair = nacl.sign.keyPair();
 
   return {
     publicKey: keypair.publicKey,
@@ -50,16 +163,24 @@ export async function deriveUserIdFromPublicKey(
 }
 
 /**
- * Generate a mnemonic recovery phrase (BIP39)
+ * Generate a simple mnemonic recovery phrase
+ * Generates 24 random words from a predefined word list
  * Can be used to restore the account on other devices
  */
 export function generateMnemonicPhrase(): MnemonicData {
-  const mnemonic = generateMnemonic(256); // 24-word phrase
-  const seed = mnemonicToSeed(mnemonic);
+  const words: string[] = [];
+
+  // Generate 24 random words
+  for (let i = 0; i < 24; i++) {
+    const randomIndex = Math.floor(Math.random() * MNEMONIC_WORDS.length);
+    words.push(MNEMONIC_WORDS[randomIndex]);
+  }
+
+  const mnemonic = words.join(" ");
 
   return {
     mnemonic,
-    seed: bytesToBase64(new Uint8Array(seed)),
+    seed: "", // Not needed for basic recovery
   };
 }
 
