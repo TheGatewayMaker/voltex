@@ -15,64 +15,6 @@ interface Conversation {
   online: boolean;
 }
 
-// Mock conversations data
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    avatar: "SJ",
-    lastMessage: "Thanks! See you tomorrow 😊",
-    timestamp: "2:45 PM",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: "2",
-    name: "Alex Chen",
-    avatar: "AC",
-    lastMessage: "Can you review the document?",
-    timestamp: "1:30 PM",
-    unread: 2,
-    online: true,
-  },
-  {
-    id: "3",
-    name: "Team Project",
-    avatar: "TP",
-    lastMessage: "Project deadline moved to Friday",
-    timestamp: "11:15 AM",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "4",
-    name: "Emma Wilson",
-    avatar: "EW",
-    lastMessage: "You: That sounds great!",
-    timestamp: "Yesterday",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "5",
-    name: "David Park",
-    avatar: "DP",
-    lastMessage: "Let's catch up soon",
-    timestamp: "2 days ago",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "6",
-    name: "Lisa Brown",
-    avatar: "LB",
-    lastMessage: "Thanks for the help!",
-    timestamp: "3 days ago",
-    unread: 0,
-    online: false,
-  },
-];
-
 export default function Conversations() {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState(MOCK_CONVERSATIONS);
