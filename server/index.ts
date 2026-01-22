@@ -69,6 +69,13 @@ export function createServer() {
     handleDeleteConversation,
   );
 
+  // Profile routes
+  app.get("/api/profile/me", handleGetProfile);
+  app.put("/api/profile/me", handleUpdateProfile);
+  app.get("/api/profile/:userId", handleGetPublicProfile);
+  app.post("/api/profile/avatar", handleUploadAvatar);
+  app.post("/api/profile/settings", handleUpdateSettings);
+
   // Create WebSocket server if not already created
   if (!wssInstance) {
     wssInstance = new WebSocketServer({ noServer: true });
