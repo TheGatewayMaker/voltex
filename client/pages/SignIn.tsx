@@ -29,7 +29,7 @@ export default function SignIn() {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Voltex Everywhere
+            Voltex
           </h1>
           <p className="text-muted-foreground text-center">
             Secure messaging, end-to-end encrypted
