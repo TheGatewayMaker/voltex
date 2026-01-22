@@ -63,9 +63,9 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         };
 
         ws.onerror = (error) => {
-          console.error("WebSocket error:", error);
+          console.warn("WebSocket connection failed (optional feature):", error);
           setIsConnecting(false);
-          options?.onError?.("WebSocket connection failed");
+          // Don't call onError - WebSocket is optional
         };
 
         ws.onclose = () => {
@@ -75,8 +75,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
           wsRef.current = null;
           options?.onDisconnected?.();
 
-          // Attempt to reconnect after 3 seconds
-          setTimeout(connectWebSocket, 3000);
+          // Don't attempt to reconnect - WebSocket is optional
         };
 
         wsRef.current = ws;
