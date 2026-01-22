@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 import {
   verifySignedChallenge,
   deriveUserIdFromPublicKey,
@@ -9,14 +10,19 @@ import {
   isValidSignature,
 } from "../lib/crypto";
 import {
+  saveUserAccount,
+  getUserAccount,
+  savePassphraseRecovery,
+  getPassphraseRecovery,
+} from "../lib/r2-storage";
+import {
   UserAccount,
   AuthChallenge,
   AuthResponse,
   SessionData,
 } from "@shared/crypto";
 
-// In-memory storage (replace with database in production)
-const users = new Map<string, UserAccount>();
+// In-memory storage for challenges and sessions (temporary during request)
 const challenges = new Map<string, AuthChallenge>();
 const sessions = new Map<string, SessionData>();
 
