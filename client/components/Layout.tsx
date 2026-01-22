@@ -8,6 +8,12 @@ interface LayoutProps {
   showBack?: boolean;
   title?: string;
   onBackClick?: () => void;
+  showProfileMenu?: boolean;
+  profileData?: {
+    userId?: string;
+    displayName?: string;
+    avatar?: string;
+  };
 }
 
 export default function Layout({
@@ -15,7 +21,15 @@ export default function Layout({
   showBack,
   title,
   onBackClick,
+  showProfileMenu = false,
+  profileData = {},
 }: LayoutProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const sessionToken = localStorage.getItem("session_token");
+    setIsAuthenticated(!!sessionToken);
+  }, []);
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
       {/* Header */}
