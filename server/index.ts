@@ -53,6 +53,12 @@ export function createServer() {
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
   app.post("/api/auth/logout", handleLogout);
 
+  // Message routes
+  app.post("/api/messages/send", handleSendMessage);
+  app.get("/api/messages/conversation/:recipientId", handleGetConversation);
+  app.get("/api/messages/conversations", handleGetConversations);
+  app.delete("/api/messages/conversation/:recipientId", handleDeleteConversation);
+
   // Create WebSocket server if not already created
   if (!wssInstance) {
     wssInstance = new WebSocketServer({ noServer: true });
