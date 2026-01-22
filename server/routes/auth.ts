@@ -265,11 +265,15 @@ export const handleVerifySession: RequestHandler = (req, res) => {
  * Get a user's public key for encryption
  * Public endpoint - anyone can request this
  */
-export const handleGetPublicKey: RequestHandler = (req, res) => {
+export const handleGetPublicKey: RequestHandler = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = typeof req.params.userId === "string" ? req.params.userId : "";
 
-    const userAccount = users.get(userId);
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    const userAccount = await getUserAccount(userId);
     if (!userAccount) {
       return res.status(404).json({ error: "User not found" });
     }
