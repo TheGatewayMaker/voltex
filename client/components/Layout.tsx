@@ -18,7 +18,7 @@ export default function Layout({
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
       {/* Header */}
-      <header className="bg-white dark:bg-card border-b border-border px-4 py-3 md:px-6 md:py-4 flex-shrink-0">
+      <header className="bg-card border-b border-border px-4 py-3 md:px-6 md:py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {showBack ? (
