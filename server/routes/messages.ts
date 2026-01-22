@@ -1,8 +1,10 @@
 import { RequestHandler } from "express";
+import { v4 as uuidv4 } from "uuid";
 import { EncryptedMessage } from "@shared/crypto";
 import { getSessionFromToken } from "./auth";
+import { saveMessageWithMetadata } from "../lib/r2-storage";
 
-// In-memory message storage (replace with database in production)
+// In-memory message storage (messages are also stored in R2 for persistence)
 // Structure: { "senderId:recipientId": [messages] }
 const conversationHistory = new Map<string, EncryptedMessage[]>();
 
