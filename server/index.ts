@@ -59,6 +59,7 @@ export function createServer() {
   app.post("/api/auth/verify", handleVerifyChallenge);
   app.get("/api/auth/verify-session", handleVerifySession);
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
+  app.post("/api/auth/recover", handleRecoverAccount);
   app.post("/api/auth/logout", handleLogout);
 
   // Message routes
