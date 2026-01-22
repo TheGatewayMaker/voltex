@@ -26,6 +26,7 @@ export default function App() {
           <Routes>
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/recover" element={<Recover />} />
             <Route path="/" element={<Conversations />} />
             <Route path="/chat/:id" element={<Chat />} />
             <Route path="/account" element={<Account />} />
