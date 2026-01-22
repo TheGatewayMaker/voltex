@@ -1,5 +1,5 @@
 import nacl from "tweetnacl";
-import { generateMnemonic, mnemonicToSeed } from "bip39";
+import { generateMnemonic } from "bip39";
 import {
   CryptoKeyPair,
   EncryptedMessage,
