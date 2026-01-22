@@ -28,14 +28,18 @@ const sessions = new Map<string, SessionData>();
 
 /**
  * POST /api/auth/register
- * Create a new account with public key
+ * Create a new account with public key and store in R2
  */
 export const handleRegister: RequestHandler = async (req, res) => {
   try {
-    const { publicKey } = req.body;
+    const { publicKey, passphraseHash } = req.body;
 
     if (!publicKey || typeof publicKey !== "string") {
       return res.status(400).json({ error: "Public key is required" });
+    }
+
+    if (!passphraseHash || typeof passphraseHash !== "string") {
+      return res.status(400).json({ error: "Passphrase hash is required" });
     }
 
     if (!isValidPublicKey(publicKey)) {
@@ -45,8 +49,9 @@ export const handleRegister: RequestHandler = async (req, res) => {
     // Derive user ID from public key
     const userId = await deriveUserIdFromPublicKey(publicKey);
 
-    // Check if user already exists
-    if (users.has(userId)) {
+    // Check if user already exists in R2
+    const existingUser = await getUserAccount(userId);
+    if (existingUser) {
       return res.status(409).json({ error: "User already registered" });
     }
 
@@ -57,7 +62,13 @@ export const handleRegister: RequestHandler = async (req, res) => {
       createdAt: Date.now(),
     };
 
-    users.set(userId, userAccount);
+    // Store account in R2
+    await saveUserAccount(userId, userAccount);
+
+    // Store passphrase recovery hash in R2
+    await savePassphraseRecovery(userId, passphraseHash);
+
+    console.log(`User ${userId} registered and stored in R2`);
 
     return res.status(201).json({
       userId,
