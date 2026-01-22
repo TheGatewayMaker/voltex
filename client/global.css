@@ -7,59 +7,11 @@
 
 @layer base {
   /**
-   * Tailwind CSS theme
+   * Dark mode only - Tailwind CSS theme
    * tailwind.config.ts expects the following color variables to be expressed as HSL values.
    * A different format will require also updating the theme in tailwind.config.ts.
   */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    --primary: 173 80% 40%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 3.9%;
-
-    --muted: 240 5% 91%;
-    --muted-foreground: 240 5% 65%;
-
-    --accent: 173 80% 40%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 173 80% 40%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 10% 3.9%;
-
-    --sidebar-primary: 173 80% 40%;
-
-    --sidebar-primary-foreground: 0 0% 100%;
-
-    --sidebar-accent: 240 5% 96%;
-
-    --sidebar-accent-foreground: 240 10% 3.9%;
-
-    --sidebar-border: 240 6% 90%;
-
-    --sidebar-ring: 173 80% 40%;
-  }
-
-  .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
 
@@ -72,11 +24,11 @@
     --primary: 173 80% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 10% 15%;
+    --secondary: 240 10% 20%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 240 10% 25%;
+    --muted-foreground: 240 5% 75%;
 
     --accent: 173 80% 40%;
     --accent-foreground: 0 0% 100%;
@@ -84,16 +36,26 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 240 10% 3.9%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
+    --border: 240 10% 20%;
+    --input: 240 10% 20%;
     --ring: 173 80% 40%;
+
+    --radius: 0.5rem;
+
     --sidebar-background: 240 10% 8%;
+
     --sidebar-foreground: 0 0% 98%;
+
     --sidebar-primary: 173 80% 40%;
+
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 10% 15%;
+
+    --sidebar-accent: 240 10% 20%;
+
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 10% 15%;
+
+    --sidebar-border: 240 10% 20%;
+
     --sidebar-ring: 173 80% 40%;
   }
 }
