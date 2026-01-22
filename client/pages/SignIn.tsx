@@ -34,18 +34,18 @@ export default function SignIn() {
       const keyPair = getStoredKeyPair();
       if (!keyPair) {
         throw new Error(
-          "No account found on this device. Please create a new account or restore from recovery phrase."
+          "No account found on this device. Please create a new account or restore from recovery phrase.",
         );
       }
 
       // Verify that the stored key pair matches the provided user ID
       const derivedUserId = await deriveUserIdFromPublicKey(
-        keyPair.publicKeyBase64
+        keyPair.publicKeyBase64,
       );
 
       if (userIdInput !== derivedUserId) {
         throw new Error(
-          "User ID does not match your stored account on this device"
+          "User ID does not match your stored account on this device",
         );
       }
 
@@ -157,10 +157,7 @@ export default function SignIn() {
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    viewBox="0 0 50 50"
-                  >
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
                     <circle
                       className="opacity-30"
                       cx="25"
@@ -216,9 +213,9 @@ export default function SignIn() {
                     How It Works
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Enter your user ID to begin. Your private key on this
-                    device will sign a cryptographic challenge to authenticate
-                    you securely.
+                    Enter your user ID to begin. Your private key on this device
+                    will sign a cryptographic challenge to authenticate you
+                    securely.
                   </p>
                 </div>
               </div>

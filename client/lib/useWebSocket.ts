@@ -83,9 +83,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
       } catch (error) {
         console.error("Error connecting to WebSocket:", error);
         setIsConnecting(false);
-        options?.onError?.(
-          "Failed to connect to WebSocket"
-        );
+        options?.onError?.("Failed to connect to WebSocket");
       }
     };
 
@@ -103,7 +101,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
    */
   const sendEncryptedMessage = (
     message: EncryptedMessage,
-    messageId?: string
+    messageId?: string,
   ) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not connected");
@@ -116,7 +114,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
           type: "message",
           id: messageId,
           data: message,
-        })
+        }),
       );
       return true;
     } catch (error) {

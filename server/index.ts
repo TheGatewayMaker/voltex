@@ -57,7 +57,10 @@ export function createServer() {
   app.post("/api/messages/send", handleSendMessage);
   app.get("/api/messages/conversation/:recipientId", handleGetConversation);
   app.get("/api/messages/conversations", handleGetConversations);
-  app.delete("/api/messages/conversation/:recipientId", handleDeleteConversation);
+  app.delete(
+    "/api/messages/conversation/:recipientId",
+    handleDeleteConversation,
+  );
 
   // Create WebSocket server if not already created
   if (!wssInstance) {
@@ -91,7 +94,7 @@ export function createServer() {
               JSON.stringify({
                 type: "message",
                 data: message,
-              })
+              }),
             );
           } catch (error) {
             console.error("Error sending queued message:", error);
@@ -113,7 +116,7 @@ export function createServer() {
                 JSON.stringify({
                   type: "error",
                   error: "Invalid message format",
-                })
+                }),
               );
               return;
             }
@@ -124,7 +127,7 @@ export function createServer() {
                 JSON.stringify({
                   type: "error",
                   error: "Sender ID does not match authenticated user",
-                })
+                }),
               );
               return;
             }
@@ -137,7 +140,7 @@ export function createServer() {
                 type: "message-ack",
                 messageId: message.id,
                 delivered,
-              })
+              }),
             );
           }
         } catch (error) {

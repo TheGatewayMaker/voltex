@@ -54,21 +54,25 @@ A fully functional, end-to-end encrypted Chat page has been implemented with the
 ### Key Properties
 
 ✅ **End-to-End Encrypted**
+
 - Messages are encrypted before leaving User A's device
 - Only User A and User B can decrypt
 - Server stores encrypted blobs only
 
 ✅ **Server Blind**
+
 - Server never sees plaintext
 - Server cannot read message content
 - Server only stores encrypted ciphertext
 
 ✅ **Real-Time**
+
 - Messages delivered instantly via WebSocket
 - Offline messages queued on server
 - Automatic reconnection with 3-second retry
 
 ✅ **Persistent**
+
 - Conversation history stored encrypted
 - Messages retrievable from any device
 - Pagination support for large conversations
@@ -82,7 +86,7 @@ A fully functional, end-to-end encrypted Chat page has been implemented with the
 ```
 server/routes/messages.ts (217 lines)
 ├── handleSendMessage()          # Store encrypted message
-├── handleGetConversation()      # Retrieve conversation history  
+├── handleGetConversation()      # Retrieve conversation history
 ├── handleGetConversations()     # List all conversations
 └── handleDeleteConversation()   # Delete conversation
 
@@ -123,6 +127,7 @@ client/lib/useWebSocket.ts (Existing)
 ## API Endpoints
 
 ### Send Message
+
 ```http
 POST /api/messages/send
 Content-Type: application/json
@@ -144,6 +149,7 @@ Response: 200 OK
 ```
 
 ### Get Conversation History
+
 ```http
 GET /api/messages/conversation/bob-user-id-12345678?limit=50&offset=0
 Authorization: Bearer {sessionToken}
@@ -168,6 +174,7 @@ Response: 200 OK
 ```
 
 ### Get All Conversations
+
 ```http
 GET /api/messages/conversations
 Authorization: Bearer {sessionToken}
@@ -187,6 +194,7 @@ Response: 200 OK
 ```
 
 ### Delete Conversation
+
 ```http
 DELETE /api/messages/conversation/bob-user-id-12345678
 Authorization: Bearer {sessionToken}
@@ -218,6 +226,7 @@ Response: 200 OK
 ```
 
 At this point:
+
 - ✅ Alice's key pair has been generated
 - ✅ Alice's public key is registered on server
 - ✅ Alice's private key is stored locally
@@ -238,6 +247,7 @@ At this point:
 ```
 
 Now you have:
+
 - ✅ Alice: User ID = "a1b2c3d4e5f6g7h8"
 - ✅ Bob: User ID = "c1d2e3f4g5h6i7j8"
 
@@ -315,7 +325,7 @@ You can test the encryption/decryption locally:
 
 ```typescript
 // Open browser console on any page
-import { generateKeyPair, encryptMessage, decryptMessage } from '@/lib/crypto';
+import { generateKeyPair, encryptMessage, decryptMessage } from "@/lib/crypto";
 
 // Create two test key pairs
 const alice = generateKeyPair();
@@ -325,7 +335,7 @@ const bob = generateKeyPair();
 const encrypted = encryptMessage(
   "Hello Bob!",
   bob.publicKeyBase64,
-  alice.privateKeyBase64
+  alice.privateKeyBase64,
 );
 
 console.log("Encrypted:", encrypted);
@@ -335,7 +345,7 @@ console.log("Encrypted:", encrypted);
 const decrypted = decryptMessage(
   encrypted,
   alice.publicKeyBase64,
-  bob.privateKeyBase64
+  bob.privateKeyBase64,
 );
 
 console.log("Decrypted:", decrypted.content); // "Hello Bob!"
@@ -368,24 +378,28 @@ Response shows encrypted messages (can't read ciphertext)
 ## Features Implemented
 
 ### ✅ Message Sending
+
 - Encrypt message client-side
 - POST to `/api/messages/send`
 - Server stores encrypted blob
 - Optimistic UI update
 
 ### ✅ Message Receiving
+
 - WebSocket listens for incoming messages
 - Automatic decryption on client
 - Message added to chat
 - Real-time display
 
 ### ✅ Conversation History
+
 - Load messages on page load
 - Decrypt all stored messages
 - Display with timestamps
 - Pagination support (50 messages per load)
 
 ### ✅ User Interface
+
 - Message input field with encryption notice
 - Send button with loading state
 - Message bubbles with avatars
@@ -396,6 +410,7 @@ Response shows encrypted messages (can't read ciphertext)
 - Empty state message
 
 ### ✅ Error Handling
+
 - Network error recovery
 - Decryption failure handling
 - Session validation
@@ -407,12 +422,14 @@ Response shows encrypted messages (can't read ciphertext)
 ## Security Properties
 
 ### ✅ Private Keys
+
 - Generated on client only
 - Never sent to server
 - Never used for encryption key material
 - Only used for signing/verification
 
 ### ✅ Messages
+
 - Encrypted with NaCl Box
 - Authenticated with Poly1305 MAC
 - Unique nonce per message
@@ -420,12 +437,14 @@ Response shows encrypted messages (can't read ciphertext)
 - Server stores encrypted only
 
 ### ✅ Transport Security
+
 - HTTPS for REST API
 - WSS for WebSocket
 - Session tokens validated
 - Challenge-response auth
 
 ### ✅ Conversation Privacy
+
 - Each conversation stored with unique key
 - Ordered by timestamp
 - Limited to 1000 messages per conversation
@@ -436,24 +455,28 @@ Response shows encrypted messages (can't read ciphertext)
 ## Expansion Ideas
 
 ### Immediate (1-2 weeks)
+
 - [ ] Delete individual messages
 - [ ] Edit messages
 - [ ] Message reactions
 - [ ] Typing indicators
 
 ### Short-term (2-4 weeks)
+
 - [ ] Read receipts
 - [ ] User status (online/away)
 - [ ] Message search
 - [ ] Conversation pinning
 
 ### Medium-term (1-3 months)
+
 - [ ] Group messaging
 - [ ] File sharing (encrypted)
 - [ ] Voice messages
 - [ ] Image sharing
 
 ### Long-term (3+ months)
+
 - [ ] Voice/video calls
 - [ ] Message forwarding
 - [ ] Message reactions emoji selector
@@ -464,6 +487,7 @@ Response shows encrypted messages (can't read ciphertext)
 ## Database Schema (For Production)
 
 ### Messages Table
+
 ```sql
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -486,18 +510,19 @@ CREATE TABLE conversation_metadata (
 ```
 
 ### Indexes for Performance
+
 ```sql
 -- Find messages in a conversation
-CREATE INDEX idx_messages_conversation 
+CREATE INDEX idx_messages_conversation
   ON messages(sender_id, recipient_id, created_at DESC);
 
 -- Find recipient's unread messages
-CREATE INDEX idx_messages_recipient_new 
+CREATE INDEX idx_messages_recipient_new
   ON messages(recipient_id, created_at DESC);
 
 -- Cleanup old messages
-CREATE INDEX idx_messages_old 
-  ON messages(created_at) 
+CREATE INDEX idx_messages_old
+  ON messages(created_at)
   WHERE created_at < NOW() - INTERVAL '90 days';
 ```
 
@@ -506,26 +531,33 @@ CREATE INDEX idx_messages_old
 ## Troubleshooting
 
 ### Issue: "Failed to load conversation"
+
 **Cause**: Recipient's public key not found
 **Solution**: Verify recipient user ID is correct and account exists
 
 ### Issue: "Failed to decrypt message"
+
 **Cause**: Wrong key pair or message corruption
-**Solution**: 
+**Solution**:
+
 - Verify you're logged in with correct account
 - Clear browser cache if key pair changed
 - Check message wasn't tampered with
 
 ### Issue: "WebSocket not connected"
+
 **Cause**: Server not running or session expired
 **Solution**:
+
 - Check dev server is running (`pnpm dev`)
 - Sign out and sign in again
 - Check browser console for errors
 
 ### Issue: "Message sent but not received"
+
 **Cause**: Recipient offline or key mismatch
 **Solution**:
+
 - Recipient should sign in and refresh
 - Check server logs for errors
 - Verify both users have correct public keys
@@ -550,11 +582,13 @@ CREATE INDEX idx_messages_old
 ## Performance Notes
 
 ### Current Limits (In-Memory)
+
 - Max 1000 messages per conversation
 - Messages kept in RAM
 - Lost on server restart
 
 ### Production Recommendations
+
 - Use connection pooling (PgBouncer)
 - Index conversation lookups
 - Cache public keys (5-min TTL)
@@ -563,6 +597,7 @@ CREATE INDEX idx_messages_old
 - Use CDN for frontend
 
 ### Optimization Ideas
+
 - Message compression (zlib)
 - Partial message sync
 - Client-side caching
@@ -576,71 +611,65 @@ CREATE INDEX idx_messages_old
 ### Sending a Message Programmatically
 
 ```typescript
-import { 
-  getStoredKeyPair, 
-  encryptMessage 
-} from '@/lib/crypto';
-import { getPublicKey, sendEncryptedMessage } from '@/lib/messageApi';
+import { getStoredKeyPair, encryptMessage } from "@/lib/crypto";
+import { getPublicKey, sendEncryptedMessage } from "@/lib/messageApi";
 
 async function sendChatMessage(recipientId: string, text: string) {
   // Get keys
   const keyPair = getStoredKeyPair();
   const { publicKey: recipientPublicKey } = await getPublicKey(recipientId);
-  
+
   // Encrypt
   const encrypted = encryptMessage(
     text,
     recipientPublicKey,
-    keyPair.privateKeyBase64
+    keyPair.privateKeyBase64,
   );
-  
+
   // Send
-  const sessionToken = localStorage.getItem('session_token');
+  const sessionToken = localStorage.getItem("session_token");
   await sendEncryptedMessage(
     recipientId,
     encrypted.nonce,
     encrypted.ciphertext,
     encrypted.timestamp,
-    sessionToken
+    sessionToken,
   );
 }
 
 // Usage
-await sendChatMessage('bob-user-id-12345678', 'Hello Bob!');
+await sendChatMessage("bob-user-id-12345678", "Hello Bob!");
 ```
 
 ### Retrieving and Decrypting Messages
 
 ```typescript
-import { 
-  getStoredKeyPair, 
-  decryptMessage 
-} from '@/lib/crypto';
-import { getConversationHistory, getPublicKey } from '@/lib/messageApi';
+import { getStoredKeyPair, decryptMessage } from "@/lib/crypto";
+import { getConversationHistory, getPublicKey } from "@/lib/messageApi";
 
 async function loadAndDecryptMessages(recipientId: string) {
   // Get keys and history
   const keyPair = getStoredKeyPair();
-  const sessionToken = localStorage.getItem('session_token');
+  const sessionToken = localStorage.getItem("session_token");
   const { publicKey: recipientPublicKey } = await getPublicKey(recipientId);
   const { messages: encrypted } = await getConversationHistory(
     recipientId,
     sessionToken,
-    50
+    50,
   );
-  
+
   // Decrypt all
   const decrypted = encrypted
-    .map(msg => {
+    .map((msg) => {
       const decrypted = decryptMessage(
         msg,
         recipientPublicKey,
-        keyPair.privateKeyBase64
+        keyPair.privateKeyBase64,
       );
       return { ...msg, ...decrypted };
     })
     .filter(Boolean);
-  
+
   return decrypted;
 }
 ```

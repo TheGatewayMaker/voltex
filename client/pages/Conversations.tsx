@@ -122,7 +122,7 @@ export default function Conversations() {
         await fetch("/api/auth/logout", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${sessionToken}`,
+            Authorization: `Bearer ${sessionToken}`,
           },
         });
       }
@@ -150,9 +150,7 @@ export default function Conversations() {
         {/* Header with User Info */}
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              Messages
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground">Messages</h2>
             <p className="text-xs text-muted-foreground">
               User ID: {currentUserId.substring(0, 8)}...
             </p>

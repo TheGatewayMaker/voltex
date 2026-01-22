@@ -1,5 +1,5 @@
-import nacl from 'tweetnacl';
-import { EncryptedMessage } from '@shared/crypto';
+import nacl from "tweetnacl";
+import { EncryptedMessage } from "@shared/crypto";
 
 // Utility functions for encoding/decoding
 function utf8Encode(str: string): Uint8Array {
@@ -19,20 +19,20 @@ function utf8Decode(bytes: Uint8Array): string {
 export function verifySignedChallenge(
   challenge: string,
   signature: string,
-  publicKeyBase64: string
+  publicKeyBase64: string,
 ): boolean {
   try {
     const publicKeyBytes = base64ToBytes(publicKeyBase64);
     const challengeBytes = utf8Encode(challenge);
     const signatureBytes = base64ToBytes(signature);
-    
+
     return nacl.sign.detached.verify(
       challengeBytes,
       signatureBytes,
-      publicKeyBytes
+      publicKeyBytes,
     );
   } catch (error) {
-    console.error('Signature verification error:', error);
+    console.error("Signature verification error:", error);
     return false;
   }
 }
@@ -41,15 +41,17 @@ export function verifySignedChallenge(
  * Verify an encrypted message format and structure
  * Does not decrypt - just validates format
  */
-export function validateEncryptedMessage(message: any): message is EncryptedMessage {
+export function validateEncryptedMessage(
+  message: any,
+): message is EncryptedMessage {
   return (
-    typeof message === 'object' &&
+    typeof message === "object" &&
     message !== null &&
-    typeof message.nonce === 'string' &&
-    typeof message.ciphertext === 'string' &&
-    typeof message.senderId === 'string' &&
-    typeof message.recipientId === 'string' &&
-    typeof message.timestamp === 'number'
+    typeof message.nonce === "string" &&
+    typeof message.ciphertext === "string" &&
+    typeof message.senderId === "string" &&
+    typeof message.recipientId === "string" &&
+    typeof message.timestamp === "number"
   );
 }
 
@@ -57,15 +59,17 @@ export function validateEncryptedMessage(message: any): message is EncryptedMess
  * Derive user ID from public key
  * Same algorithm as client-side for consistency
  */
-export async function deriveUserIdFromPublicKey(publicKeyBase64: string): Promise<string> {
+export async function deriveUserIdFromPublicKey(
+  publicKeyBase64: string,
+): Promise<string> {
   const publicKeyBytes = base64ToBytes(publicKeyBase64);
-  
+
   // Use Node.js crypto for hashing on server
-  const crypto = await import('crypto');
-  const hash = crypto.createHash('sha256');
+  const crypto = await import("crypto");
+  const hash = crypto.createHash("sha256");
   hash.update(Buffer.from(publicKeyBytes));
-  const hashHex = hash.digest('hex');
-  
+  const hashHex = hash.digest("hex");
+
   return hashHex.substring(0, 16);
 }
 
@@ -80,7 +84,10 @@ export function generateChallenge(length: number = 32): string {
 /**
  * Check if a challenge has expired
  */
-export function isChallengeExpired(issuedAt: number, expiryMs: number = 5 * 60 * 1000): boolean {
+export function isChallengeExpired(
+  issuedAt: number,
+  expiryMs: number = 5 * 60 * 1000,
+): boolean {
   return Date.now() - issuedAt > expiryMs;
 }
 
@@ -88,14 +95,14 @@ export function isChallengeExpired(issuedAt: number, expiryMs: number = 5 * 60 *
  * Utility: Convert bytes to base64 string
  */
 export function bytesToBase64(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('base64');
+  return Buffer.from(bytes).toString("base64");
 }
 
 /**
  * Utility: Convert base64 string to bytes
  */
 export function base64ToBytes(base64: string): Uint8Array {
-  return new Uint8Array(Buffer.from(base64, 'base64'));
+  return new Uint8Array(Buffer.from(base64, "base64"));
 }
 
 /**

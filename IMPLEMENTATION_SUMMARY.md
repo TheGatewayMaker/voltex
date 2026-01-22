@@ -18,6 +18,7 @@ All components of a production-ready, Session-style cryptographic messaging syst
 ### 1. **Cryptographic Foundation** ✓
 
 #### Dependencies Added
+
 - `tweetnacl` - NaCl/libsodium implementation for public-key cryptography
 - `bip39` - Mnemonic phrase generation and validation
 - `ws` - WebSocket server support
@@ -25,6 +26,7 @@ All components of a production-ready, Session-style cryptographic messaging syst
 #### Key Components
 
 **Client Crypto Utilities** (`client/lib/crypto.ts`)
+
 - `generateKeyPair()` - Creates Curve25519 key pairs
 - `deriveUserIdFromPublicKey()` - Generates unique user IDs via SHA-256 hashing
 - `generateMnemonicPhrase()` - Creates 24-word BIP39 recovery phrases
@@ -35,6 +37,7 @@ All components of a production-ready, Session-style cryptographic messaging syst
 - Utility functions for base64 encoding/decoding
 
 **Server Crypto Verification** (`server/lib/crypto.ts`)
+
 - `verifySignedChallenge()` - Validates client signatures
 - `deriveUserIdFromPublicKey()` - Consistent user ID derivation
 - `validateEncryptedMessage()` - Message format validation
@@ -44,9 +47,10 @@ All components of a production-ready, Session-style cryptographic messaging syst
 ### 2. **Authentication System** ✓
 
 #### Registration Flow (`server/routes/auth.ts`)
+
 ```
 Client                              Server
-├─ Generate key pair locally   
+├─ Generate key pair locally
 ├─ POST /api/auth/register ────────► Store public key
 │  {publicKey}                      Derive userId
 │                                   Return userId
@@ -54,24 +58,26 @@ Client                              Server
 ```
 
 **Key Security Properties**:
+
 - Private key never leaves the device
 - User ID deterministically derived from public key
 - Server has no authentication secret to steal
 
 #### Challenge-Response Authentication
+
 ```
 User enters userId ─────────────────┐
     │                               │
     ├─ Request challenge ──────────► Generate random challenge
     │  /api/auth/challenge          Store with 5-min expiry
-    │                               
+    │
     │◄──────────── challenge ────────
     │
     ├─ Sign challenge locally with private key
     │
     ├─ POST /api/auth/verify ──────► Verify signature
     │  {userId, challenge, sig}     Create session
-    │                               
+    │
     │◄──────── sessionToken ────────
     │
     └─ Store session token
@@ -79,6 +85,7 @@ User enters userId ─────────────────┐
 ```
 
 **Security Properties**:
+
 - No password transmission
 - Signature proves private key possession
 - Challenge-response prevents replay attacks
@@ -87,32 +94,36 @@ User enters userId ─────────────────┐
 ### 3. **End-to-End Encryption** ✓
 
 #### Message Encryption
+
 ```typescript
 // User A encrypts message for User B
 encrypted = encryptMessage(
   "Hello Bob",
-  bob.publicKey,      // Bob's public key
-  alice.privateKey    // Alice's private key
-)
+  bob.publicKey, // Bob's public key
+  alice.privateKey, // Alice's private key
+);
 ```
 
 **Algorithm**: NaCl Box (Curve25519-Salsa20-Poly1305)
+
 - Uses recipient's public key for encryption
 - Sender signs with private key
 - Random nonce prevents identical messages from encrypting identically
 - Poly1305 MAC prevents tampering
 
 #### Message Decryption
+
 ```typescript
 // User B decrypts message from User A
 decrypted = decryptMessage(
   encrypted,
-  alice.publicKey,    // Alice's public key
-  bob.privateKey      // Bob's private key
-)
+  alice.publicKey, // Alice's public key
+  bob.privateKey, // Bob's private key
+);
 ```
 
 **Verification**:
+
 - Checks nonce validity (unique per message)
 - Verifies MAC authenticity
 - Returns null if decryption fails
@@ -120,22 +131,33 @@ decrypted = decryptMessage(
 ### 4. **WebSocket Real-Time Messaging** ✓
 
 #### Server Implementation (`server/lib/messaging.ts`)
+
 - `registerUserConnection()` - Track connected users
 - `deliverMessage()` - Route encrypted messages
 - `getQueuedMessages()` - Offline message retrieval
 - Message queue management (max 1000 per user)
 
 #### Client Hook (`client/lib/useWebSocket.ts`)
+
 ```typescript
 const { isConnected, sendEncryptedMessage } = useWebSocket({
-  onMessage: (message) => { /* handle received message */ },
-  onError: (error) => { /* handle errors */ },
-  onConnected: () => { /* connected */ },
-  onDisconnected: () => { /* disconnected */ }
+  onMessage: (message) => {
+    /* handle received message */
+  },
+  onError: (error) => {
+    /* handle errors */
+  },
+  onConnected: () => {
+    /* connected */
+  },
+  onDisconnected: () => {
+    /* disconnected */
+  },
 });
 ```
 
 **Features**:
+
 - Automatic reconnection with 3-second retry
 - Session token validation on connection
 - Message acknowledgment system
@@ -144,30 +166,35 @@ const { isConnected, sendEncryptedMessage } = useWebSocket({
 ### 5. **User Interface** ✓
 
 #### Sign Up Page (`client/pages/SignUp.tsx`)
+
 - **Step 1**: Enter display name
 - **Step 2**: Generate keys (animated loading state)
 - **Step 3**: Display and save recovery phrase (with copy-to-clipboard)
 - **Step 4**: Confirm account creation with key information
 
 Features:
+
 - Recovery phrase display with word numbering
 - Mnemonic backup warnings
 - User ID and public key display
 - Secure key storage confirmation
 
 #### Sign In Page (`client/pages/SignIn.tsx`)
+
 - User ID input field
 - Challenge-response authentication flow
 - Detailed "How It Works" explanation
 - Link to account creation for new users
 
 Features:
+
 - Local key pair validation
 - Error handling for expired challenges
 - Session token management
 - Automatic redirect on successful auth
 
 #### Conversations Page (`client/pages/Conversations.tsx`)
+
 - Authentication requirement check
 - WebSocket connection status indicator
 - Mock conversation list (ready for real messages)
@@ -178,8 +205,8 @@ Features:
 
 ```typescript
 export interface KeyPair {
-  publicKey: string;      // base64
-  privateKey: string;     // base64
+  publicKey: string; // base64
+  privateKey: string; // base64
 }
 
 export interface CryptoKeyPair {
@@ -190,8 +217,8 @@ export interface CryptoKeyPair {
 }
 
 export interface EncryptedMessage {
-  nonce: string;          // base64
-  ciphertext: string;     // base64
+  nonce: string; // base64
+  ciphertext: string; // base64
   senderId: string;
   recipientId: string;
   timestamp: number;
@@ -292,7 +319,7 @@ pnpm dev
 
 ```typescript
 // In browser console
-import { generateKeyPair, encryptMessage, decryptMessage } from '@/lib/crypto';
+import { generateKeyPair, encryptMessage, decryptMessage } from "@/lib/crypto";
 
 // Create two accounts
 const alice = generateKeyPair();
@@ -302,14 +329,14 @@ const bob = generateKeyPair();
 const encrypted = encryptMessage(
   "Hello Bob!",
   bob.publicKeyBase64,
-  alice.privateKeyBase64
+  alice.privateKeyBase64,
 );
 
 // Decrypt message
 const decrypted = decryptMessage(
   encrypted,
   alice.publicKeyBase64,
-  bob.privateKeyBase64
+  bob.privateKeyBase64,
 );
 
 console.log(decrypted.content); // "Hello Bob!"
@@ -320,12 +347,14 @@ console.log(decrypted.content); // "Hello Bob!"
 ## 🔐 Security Features
 
 ### ✅ Private Key Security
+
 - Keys generated entirely client-side
 - Never transmitted to server
 - Stored in browser localStorage (encrypted in production)
 - Only used for local signing and encryption
 
 ### ✅ Message Security
+
 - Encrypted before leaving client
 - Server acts as blind relay
 - Authenticated encryption (Poly1305 MAC)
@@ -333,6 +362,7 @@ console.log(decrypted.content); // "Hello Bob!"
 - Supports millions of messages without key reuse
 
 ### ✅ Authentication Security
+
 - No password hashing required
 - Challenge-response prevents replay attacks
 - Single-use challenges with 5-minute expiry
@@ -340,6 +370,7 @@ console.log(decrypted.content); // "Hello Bob!"
 - Session tokens are opaque and server-validated
 
 ### ✅ Forward Secrecy
+
 - Each message uses unique encryption parameters
 - Compromising one message doesn't affect others
 - Keys are derived fresh for each conversation
@@ -350,19 +381,19 @@ console.log(decrypted.content); // "Hello Bob!"
 
 ### Authentication Routes
 
-| Method | Endpoint | Body | Response |
-|--------|----------|------|----------|
-| POST | `/api/auth/register` | `{publicKey}` | `{userId}` |
-| POST | `/api/auth/challenge` | `{userId, publicKey}` | `{challenge, expiresAt}` |
-| POST | `/api/auth/verify` | `{userId, challenge, signature, publicKey}` | `{sessionToken, expiresAt}` |
-| GET | `/api/auth/verify-session` | Header: `Authorization: Bearer {token}` | `{userId, publicKey, expiresAt}` |
-| GET | `/api/auth/public-key/:userId` | - | `{userId, publicKey}` |
-| POST | `/api/auth/logout` | Header: `Authorization: Bearer {token}` | `{message}` |
+| Method | Endpoint                       | Body                                        | Response                         |
+| ------ | ------------------------------ | ------------------------------------------- | -------------------------------- |
+| POST   | `/api/auth/register`           | `{publicKey}`                               | `{userId}`                       |
+| POST   | `/api/auth/challenge`          | `{userId, publicKey}`                       | `{challenge, expiresAt}`         |
+| POST   | `/api/auth/verify`             | `{userId, challenge, signature, publicKey}` | `{sessionToken, expiresAt}`      |
+| GET    | `/api/auth/verify-session`     | Header: `Authorization: Bearer {token}`     | `{userId, publicKey, expiresAt}` |
+| GET    | `/api/auth/public-key/:userId` | -                                           | `{userId, publicKey}`            |
+| POST   | `/api/auth/logout`             | Header: `Authorization: Bearer {token}`     | `{message}`                      |
 
 ### WebSocket
 
-| URL | Purpose |
-|-----|---------|
+| URL                                    | Purpose                       |
+| -------------------------------------- | ----------------------------- |
 | `wss://server/ws?token={sessionToken}` | Message relay (authenticated) |
 
 ---
@@ -370,7 +401,9 @@ console.log(decrypted.content); // "Hello Bob!"
 ## 📚 Documentation Files
 
 ### `CRYPTO_ARCHITECTURE.md` (663 lines)
+
 Complete technical documentation covering:
+
 - System architecture and diagrams
 - Core components and algorithms
 - File organization
@@ -381,7 +414,9 @@ Complete technical documentation covering:
 - Troubleshooting guide
 
 ### `CRYPTO_EXAMPLES.md` (733 lines)
+
 Practical code examples for:
+
 - Account creation
 - Authentication flows
 - Message encryption/decryption
@@ -448,6 +483,7 @@ CORS_ORIGIN=https://yourdomain.com
 ## 🧪 Testing
 
 ### Unit Tests
+
 ```bash
 pnpm test
 
@@ -486,6 +522,7 @@ pnpm test
 ## 🔄 Workflow: From Development to Production
 
 ### Step 1: Local Development
+
 ```bash
 # Clone and develop
 git clone <repo>
@@ -495,6 +532,7 @@ pnpm dev
 ```
 
 ### Step 2: Testing
+
 ```bash
 # Run tests
 pnpm test
@@ -506,6 +544,7 @@ pnpm typecheck
 ```
 
 ### Step 3: Build for Production
+
 ```bash
 # Build client and server
 pnpm build
@@ -516,6 +555,7 @@ pnpm build
 ```
 
 ### Step 4: Deploy to VPS
+
 ```bash
 # SCP files to server
 scp -r dist/ user@server:/app/voltex/
@@ -530,6 +570,7 @@ pm2 startup
 ```
 
 ### Step 5: Setup Nginx Reverse Proxy
+
 ```nginx
 server {
     listen 443 ssl http2;
@@ -553,23 +594,27 @@ server {
 ## 🚦 Next Steps
 
 ### Immediate (Week 1)
+
 - [ ] Implement Chat page with real message sending
 - [ ] Add database persistence (PostgreSQL)
 - [ ] Implement friend/contact management
 
 ### Short-term (Week 2-3)
+
 - [ ] Group messaging support
 - [ ] Message reactions and read receipts
 - [ ] User status and online indicators
 - [ ] Mobile app (React Native)
 
 ### Medium-term (Month 2)
+
 - [ ] File sharing with encryption
 - [ ] Voice/video calling
 - [ ] Desktop notifications
 - [ ] Message search and indexing
 
 ### Long-term (Month 3+)
+
 - [ ] Community features
 - [ ] Integrations (Discord, Slack)
 - [ ] Open-source hosting guide
@@ -589,40 +634,41 @@ server {
 
 ### Trade-offs Made
 
-| Decision | Benefit | Limitation |
-|----------|---------|-----------|
-| Client-side encryption | Privacy, server blindness | Slower on slow devices |
-| Challenge-response auth | No password database | Requires stored keys |
-| WebSocket messaging | Real-time, efficient | Requires connection |
-| In-memory DB (dev) | Fast iteration | Data loss on restart |
+| Decision                | Benefit                   | Limitation             |
+| ----------------------- | ------------------------- | ---------------------- |
+| Client-side encryption  | Privacy, server blindness | Slower on slow devices |
+| Challenge-response auth | No password database      | Requires stored keys   |
+| WebSocket messaging     | Real-time, efficient      | Requires connection    |
+| In-memory DB (dev)      | Fast iteration            | Data loss on restart   |
 
 ---
 
 ## ✨ Features & Status
 
-| Feature | Status | Priority |
-|---------|--------|----------|
-| Key pair generation | ✅ Complete | P0 |
-| User ID derivation | ✅ Complete | P0 |
-| Mnemonic recovery | ✅ Complete | P0 |
-| Challenge-response auth | ✅ Complete | P0 |
-| Message encryption | ✅ Complete | P0 |
-| Message decryption | ✅ Complete | P0 |
-| WebSocket relay | ✅ Complete | P1 |
-| Sign Up UI | ✅ Complete | P0 |
-| Sign In UI | ✅ Complete | P0 |
-| Conversations UI | ✅ Complete | P1 |
-| Chat messaging | 🔄 In Progress | P1 |
-| Database persistence | 🔄 In Progress | P1 |
-| Friend management | ⏳ Planned | P2 |
-| Group messaging | ⏳ Planned | P2 |
-| File sharing | ⏳ Planned | P2 |
+| Feature                 | Status         | Priority |
+| ----------------------- | -------------- | -------- |
+| Key pair generation     | ✅ Complete    | P0       |
+| User ID derivation      | ✅ Complete    | P0       |
+| Mnemonic recovery       | ✅ Complete    | P0       |
+| Challenge-response auth | ✅ Complete    | P0       |
+| Message encryption      | ✅ Complete    | P0       |
+| Message decryption      | ✅ Complete    | P0       |
+| WebSocket relay         | ✅ Complete    | P1       |
+| Sign Up UI              | ✅ Complete    | P0       |
+| Sign In UI              | ✅ Complete    | P0       |
+| Conversations UI        | ✅ Complete    | P1       |
+| Chat messaging          | 🔄 In Progress | P1       |
+| Database persistence    | 🔄 In Progress | P1       |
+| Friend management       | ⏳ Planned     | P2       |
+| Group messaging         | ⏳ Planned     | P2       |
+| File sharing            | ⏳ Planned     | P2       |
 
 ---
 
 ## 📞 Support & Documentation
 
 ### Quick References
+
 - **Crypto Architecture**: See `CRYPTO_ARCHITECTURE.md`
 - **Code Examples**: See `CRYPTO_EXAMPLES.md`
 - **API Reference**: See API Endpoints section above
@@ -632,6 +678,7 @@ server {
 
 **Q: Are private keys safe in localStorage?**
 A: localStorage is accessible to JavaScript, so they're not encrypted at rest. For production, use:
+
 - IndexedDB with encryption
 - Service Worker caching
 - Hardware security modules

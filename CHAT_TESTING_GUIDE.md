@@ -5,6 +5,7 @@
 The Chat page is fully implemented and ready to test. Here's how to see it in action:
 
 ### What You Have
+
 ✅ **Chat Page** (`client/pages/Chat.tsx`) - 491 lines
 ✅ **Message API** (`server/routes/messages.ts`) - 217 lines  
 ✅ **Message Utilities** (`client/lib/messageApi.ts`) - 166 lines
@@ -31,6 +32,7 @@ This is the easiest way to test without two devices.
 ```
 
 **What happened:**
+
 - ✅ Alice's key pair was generated locally
 - ✅ Alice's public key was sent to server
 - ✅ Alice's private key was stored in browser
@@ -53,6 +55,7 @@ This is the easiest way to test without two devices.
 ```
 
 **You now have:**
+
 - Alice's account with User ID: `a1b2c3d4e5f6g7h8`
 - Bob's account with User ID: `c1d2e3f4g5h6i7j8`
 
@@ -248,16 +251,19 @@ Server database contains:
 ## Feature Walkthrough
 
 ### 1. Chat Header
+
 ```
 [← Back] [Avatar] [Name]          [● Connected]
                 [UserID]
 ```
+
 - Back button (mobile only) - Go to conversations
 - Recipient avatar and name
 - Recipient's user ID (truncated)
 - Connection status indicator (green = connected)
 
 ### 2. Message List
+
 ```
 Your Message (Blue/Green bubble, right-aligned)
   └─ Timestamp below
@@ -265,6 +271,7 @@ Your Message (Blue/Green bubble, right-aligned)
 Other's Message (Gray bubble, left-aligned)
   └─ Timestamp below
 ```
+
 - Messages with timestamps
 - Avatar with initials
 - Own messages: blue/green, right side
@@ -272,15 +279,18 @@ Other's Message (Gray bubble, left-aligned)
 - Auto-scroll to newest message
 
 ### 3. Input Area
+
 ```
 [Type message...] [Send Button]
 🔒 End-to-end encrypted • Only you and other can read
 ```
+
 - Message input field
 - Send button (disabled while loading)
 - Encryption notice at bottom
 
 ### 4. Loading States
+
 ```
 Page Loading:
   └─ Spinner + "Loading conversation..."
@@ -410,7 +420,7 @@ HOW TO AVOID:
 ### Error: "WebSocket not connected"
 
 ```
-CAUSE: 
+CAUSE:
 - Dev server not running
 - Session token expired
 - Network issue
@@ -449,12 +459,14 @@ HOW TO VERIFY:
 ## Performance Notes
 
 ### Current Implementation (In-Memory)
+
 - Stores messages in RAM
 - Lost on server restart
 - Good for testing/demo
 - Supports 1000 messages per conversation
 
 ### Production Implementation (Database)
+
 - Replace with PostgreSQL
 - Messages persist permanently
 - Support millions of messages
@@ -484,15 +496,15 @@ If you wanted to create a demo video:
 
 ## Comparison: Voltex vs Other Apps
 
-| Feature | Voltex | Discord | Signal |
-|---------|--------|---------|--------|
-| **End-to-End Encrypted** | ✅ Yes | ❌ No (DMs only in beta) | ✅ Yes |
-| **Server Blind** | ✅ Yes | ❌ No | ✅ Yes |
-| **Private Keys on Device** | ✅ Yes | ❌ No | ✅ Yes |
-| **Account Recovery** | ✅ Yes (Mnemonic) | ✅ Yes (Password) | ✅ Yes (Phone) |
-| **Open Source** | ✅ Yes (This code) | ❌ No | ✅ Yes |
-| **Can Host Yourself** | ✅ Yes | ❌ No | ✅ Yes (Server) |
-| **No Phone Required** | ✅ Yes | ❌ Phone required | ❌ Phone required |
+| Feature                    | Voltex             | Discord                  | Signal            |
+| -------------------------- | ------------------ | ------------------------ | ----------------- |
+| **End-to-End Encrypted**   | ✅ Yes             | ❌ No (DMs only in beta) | ✅ Yes            |
+| **Server Blind**           | ✅ Yes             | ❌ No                    | ✅ Yes            |
+| **Private Keys on Device** | ✅ Yes             | ❌ No                    | ✅ Yes            |
+| **Account Recovery**       | ✅ Yes (Mnemonic)  | ✅ Yes (Password)        | ✅ Yes (Phone)    |
+| **Open Source**            | ✅ Yes (This code) | ❌ No                    | ✅ Yes            |
+| **Can Host Yourself**      | ✅ Yes             | ❌ No                    | ✅ Yes (Server)   |
+| **No Phone Required**      | ✅ Yes             | ❌ Phone required        | ❌ Phone required |
 
 ---
 
@@ -501,24 +513,28 @@ If you wanted to create a demo video:
 After testing the Chat:
 
 ### Immediate (You can add now)
+
 - [ ] Delete messages
 - [ ] Edit messages
 - [ ] Typing indicators
 - [ ] Message reactions
 
 ### Short-term (1-2 weeks)
+
 - [ ] Group messaging
 - [ ] User status (online/away)
 - [ ] Read receipts
 - [ ] Message search
 
 ### Medium-term (2-4 weeks)
+
 - [ ] File sharing (encrypted)
 - [ ] Voice messages
 - [ ] Image sharing
 - [ ] Message forwarding
 
 ### Long-term (1-3 months)
+
 - [ ] Voice/video calling
 - [ ] Desktop notifications
 - [ ] Mobile apps

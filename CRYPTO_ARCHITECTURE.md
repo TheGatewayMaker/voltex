@@ -79,6 +79,7 @@ This document describes the implementation of a Session-style cryptographic key 
 ### 1. Client-Side Cryptography (`client/lib/crypto.ts`)
 
 #### Key Generation
+
 ```typescript
 const keyPair = generateKeyPair();
 // Returns:
@@ -93,6 +94,7 @@ const keyPair = generateKeyPair();
 **Algorithm**: NaCl Box (Curve25519 + Salsa20 + Poly1305)
 
 #### User ID Derivation
+
 ```typescript
 const userId = await deriveUserIdFromPublicKey(publicKeyBase64);
 // SHA-256 hash of public key, truncated to first 16 characters
@@ -102,6 +104,7 @@ const userId = await deriveUserIdFromPublicKey(publicKeyBase64);
 **Purpose**: Create a unique, deterministic identifier from the public key
 
 #### Mnemonic Recovery Phrase
+
 ```typescript
 const mnemonic = generateMnemonicPhrase();
 // Returns: 24-word BIP39 mnemonic phrase
@@ -109,27 +112,34 @@ const mnemonic = generateMnemonicPhrase();
 ```
 
 #### Message Encryption
+
 ```typescript
 const encrypted = encryptMessage(
   "Hello, World!",
   recipientPublicKeyBase64,
-  senderPrivateKeyBase64
+  senderPrivateKeyBase64,
 );
 // Returns: { nonce, ciphertext, senderId, recipientId, timestamp }
 ```
 
 **Algorithm**: NaCl Box
+
 - Generates random 24-byte nonce
 - Encrypts message using recipient's public key and sender's private key
 - Server never receives plaintext
 
 #### Signature & Verification
+
 ```typescript
 // Sign a challenge (client-side)
 const signature = signChallenge(challengeString, privateKeyBase64);
 
 // Verify signature (server-side)
-const isValid = verifyChallenge(challengeString, signatureBase64, publicKeyBase64);
+const isValid = verifyChallenge(
+  challengeString,
+  signatureBase64,
+  publicKeyBase64,
+);
 ```
 
 **Algorithm**: Ed25519 (NaCl sign)
@@ -137,6 +147,7 @@ const isValid = verifyChallenge(challengeString, signatureBase64, publicKeyBase6
 ### 2. Server-Side Verification (`server/lib/crypto.ts`)
 
 All cryptographic operations are non-reversible verification:
+
 - Signature verification (no decryption)
 - Key format validation
 - Challenge expiration checking
@@ -147,6 +158,7 @@ All cryptographic operations are non-reversible verification:
 ### 3. Authentication Flow
 
 #### Step 1: Account Registration
+
 ```
 Client                              Server
   │                                  │
@@ -167,6 +179,7 @@ Client                              Server
 ```
 
 #### Step 2: Challenge-Response Authentication
+
 ```
 Client                              Server
   │                                  │
@@ -199,6 +212,7 @@ Client                              Server
 ```
 
 **Security Properties**:
+
 - Server never sees private key
 - Challenge is single-use (expires in 5 minutes)
 - Signature proves possession of private key
@@ -207,6 +221,7 @@ Client                              Server
 ### 4. Message Encryption & Relay
 
 #### Sending a Message
+
 ```
 Sender (Alice)                      Server                  Receiver (Bob)
   │                                  │                       │
@@ -236,6 +251,7 @@ Sender (Alice)                      Server                  Receiver (Bob)
 ```
 
 **Key Points**:
+
 - Messages are encrypted before leaving client
 - Server is "blind relay" - never sees plaintext
 - Uses authenticated encryption (Poly1305)
@@ -270,6 +286,7 @@ registerUserConnection(userId, ws);
 ```
 
 **Offline Message Queue**:
+
 - If recipient is offline, message is queued
 - Max 1000 messages per user
 - Delivered when user reconnects
@@ -278,6 +295,7 @@ registerUserConnection(userId, ws);
 ## File Organization
 
 ### Client-Side Structure
+
 ```
 client/
 ├── lib/
@@ -296,6 +314,7 @@ shared/
 ```
 
 ### Server-Side Structure
+
 ```
 server/
 ├── index.ts                      # Express app + WebSocket setup
@@ -310,6 +329,7 @@ server/
 ## Deployment Guide
 
 ### Development Setup
+
 ```bash
 # Install dependencies
 pnpm install
@@ -325,6 +345,7 @@ pnpm typecheck
 ```
 
 ### Production Build
+
 ```bash
 # Build client and server
 pnpm build
@@ -336,6 +357,7 @@ pnpm start
 ### VPS Deployment (Self-Hosted)
 
 #### Prerequisites
+
 - Node.js 18+
 - PostgreSQL (for persistent storage)
 - HTTPS certificate (Let's Encrypt recommended)
@@ -344,6 +366,7 @@ pnpm start
 #### Steps
 
 1. **Clone and setup**
+
 ```bash
 git clone <repo>
 cd voltex
@@ -352,6 +375,7 @@ pnpm build
 ```
 
 2. **Configure environment**
+
 ```bash
 # .env.production
 DATABASE_URL=postgres://user:pass@localhost:5432/voltex
@@ -360,6 +384,7 @@ LOG_LEVEL=info
 ```
 
 3. **Setup PostgreSQL**
+
 ```sql
 -- Create tables
 CREATE TABLE users (
@@ -382,17 +407,19 @@ CREATE TABLE message_queue (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_message_queue_recipient 
+CREATE INDEX idx_message_queue_recipient
   ON message_queue(recipient_id);
 ```
 
 4. **Setup SSL/TLS**
+
 ```bash
 # Using Let's Encrypt
 certbot certonly --standalone -d yourdomain.com
 ```
 
 5. **Run with PM2**
+
 ```bash
 npm install -g pm2
 
@@ -402,6 +429,7 @@ pm2 startup
 ```
 
 6. **Nginx Reverse Proxy**
+
 ```nginx
 server {
     listen 443 ssl http2;
@@ -426,6 +454,7 @@ server {
 ### Cloud Deployment
 
 #### Netlify
+
 ```bash
 # Configure netlify.toml
 [build]
@@ -438,6 +467,7 @@ netlify deploy --prod
 ```
 
 #### Vercel
+
 ```bash
 # Configure vercel.json
 {
@@ -455,6 +485,7 @@ vercel deploy --prod
 ### Private Key Security
 
 **Current Implementation**: localStorage with base64 encoding
+
 - ✓ Keys never leave device
 - ✓ Keys never sent to server
 - ⚠️ Not encrypted at rest (browser can access)
@@ -462,17 +493,20 @@ vercel deploy --prod
 **Production Recommendations**:
 
 1. **IndexedDB with Encryption**
+
 ```typescript
 // Use @noble/hashes for PBKDF2
 const encrypted = encrypt(privateKey, userPassword);
-localStorage.setItem('encrypted_key', encrypted);
+localStorage.setItem("encrypted_key", encrypted);
 ```
 
 2. **Hardware Security Module (HSM)**
+
 - Integrate with cloud HSM providers
 - AWS CloudHSM, Azure Key Vault, etc.
 
 3. **Web Cryptography API**
+
 ```typescript
 // Use native browser encryption
 const key = await window.crypto.subtle.importKey(...);
@@ -513,7 +547,7 @@ interface GroupMessage {
 }
 
 // Client encrypts message for each recipient separately
-recipients.forEach(userId => {
+recipients.forEach((userId) => {
   const encrypted = encryptMessage(content, userPublicKey, senderPrivateKey);
   group.encryptedMessages.push(encrypted);
 });
@@ -525,8 +559,8 @@ recipients.forEach(userId => {
 // Encrypt file before upload
 const encryptedFile = await encryptFile(file, recipientPublicKey);
 const formData = new FormData();
-formData.append('file', encryptedFile);
-fetch('/api/upload', { method: 'POST', body: formData });
+formData.append("file", encryptedFile);
+fetch("/api/upload", { method: "POST", body: formData });
 ```
 
 ### Adding Message Reactions
@@ -550,36 +584,41 @@ interface ReadReceipt {
 }
 
 // Send as WebSocket message (unencrypted - metadata only)
-ws.send(JSON.stringify({
-  type: 'read-receipt',
-  data: receipt
-}));
+ws.send(
+  JSON.stringify({
+    type: "read-receipt",
+    data: receipt,
+  }),
+);
 ```
 
 ## Performance Optimization
 
 ### Message Batching
+
 ```typescript
 // Instead of sending 100 messages per message
 // Batch sends:
 const batch = messages.slice(0, 100);
-await fetch('/api/batch-send', {
-  method: 'POST',
-  body: JSON.stringify({ messages: batch })
+await fetch("/api/batch-send", {
+  method: "POST",
+  body: JSON.stringify({ messages: batch }),
 });
 ```
 
 ### Connection Pooling
+
 ```typescript
 // PostgreSQL connection pooling
 const pool = new Pool({
   max: 20,
   min: 5,
-  idle: 10000
+  idle: 10000,
 });
 ```
 
 ### Caching
+
 ```typescript
 // Cache public keys in memory (with TTL)
 const publicKeyCache = new Map();
@@ -597,17 +636,19 @@ function getCachedPublicKey(userId: string) {
 ## Testing
 
 ### Unit Tests
+
 ```bash
 pnpm test
 ```
 
 ### Integration Tests
+
 ```typescript
 // Test account creation
 const keyPair = generateKeyPair();
-const response = await fetch('/api/auth/register', {
-  method: 'POST',
-  body: JSON.stringify({ publicKey: keyPair.publicKeyBase64 })
+const response = await fetch("/api/auth/register", {
+  method: "POST",
+  body: JSON.stringify({ publicKey: keyPair.publicKeyBase64 }),
 });
 const userId = (await response.json()).userId;
 
@@ -618,16 +659,13 @@ const session = await verifyChallenge(userId, challenge, signature);
 ```
 
 ### End-to-End Tests
+
 ```typescript
 // Test message encryption and relay
 const alice = createTestUser();
 const bob = createTestUser();
 
-const message = encryptMessage(
-  "Hello Bob",
-  bob.publicKey,
-  alice.privateKey
-);
+const message = encryptMessage("Hello Bob", bob.publicKey, alice.privateKey);
 
 const decrypted = decryptMessage(message, alice.publicKey, bob.privateKey);
 expect(decrypted.content).toBe("Hello Bob");
@@ -636,18 +674,21 @@ expect(decrypted.content).toBe("Hello Bob");
 ## Troubleshooting
 
 ### WebSocket Connection Fails
+
 - Check server is listening on correct port
 - Verify SSL/TLS certificate is valid
 - Check firewall allows WebSocket (port 443 for WSS)
 - Verify session token is valid and not expired
 
 ### Messages Not Encrypting/Decrypting
+
 - Verify key pair format is correct (base64)
 - Check nonce is 24 bytes (after base64 decode)
 - Verify both users have correct public/private keys
 - Check timestamp is reasonable
 
 ### Performance Issues
+
 - Check database query performance
 - Monitor message queue size
 - Verify connection pooling is working

@@ -1,6 +1,11 @@
-import nacl from 'tweetnacl';
-import { generateMnemonic, mnemonicToSeed } from 'bip39';
-import { CryptoKeyPair, EncryptedMessage, DecryptedMessage, MnemonicData } from '@shared/crypto';
+import nacl from "tweetnacl";
+import { generateMnemonic, mnemonicToSeed } from "bip39";
+import {
+  CryptoKeyPair,
+  EncryptedMessage,
+  DecryptedMessage,
+  MnemonicData,
+} from "@shared/crypto";
 
 // Utility functions for encoding/decoding
 function utf8Encode(str: string): Uint8Array {
@@ -19,7 +24,7 @@ function utf8Decode(bytes: Uint8Array): string {
  */
 export function generateKeyPair(): CryptoKeyPair {
   const keypair = nacl.box.keyPair();
-  
+
   return {
     publicKey: keypair.publicKey,
     privateKey: keypair.secretKey,
@@ -32,11 +37,15 @@ export function generateKeyPair(): CryptoKeyPair {
  * Derive a unique user ID from a public key
  * Uses SHA-256 hash of the public key
  */
-export async function deriveUserIdFromPublicKey(publicKeyBase64: string): Promise<string> {
+export async function deriveUserIdFromPublicKey(
+  publicKeyBase64: string,
+): Promise<string> {
   const publicKeyBytes = base64ToBytes(publicKeyBase64);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', publicKeyBytes);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", publicKeyBytes);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return hashHex.substring(0, 16); // Use first 16 chars for user ID
 }
 
@@ -47,7 +56,7 @@ export async function deriveUserIdFromPublicKey(publicKeyBase64: string): Promis
 export function generateMnemonicPhrase(): MnemonicData {
   const mnemonic = generateMnemonic(256); // 24-word phrase
   const seed = mnemonicToSeed(mnemonic);
-  
+
   return {
     mnemonic,
     seed: bytesToBase64(new Uint8Array(seed)),
@@ -60,7 +69,7 @@ export function generateMnemonicPhrase(): MnemonicData {
  */
 export function signChallenge(
   challenge: string,
-  privateKeyBase64: string
+  privateKeyBase64: string,
 ): string {
   const privateKeyBytes = base64ToBytes(privateKeyBase64);
   const challengeBytes = utf8Encode(challenge);
@@ -75,13 +84,17 @@ export function signChallenge(
 export function verifyChallenge(
   challenge: string,
   signature: string,
-  publicKeyBase64: string
+  publicKeyBase64: string,
 ): boolean {
   try {
     const publicKeyBytes = base64ToBytes(publicKeyBase64);
     const challengeBytes = utf8Encode(challenge);
     const signatureBytes = base64ToBytes(signature);
-    return nacl.sign.detached.verify(challengeBytes, signatureBytes, publicKeyBytes);
+    return nacl.sign.detached.verify(
+      challengeBytes,
+      signatureBytes,
+      publicKeyBytes,
+    );
   } catch {
     return false;
   }
@@ -95,22 +108,27 @@ export function verifyChallenge(
 export function encryptMessage(
   message: string,
   recipientPublicKeyBase64: string,
-  senderPrivateKeyBase64: string
+  senderPrivateKeyBase64: string,
 ): EncryptedMessage {
   const recipientPublicKey = base64ToBytes(recipientPublicKeyBase64);
   const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
-  
+
   const messageBytes = utf8Encode(message);
   const nonce = nacl.randomBytes(nacl.box.nonceLength);
-  
-  const ciphertext = nacl.box(messageBytes, nonce, recipientPublicKey, senderPrivateKey);
-  
+
+  const ciphertext = nacl.box(
+    messageBytes,
+    nonce,
+    recipientPublicKey,
+    senderPrivateKey,
+  );
+
   // Note: You'll need to add senderId and recipientId in the calling code
   return {
     nonce: bytesToBase64(nonce),
     ciphertext: bytesToBase64(ciphertext),
-    senderId: '',
-    recipientId: '',
+    senderId: "",
+    recipientId: "",
     timestamp: Date.now(),
   };
 }
@@ -122,23 +140,28 @@ export function encryptMessage(
 export function decryptMessage(
   encrypted: EncryptedMessage,
   senderPublicKeyBase64: string,
-  recipientPrivateKeyBase64: string
+  recipientPrivateKeyBase64: string,
 ): DecryptedMessage | null {
   try {
     const senderPublicKey = base64ToBytes(senderPublicKeyBase64);
     const recipientPrivateKey = base64ToBytes(recipientPrivateKeyBase64);
     const nonce = base64ToBytes(encrypted.nonce);
     const ciphertext = base64ToBytes(encrypted.ciphertext);
-    
-    const messageBytes = nacl.box.open(ciphertext, nonce, senderPublicKey, recipientPrivateKey);
-    
+
+    const messageBytes = nacl.box.open(
+      ciphertext,
+      nonce,
+      senderPublicKey,
+      recipientPrivateKey,
+    );
+
     if (!messageBytes) {
-      console.error('Failed to decrypt message');
+      console.error("Failed to decrypt message");
       return null;
     }
-    
+
     const content = utf8Decode(messageBytes);
-    
+
     return {
       senderId: encrypted.senderId,
       recipientId: encrypted.recipientId,
@@ -146,7 +169,7 @@ export function decryptMessage(
       timestamp: encrypted.timestamp,
     };
   } catch (error) {
-    console.error('Decryption error:', error);
+    console.error("Decryption error:", error);
     return null;
   }
 }
@@ -155,7 +178,7 @@ export function decryptMessage(
  * Utility: Convert bytes to base64 string
  */
 export function bytesToBase64(bytes: Uint8Array): string {
-  let binary = '';
+  let binary = "";
   for (let i = 0; i < bytes.length; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
@@ -193,16 +216,16 @@ export function storeKeyPair(keyPair: CryptoKeyPair): void {
     privateKey: keyPair.privateKeyBase64,
     createdAt: Date.now(),
   };
-  localStorage.setItem('crypto_keypair', JSON.stringify(stored));
+  localStorage.setItem("crypto_keypair", JSON.stringify(stored));
 }
 
 /**
  * Retrieve stored key pair from localStorage
  */
 export function getStoredKeyPair(): CryptoKeyPair | null {
-  const stored = localStorage.getItem('crypto_keypair');
+  const stored = localStorage.getItem("crypto_keypair");
   if (!stored) return null;
-  
+
   try {
     const parsed = JSON.parse(stored);
     return {
@@ -220,7 +243,7 @@ export function getStoredKeyPair(): CryptoKeyPair | null {
  * Delete stored key pair from localStorage
  */
 export function clearKeyPair(): void {
-  localStorage.removeItem('crypto_keypair');
+  localStorage.removeItem("crypto_keypair");
 }
 
 /**
@@ -229,19 +252,19 @@ export function clearKeyPair(): void {
  */
 export function storeMnemonic(mnemonic: string): void {
   // In production, use secure storage like encrypted IndexedDB
-  localStorage.setItem('crypto_mnemonic', mnemonic);
+  localStorage.setItem("crypto_mnemonic", mnemonic);
 }
 
 /**
  * Retrieve stored mnemonic
  */
 export function getStoredMnemonic(): string | null {
-  return localStorage.getItem('crypto_mnemonic');
+  return localStorage.getItem("crypto_mnemonic");
 }
 
 /**
  * Clear stored mnemonic
  */
 export function clearMnemonic(): void {
-  localStorage.removeItem('crypto_mnemonic');
+  localStorage.removeItem("crypto_mnemonic");
 }

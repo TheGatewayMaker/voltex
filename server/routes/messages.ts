@@ -1,6 +1,6 @@
-import { RequestHandler } from 'express';
-import { EncryptedMessage } from '@shared/crypto';
-import { getSessionFromToken } from './auth';
+import { RequestHandler } from "express";
+import { EncryptedMessage } from "@shared/crypto";
+import { getSessionFromToken } from "./auth";
 
 // In-memory message storage (replace with database in production)
 // Structure: { "senderId:recipientId": [messages] }
@@ -20,21 +20,22 @@ function getConversationKey(userId1: string, userId2: string): string {
  */
 export const handleSendMessage: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
     if (!sessionToken) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const session = getSessionFromToken(sessionToken);
     if (!session) {
-      return res.status(401).json({ error: 'Invalid session' });
+      return res.status(401).json({ error: "Invalid session" });
     }
 
     const { recipientId, nonce, ciphertext, timestamp } = req.body;
 
     if (!recipientId || !nonce || !ciphertext || !timestamp) {
       return res.status(400).json({
-        error: 'Missing required fields: recipientId, nonce, ciphertext, timestamp',
+        error:
+          "Missing required fields: recipientId, nonce, ciphertext, timestamp",
       });
     }
 
@@ -67,8 +68,8 @@ export const handleSendMessage: RequestHandler = (req, res) => {
       timestamp,
     });
   } catch (error) {
-    console.error('Send message error:', error);
-    return res.status(500).json({ error: 'Failed to send message' });
+    console.error("Send message error:", error);
+    return res.status(500).json({ error: "Failed to send message" });
   }
 };
 
@@ -78,14 +79,14 @@ export const handleSendMessage: RequestHandler = (req, res) => {
  */
 export const handleGetConversation: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
     if (!sessionToken) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const session = getSessionFromToken(sessionToken);
     if (!session) {
-      return res.status(401).json({ error: 'Invalid session' });
+      return res.status(401).json({ error: "Invalid session" });
     }
 
     const { recipientId } = req.params;
@@ -93,7 +94,7 @@ export const handleGetConversation: RequestHandler = (req, res) => {
     const offset = parseInt(req.query.offset as string) || 0;
 
     if (!recipientId) {
-      return res.status(400).json({ error: 'recipientId is required' });
+      return res.status(400).json({ error: "recipientId is required" });
     }
 
     // Get conversation history
@@ -102,7 +103,10 @@ export const handleGetConversation: RequestHandler = (req, res) => {
 
     // Apply pagination
     const paginatedMessages = allMessages
-      .slice(Math.max(0, allMessages.length - (offset + limit)), allMessages.length - offset)
+      .slice(
+        Math.max(0, allMessages.length - (offset + limit)),
+        allMessages.length - offset,
+      )
       .reverse(); // Newest first
 
     return res.status(200).json({
@@ -113,8 +117,8 @@ export const handleGetConversation: RequestHandler = (req, res) => {
       offset,
     });
   } catch (error) {
-    console.error('Get conversation error:', error);
-    return res.status(500).json({ error: 'Failed to retrieve conversation' });
+    console.error("Get conversation error:", error);
+    return res.status(500).json({ error: "Failed to retrieve conversation" });
   }
 };
 
@@ -124,14 +128,14 @@ export const handleGetConversation: RequestHandler = (req, res) => {
  */
 export const handleGetConversations: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
     if (!sessionToken) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const session = getSessionFromToken(sessionToken);
     if (!session) {
-      return res.status(401).json({ error: 'Invalid session' });
+      return res.status(401).json({ error: "Invalid session" });
     }
 
     // Get all conversations for this user
@@ -141,7 +145,7 @@ export const handleGetConversations: RequestHandler = (req, res) => {
     >();
 
     for (const [conversationKey, messages] of conversationHistory.entries()) {
-      const [user1, user2] = conversationKey.split(':');
+      const [user1, user2] = conversationKey.split(":");
       const otherUserId = user1 === session.userId ? user2 : user1;
 
       if (messages.length > 0) {
@@ -156,7 +160,7 @@ export const handleGetConversations: RequestHandler = (req, res) => {
 
     // Sort by timestamp (newest first)
     const sorted = Array.from(conversations.values()).sort(
-      (a, b) => b.timestamp - a.timestamp
+      (a, b) => b.timestamp - a.timestamp,
     );
 
     return res.status(200).json({
@@ -164,8 +168,8 @@ export const handleGetConversations: RequestHandler = (req, res) => {
       count: sorted.length,
     });
   } catch (error) {
-    console.error('Get conversations error:', error);
-    return res.status(500).json({ error: 'Failed to retrieve conversations' });
+    console.error("Get conversations error:", error);
+    return res.status(500).json({ error: "Failed to retrieve conversations" });
   }
 };
 
@@ -175,20 +179,20 @@ export const handleGetConversations: RequestHandler = (req, res) => {
  */
 export const handleDeleteConversation: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
     if (!sessionToken) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const session = getSessionFromToken(sessionToken);
     if (!session) {
-      return res.status(401).json({ error: 'Invalid session' });
+      return res.status(401).json({ error: "Invalid session" });
     }
 
     const { recipientId } = req.params;
 
     if (!recipientId) {
-      return res.status(400).json({ error: 'recipientId is required' });
+      return res.status(400).json({ error: "recipientId is required" });
     }
 
     const conversationKey = getConversationKey(session.userId, recipientId);
@@ -196,8 +200,8 @@ export const handleDeleteConversation: RequestHandler = (req, res) => {
 
     return res.status(200).json({ success: true, deleted: true });
   } catch (error) {
-    console.error('Delete conversation error:', error);
-    return res.status(500).json({ error: 'Failed to delete conversation' });
+    console.error("Delete conversation error:", error);
+    return res.status(500).json({ error: "Failed to delete conversation" });
   }
 };
 

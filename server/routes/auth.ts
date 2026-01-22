@@ -1,5 +1,5 @@
-import { RequestHandler } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { RequestHandler } from "express";
+import { v4 as uuidv4 } from "uuid";
 import {
   verifySignedChallenge,
   deriveUserIdFromPublicKey,
@@ -7,13 +7,13 @@ import {
   isChallengeExpired,
   isValidPublicKey,
   isValidSignature,
-} from '../lib/crypto';
+} from "../lib/crypto";
 import {
   UserAccount,
   AuthChallenge,
   AuthResponse,
   SessionData,
-} from '@shared/crypto';
+} from "@shared/crypto";
 
 // In-memory storage (replace with database in production)
 const users = new Map<string, UserAccount>();
@@ -28,12 +28,12 @@ export const handleRegister: RequestHandler = async (req, res) => {
   try {
     const { publicKey } = req.body;
 
-    if (!publicKey || typeof publicKey !== 'string') {
-      return res.status(400).json({ error: 'Public key is required' });
+    if (!publicKey || typeof publicKey !== "string") {
+      return res.status(400).json({ error: "Public key is required" });
     }
 
     if (!isValidPublicKey(publicKey)) {
-      return res.status(400).json({ error: 'Invalid public key format' });
+      return res.status(400).json({ error: "Invalid public key format" });
     }
 
     // Derive user ID from public key
@@ -41,7 +41,7 @@ export const handleRegister: RequestHandler = async (req, res) => {
 
     // Check if user already exists
     if (users.has(userId)) {
-      return res.status(409).json({ error: 'User already registered' });
+      return res.status(409).json({ error: "User already registered" });
     }
 
     // Create new user account
@@ -55,11 +55,11 @@ export const handleRegister: RequestHandler = async (req, res) => {
 
     return res.status(201).json({
       userId,
-      message: 'Account created successfully',
+      message: "Account created successfully",
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    return res.status(500).json({ error: 'Registration failed' });
+    console.error("Registration error:", error);
+    return res.status(500).json({ error: "Registration failed" });
   }
 };
 
@@ -72,23 +72,27 @@ export const handleGetChallenge: RequestHandler = async (req, res) => {
     const { userId, publicKey } = req.body;
 
     if (!userId || !publicKey) {
-      return res.status(400).json({ error: 'userId and publicKey are required' });
+      return res
+        .status(400)
+        .json({ error: "userId and publicKey are required" });
     }
 
     if (!isValidPublicKey(publicKey)) {
-      return res.status(400).json({ error: 'Invalid public key format' });
+      return res.status(400).json({ error: "Invalid public key format" });
     }
 
     // Verify that the provided userId matches the public key
     const derivedUserId = await deriveUserIdFromPublicKey(publicKey);
     if (userId !== derivedUserId) {
-      return res.status(403).json({ error: 'Public key does not match userId' });
+      return res
+        .status(403)
+        .json({ error: "Public key does not match userId" });
     }
 
     // Check if user exists
     const userAccount = users.get(userId);
     if (!userAccount) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Generate challenge
@@ -110,8 +114,8 @@ export const handleGetChallenge: RequestHandler = async (req, res) => {
       expiresAt,
     });
   } catch (error) {
-    console.error('Challenge generation error:', error);
-    return res.status(500).json({ error: 'Failed to generate challenge' });
+    console.error("Challenge generation error:", error);
+    return res.status(500).json({ error: "Failed to generate challenge" });
   }
 };
 
@@ -121,54 +125,61 @@ export const handleGetChallenge: RequestHandler = async (req, res) => {
  */
 export const handleVerifyChallenge: RequestHandler = async (req, res) => {
   try {
-    const { userId, challenge, signature, publicKey } = req.body as AuthResponse & { challenge: string };
+    const { userId, challenge, signature, publicKey } =
+      req.body as AuthResponse & { challenge: string };
 
     if (!userId || !challenge || !signature || !publicKey) {
       return res.status(400).json({
-        error: 'userId, challenge, signature, and publicKey are required',
+        error: "userId, challenge, signature, and publicKey are required",
       });
     }
 
     if (!isValidPublicKey(publicKey)) {
-      return res.status(400).json({ error: 'Invalid public key format' });
+      return res.status(400).json({ error: "Invalid public key format" });
     }
 
     if (!isValidSignature(signature)) {
-      return res.status(400).json({ error: 'Invalid signature format' });
+      return res.status(400).json({ error: "Invalid signature format" });
     }
 
     // Retrieve challenge
     const authChallenge = challenges.get(challenge);
     if (!authChallenge) {
-      return res.status(400).json({ error: 'Challenge not found' });
+      return res.status(400).json({ error: "Challenge not found" });
     }
 
     // Check challenge expiration
     if (isChallengeExpired(authChallenge.timestamp)) {
       challenges.delete(challenge);
-      return res.status(400).json({ error: 'Challenge expired' });
+      return res.status(400).json({ error: "Challenge expired" });
     }
 
     // Verify userId matches challenge
     if (userId !== authChallenge.userId) {
-      return res.status(403).json({ error: 'userId does not match challenge' });
+      return res.status(403).json({ error: "userId does not match challenge" });
     }
 
     // Verify user exists
     const userAccount = users.get(userId);
     if (!userAccount) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Verify public key matches stored user
     if (userAccount.publicKey !== publicKey) {
-      return res.status(403).json({ error: 'Public key does not match registered user' });
+      return res
+        .status(403)
+        .json({ error: "Public key does not match registered user" });
     }
 
     // Verify the signature
-    const isSignatureValid = verifySignedChallenge(challenge, signature, publicKey);
+    const isSignatureValid = verifySignedChallenge(
+      challenge,
+      signature,
+      publicKey,
+    );
     if (!isSignatureValid) {
-      return res.status(403).json({ error: 'Invalid signature' });
+      return res.status(403).json({ error: "Invalid signature" });
     }
 
     // Clean up used challenge
@@ -191,11 +202,11 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
       sessionToken,
       userId,
       expiresAt,
-      message: 'Authentication successful',
+      message: "Authentication successful",
     });
   } catch (error) {
-    console.error('Challenge verification error:', error);
-    return res.status(500).json({ error: 'Verification failed' });
+    console.error("Challenge verification error:", error);
+    return res.status(500).json({ error: "Verification failed" });
   }
 };
 
@@ -205,20 +216,20 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
  */
 export const handleVerifySession: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
 
     if (!sessionToken) {
-      return res.status(401).json({ error: 'No session token provided' });
+      return res.status(401).json({ error: "No session token provided" });
     }
 
     const session = sessions.get(sessionToken);
     if (!session) {
-      return res.status(401).json({ error: 'Invalid session' });
+      return res.status(401).json({ error: "Invalid session" });
     }
 
     if (session.expiresAt < Date.now()) {
       sessions.delete(sessionToken);
-      return res.status(401).json({ error: 'Session expired' });
+      return res.status(401).json({ error: "Session expired" });
     }
 
     return res.status(200).json({
@@ -227,8 +238,8 @@ export const handleVerifySession: RequestHandler = (req, res) => {
       expiresAt: session.expiresAt,
     });
   } catch (error) {
-    console.error('Session verification error:', error);
-    return res.status(500).json({ error: 'Verification failed' });
+    console.error("Session verification error:", error);
+    return res.status(500).json({ error: "Verification failed" });
   }
 };
 
@@ -243,7 +254,7 @@ export const handleGetPublicKey: RequestHandler = (req, res) => {
 
     const userAccount = users.get(userId);
     if (!userAccount) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     return res.status(200).json({
@@ -251,8 +262,8 @@ export const handleGetPublicKey: RequestHandler = (req, res) => {
       publicKey: userAccount.publicKey,
     });
   } catch (error) {
-    console.error('Get public key error:', error);
-    return res.status(500).json({ error: 'Failed to retrieve public key' });
+    console.error("Get public key error:", error);
+    return res.status(500).json({ error: "Failed to retrieve public key" });
   }
 };
 
@@ -262,18 +273,18 @@ export const handleGetPublicKey: RequestHandler = (req, res) => {
  */
 export const handleLogout: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
 
     if (!sessionToken) {
-      return res.status(400).json({ error: 'No session token provided' });
+      return res.status(400).json({ error: "No session token provided" });
     }
 
     sessions.delete(sessionToken);
 
-    return res.status(200).json({ message: 'Logged out successfully' });
+    return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    console.error('Logout error:', error);
-    return res.status(500).json({ error: 'Logout failed' });
+    console.error("Logout error:", error);
+    return res.status(500).json({ error: "Logout failed" });
   }
 };
 

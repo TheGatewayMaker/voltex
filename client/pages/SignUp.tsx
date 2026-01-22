@@ -44,7 +44,7 @@ export default function SignUp() {
 
       // Step 3: Derive user ID from public key
       const derivedUserId = await deriveUserIdFromPublicKey(
-        keyPair.publicKeyBase64
+        keyPair.publicKeyBase64,
       );
 
       // Step 4: Register account on server
@@ -221,7 +221,10 @@ export default function SignUp() {
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-md text-center">
           <div className="mb-8">
-            <svg className="animate-spin h-12 w-12 mx-auto text-primary" viewBox="0 0 50 50">
+            <svg
+              className="animate-spin h-12 w-12 mx-auto text-primary"
+              viewBox="0 0 50 50"
+            >
               <circle
                 className="opacity-30"
                 cx="25"
@@ -245,7 +248,8 @@ export default function SignUp() {
           </div>
           <h2 className="text-2xl font-bold mb-2">Generating Keys</h2>
           <p className="text-muted-foreground">
-            Creating your secure cryptographic key pair. This may take a moment...
+            Creating your secure cryptographic key pair. This may take a
+            moment...
           </p>
         </div>
       </div>
@@ -313,8 +317,7 @@ export default function SignUp() {
               • Never share this phrase with anyone
               <br />
               • Save it in a secure location (password manager, safe, etc.)
-              <br />
-              • Anyone with this phrase can access your account
+              <br />• Anyone with this phrase can access your account
             </p>
           </div>
 

@@ -14,7 +14,7 @@ export async function sendEncryptedMessage(
   nonce: string,
   ciphertext: string,
   timestamp: number,
-  sessionToken: string
+  sessionToken: string,
 ): Promise<{ success: boolean; messageId: string; timestamp: number }> {
   const response = await fetch("/api/messages/send", {
     method: "POST",
@@ -46,7 +46,7 @@ export async function getConversationHistory(
   recipientId: string,
   sessionToken: string,
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<{
   recipientId: string;
   messages: EncryptedMessage[];
@@ -56,7 +56,7 @@ export async function getConversationHistory(
 }> {
   const url = new URL(
     `/api/messages/conversation/${recipientId}`,
-    window.location.origin
+    window.location.origin,
   );
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("offset", offset.toString());
@@ -108,17 +108,14 @@ export async function getConversations(sessionToken: string): Promise<{
  */
 export async function deleteConversation(
   recipientId: string,
-  sessionToken: string
+  sessionToken: string,
 ): Promise<{ success: boolean; deleted: boolean }> {
-  const response = await fetch(
-    `/api/messages/conversation/${recipientId}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${sessionToken}`,
-      },
-    }
-  );
+  const response = await fetch(`/api/messages/conversation/${recipientId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+    },
+  });
 
   if (!response.ok) {
     const error = await response.json();
@@ -153,13 +150,13 @@ export async function getPublicKey(userId: string): Promise<{
 export async function loadMoreMessages(
   recipientId: string,
   sessionToken: string,
-  offset: number
+  offset: number,
 ): Promise<EncryptedMessage[]> {
   const data = await getConversationHistory(
     recipientId,
     sessionToken,
     50,
-    offset
+    offset,
   );
   return data.messages;
 }

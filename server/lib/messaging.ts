@@ -1,6 +1,6 @@
-import { WebSocket } from 'ws';
-import { EncryptedMessage, SessionData } from '@shared/crypto';
-import { validateEncryptedMessage } from './crypto';
+import { WebSocket } from "ws";
+import { EncryptedMessage, SessionData } from "@shared/crypto";
+import { validateEncryptedMessage } from "./crypto";
 
 /**
  * Map of userId -> WebSocket connection
@@ -27,12 +27,12 @@ export function registerUserConnection(userId: string, ws: WebSocket): void {
       try {
         ws.send(
           JSON.stringify({
-            type: 'message',
+            type: "message",
             data: message,
-          })
+          }),
         );
       } catch (error) {
-        console.error('Error sending queued message:', error);
+        console.error("Error sending queued message:", error);
       }
     });
     messageQueues.delete(userId);
@@ -55,17 +55,18 @@ export function deliverMessage(message: EncryptedMessage): boolean {
   const recipientId = message.recipientId;
   const userWs = userConnections.get(recipientId);
 
-  if (userWs && userWs.readyState === 1) { // WebSocket.OPEN
+  if (userWs && userWs.readyState === 1) {
+    // WebSocket.OPEN
     try {
       userWs.send(
         JSON.stringify({
-          type: 'message',
+          type: "message",
           data: message,
-        })
+        }),
       );
       return true;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       queueMessage(message);
       return false;
     }
@@ -130,7 +131,7 @@ export function broadcastToAll(message: any): void {
       try {
         ws.send(JSON.stringify(message));
       } catch (error) {
-        console.error('Error broadcasting message:', error);
+        console.error("Error broadcasting message:", error);
       }
     }
   });

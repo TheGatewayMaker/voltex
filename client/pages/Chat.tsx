@@ -75,7 +75,7 @@ export default function Chat() {
           headers: {
             Authorization: `Bearer ${sessionToken}`,
           },
-        }
+        },
       );
 
       if (!historyRes.ok) {
@@ -95,13 +95,15 @@ export default function Chat() {
         try {
           // Determine which public key to use for verification
           const senderPublicKey =
-            encMsg.senderId === userId ? pubKeyData.publicKey : pubKeyData.publicKey;
+            encMsg.senderId === userId
+              ? pubKeyData.publicKey
+              : pubKeyData.publicKey;
 
           // Fetch sender's public key if not our message
           let verificationPublicKey = senderPublicKey;
           if (encMsg.senderId !== userId) {
             const senderKeyRes = await fetch(
-              `/api/auth/public-key/${encMsg.senderId}`
+              `/api/auth/public-key/${encMsg.senderId}`,
             );
             if (senderKeyRes.ok) {
               const senderKeyData = await senderKeyRes.json();
@@ -112,7 +114,7 @@ export default function Chat() {
           const decrypted = decryptMessage(
             encMsg,
             verificationPublicKey,
-            keyPair.privateKeyBase64
+            keyPair.privateKeyBase64,
           );
 
           if (decrypted) {
@@ -162,7 +164,7 @@ export default function Chat() {
         const decrypted = decryptMessage(
           encryptedMessage,
           senderPublicKey,
-          keyPair.privateKeyBase64
+          keyPair.privateKeyBase64,
         );
 
         if (decrypted) {
@@ -218,7 +220,7 @@ export default function Chat() {
       const encrypted = encryptMessage(
         messageInput,
         recipientPublicKey,
-        keyPair.privateKeyBase64
+        keyPair.privateKeyBase64,
       );
 
       // Send to server
@@ -307,9 +309,7 @@ export default function Chat() {
               {getInitials(recipientId || "")}
             </div>
             <div>
-              <h2 className="font-semibold text-foreground">
-                {recipientName}
-              </h2>
+              <h2 className="font-semibold text-foreground">{recipientName}</h2>
               <p className="text-xs text-muted-foreground font-mono">
                 {recipientId}
               </p>
@@ -404,7 +404,7 @@ export default function Chat() {
                     }`}
                   >
                     {getInitials(
-                      message.isOwn ? currentUserId : recipientId || ""
+                      message.isOwn ? currentUserId : recipientId || "",
                     )}
                   </div>
                 </div>
@@ -451,10 +451,7 @@ export default function Chat() {
               className="p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSending ? (
-                <svg
-                  className="animate-spin h-5 w-5"
-                  viewBox="0 0 50 50"
-                >
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 50 50">
                   <circle
                     className="opacity-30"
                     cx="25"
