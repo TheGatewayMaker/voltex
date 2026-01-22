@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Lock, Copy, Check } from "lucide-react";
 import {
   generateKeyPair,
   generateMnemonicPhrase,
@@ -11,11 +11,18 @@ import {
 } from "@/lib/crypto";
 import { toast } from "sonner";
 
+type SignUpStep = "form" | "passphrase" | "completed";
+
 export default function SignUp() {
   const navigate = useNavigate();
+  const [step, setStep] = useState<SignUpStep>("form");
   const [displayName, setDisplayName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mnemonic, setMnemonic] = useState("");
+  const [userId, setUserId] = useState("");
+  const [sessionToken, setSessionToken] = useState("");
+  const [copiedPassphrase, setCopiedPassphrase] = useState(false);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
