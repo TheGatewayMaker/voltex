@@ -148,7 +148,7 @@ export default function Chat() {
         </div>
 
         {/* Message Input */}
-        <div className="border-t border-border bg-white dark:bg-card px-4 py-3 md:px-6 md:py-4 flex-shrink-0">
+        <div className="border-t border-border bg-card px-4 py-3 md:px-6 md:py-4 flex-shrink-0">
           <div className="flex items-end gap-3 md:gap-4">
             <button className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0">
               <svg
