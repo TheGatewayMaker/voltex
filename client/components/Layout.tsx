@@ -1,12 +1,19 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
+import ProfileMenu from "./ProfileMenu";
 
 interface LayoutProps {
   children: ReactNode;
   showBack?: boolean;
   title?: string;
   onBackClick?: () => void;
+  showProfileMenu?: boolean;
+  profileData?: {
+    userId?: string;
+    displayName?: string;
+    avatar?: string;
+  };
 }
 
 export default function Layout({
@@ -14,7 +21,15 @@ export default function Layout({
   showBack,
   title,
   onBackClick,
+  showProfileMenu = false,
+  profileData = {},
 }: LayoutProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const sessionToken = localStorage.getItem("session_token");
+    setIsAuthenticated(!!sessionToken);
+  }, []);
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
       {/* Header */}
@@ -59,6 +74,7 @@ export default function Layout({
           </div>
           {!showBack && (
             <div className="flex items-center gap-2">
+              {/* Search button */}
               <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
                 <svg
                   className="w-5 h-5 md:w-6 md:h-6"
@@ -74,21 +90,15 @@ export default function Layout({
                   />
                 </svg>
               </button>
-              <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                  />
-                </svg>
-              </button>
+
+              {/* Profile Menu - show only if authenticated and showProfileMenu is true */}
+              {isAuthenticated && showProfileMenu && (
+                <ProfileMenu
+                  userId={profileData.userId}
+                  displayName={profileData.displayName}
+                  avatar={profileData.avatar}
+                />
+              )}
             </div>
           )}
         </div>

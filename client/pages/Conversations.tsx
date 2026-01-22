@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Lock, LogOut } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { toast } from "sonner";
 
@@ -20,9 +20,9 @@ export default function Conversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
-  const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+  const [currentDisplayName, setCurrentDisplayName] = useState("User");
 
-  // Check authentication status
+  // Check authentication status and fetch user profile
   useEffect(() => {
     const userId = localStorage.getItem("current_user_id");
     const sessionToken = localStorage.getItem("session_token");
@@ -35,7 +35,27 @@ export default function Conversations() {
 
     setCurrentUserId(userId);
     setIsAuthenticated(true);
+
+    // Fetch user profile
+    fetchUserProfile(sessionToken);
   }, [navigate]);
+
+  const fetchUserProfile = async (sessionToken: string) => {
+    try {
+      const response = await fetch("/api/profile/me", {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentDisplayName(data.displayName || "User");
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
+  };
 
   // Set up WebSocket connection (optional feature)
   const { isConnected } = useWebSocket({
@@ -51,37 +71,18 @@ export default function Conversations() {
     },
   });
 
-  const handleLogout = async () => {
-    try {
-      const sessionToken = localStorage.getItem("session_token");
-      if (sessionToken) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-        });
-      }
-
-      // Clear stored data
-      localStorage.removeItem("session_token");
-      localStorage.removeItem("current_user_id");
-      localStorage.removeItem("current_public_key");
-
-      toast.success("Logged out successfully");
-      navigate("/signin");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Failed to logout");
-    }
-  };
-
   if (!isAuthenticated) {
     return null;
   }
 
   return (
-    <Layout>
+    <Layout
+      showProfileMenu={true}
+      profileData={{
+        userId: currentUserId,
+        displayName: currentDisplayName,
+      }}
+    >
       <div className="flex flex-col h-full bg-background">
         {/* Header with User Info */}
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border flex items-center justify-between">
@@ -97,23 +98,6 @@ export default function Conversations() {
                 isConnected ? "bg-green-500" : "bg-gray-500"
               }`}
             />
-            <button
-              onClick={() => setShowLogoutMenu(!showLogoutMenu)}
-              className="p-2 hover:bg-secondary rounded-lg transition-colors relative"
-            >
-              <LogOut className="w-5 h-5 text-foreground" />
-
-              {showLogoutMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-10">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary rounded-lg transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </button>
           </div>
         </div>
 

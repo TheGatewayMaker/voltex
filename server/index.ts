@@ -10,6 +10,7 @@ import {
   handleVerifySession,
   handleGetPublicKey,
   handleLogout,
+  handleRecoverAccount,
   getSessionFromToken,
 } from "./routes/auth";
 import {
@@ -18,6 +19,13 @@ import {
   handleGetConversations,
   handleDeleteConversation,
 } from "./routes/messages";
+import {
+  handleGetProfile,
+  handleUpdateProfile,
+  handleGetPublicProfile,
+  handleUploadAvatar,
+  handleUpdateSettings,
+} from "./routes/profile";
 import {
   registerUserConnection,
   unregisterUserConnection,
@@ -51,6 +59,7 @@ export function createServer() {
   app.post("/api/auth/verify", handleVerifyChallenge);
   app.get("/api/auth/verify-session", handleVerifySession);
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
+  app.post("/api/auth/recover", handleRecoverAccount);
   app.post("/api/auth/logout", handleLogout);
 
   // Message routes
@@ -61,6 +70,13 @@ export function createServer() {
     "/api/messages/conversation/:recipientId",
     handleDeleteConversation,
   );
+
+  // Profile routes
+  app.get("/api/profile/me", handleGetProfile);
+  app.put("/api/profile/me", handleUpdateProfile);
+  app.get("/api/profile/:userId", handleGetPublicProfile);
+  app.post("/api/profile/avatar", handleUploadAvatar);
+  app.post("/api/profile/settings", handleUpdateSettings);
 
   // Create WebSocket server if not already created
   if (!wssInstance) {

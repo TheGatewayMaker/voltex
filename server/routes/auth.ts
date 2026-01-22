@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 import {
   verifySignedChallenge,
   deriveUserIdFromPublicKey,
@@ -9,27 +10,36 @@ import {
   isValidSignature,
 } from "../lib/crypto";
 import {
+  saveUserAccount,
+  getUserAccount,
+  savePassphraseRecovery,
+  getPassphraseRecovery,
+} from "../lib/r2-storage";
+import {
   UserAccount,
   AuthChallenge,
   AuthResponse,
   SessionData,
 } from "@shared/crypto";
 
-// In-memory storage (replace with database in production)
-const users = new Map<string, UserAccount>();
+// In-memory storage for challenges and sessions (temporary during request)
 const challenges = new Map<string, AuthChallenge>();
 const sessions = new Map<string, SessionData>();
 
 /**
  * POST /api/auth/register
- * Create a new account with public key
+ * Create a new account with public key and store in R2
  */
 export const handleRegister: RequestHandler = async (req, res) => {
   try {
-    const { publicKey } = req.body;
+    const { publicKey, passphraseHash } = req.body;
 
     if (!publicKey || typeof publicKey !== "string") {
       return res.status(400).json({ error: "Public key is required" });
+    }
+
+    if (!passphraseHash || typeof passphraseHash !== "string") {
+      return res.status(400).json({ error: "Passphrase hash is required" });
     }
 
     if (!isValidPublicKey(publicKey)) {
@@ -39,8 +49,9 @@ export const handleRegister: RequestHandler = async (req, res) => {
     // Derive user ID from public key
     const userId = await deriveUserIdFromPublicKey(publicKey);
 
-    // Check if user already exists
-    if (users.has(userId)) {
+    // Check if user already exists in R2
+    const existingUser = await getUserAccount(userId);
+    if (existingUser) {
       return res.status(409).json({ error: "User already registered" });
     }
 
@@ -51,7 +62,13 @@ export const handleRegister: RequestHandler = async (req, res) => {
       createdAt: Date.now(),
     };
 
-    users.set(userId, userAccount);
+    // Store account in R2
+    await saveUserAccount(userId, userAccount);
+
+    // Store passphrase recovery hash in R2
+    await savePassphraseRecovery(userId, passphraseHash);
+
+    console.log(`User ${userId} registered and stored in R2`);
 
     return res.status(201).json({
       userId,
@@ -89,8 +106,8 @@ export const handleGetChallenge: RequestHandler = async (req, res) => {
         .json({ error: "Public key does not match userId" });
     }
 
-    // Check if user exists
-    const userAccount = users.get(userId);
+    // Check if user exists in R2
+    const userAccount = await getUserAccount(userId);
     if (!userAccount) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -159,8 +176,8 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
       return res.status(403).json({ error: "userId does not match challenge" });
     }
 
-    // Verify user exists
-    const userAccount = users.get(userId);
+    // Verify user exists in R2
+    const userAccount = await getUserAccount(userId);
     if (!userAccount) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -248,11 +265,16 @@ export const handleVerifySession: RequestHandler = (req, res) => {
  * Get a user's public key for encryption
  * Public endpoint - anyone can request this
  */
-export const handleGetPublicKey: RequestHandler = (req, res) => {
+export const handleGetPublicKey: RequestHandler = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId =
+      typeof req.params.userId === "string" ? req.params.userId : "";
 
-    const userAccount = users.get(userId);
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    const userAccount = await getUserAccount(userId);
     if (!userAccount) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -268,12 +290,66 @@ export const handleGetPublicKey: RequestHandler = (req, res) => {
 };
 
 /**
+ * POST /api/auth/recover
+ * Recover account using passphrase hash
+ */
+export const handleRecoverAccount: RequestHandler = async (req, res) => {
+  try {
+    const { passphraseHash } = req.body;
+
+    if (!passphraseHash || typeof passphraseHash !== "string") {
+      return res.status(400).json({ error: "Passphrase hash is required" });
+    }
+
+    // In production, you would search through R2 to find the user with matching passphrase
+    // For now, we'll require the userId as well (user provides it)
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    // Get passphrase recovery data
+    const recoveryData = await getPassphraseRecovery(userId);
+    if (!recoveryData) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    // Verify passphrase hash matches
+    if (recoveryData.passphraseHash !== passphraseHash) {
+      return res.status(403).json({ error: "Invalid passphrase" });
+    }
+
+    // Get user account
+    const userAccount = await getUserAccount(userId);
+    if (!userAccount) {
+      return res.status(404).json({ error: "User account not found" });
+    }
+
+    // Return public key for the user to generate a challenge
+    return res.status(200).json({
+      userId,
+      publicKey: userAccount.publicKey,
+      message:
+        "Account recovered successfully. Please sign the challenge to complete authentication.",
+    });
+  } catch (error) {
+    console.error("Account recovery error:", error);
+    return res.status(500).json({ error: "Account recovery failed" });
+  }
+};
+
+/**
  * POST /api/auth/logout
  * Invalidate a session
  */
 export const handleLogout: RequestHandler = (req, res) => {
   try {
-    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+    const authHeader = req.headers.authorization;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
 
     if (!sessionToken) {
       return res.status(400).json({ error: "No session token provided" });

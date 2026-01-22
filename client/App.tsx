@@ -9,6 +9,9 @@ import Conversations from "./pages/Conversations";
 import Chat from "./pages/Chat";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import Recover from "./pages/Recover";
+import Account from "./pages/Account";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,8 +26,11 @@ export default function App() {
           <Routes>
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/recover" element={<Recover />} />
             <Route path="/" element={<Conversations />} />
             <Route path="/chat/:id" element={<Chat />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

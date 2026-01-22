@@ -9,6 +9,7 @@ import {
   storeMnemonic,
   signChallenge,
 } from "@/lib/crypto";
+import { hashPassphrase } from "@/lib/passphrase";
 import { toast } from "sonner";
 
 type SignUpStep = "form" | "passphrase" | "completed";
@@ -47,12 +48,16 @@ export default function SignUp() {
         keyPair.publicKeyBase64,
       );
 
+      // Hash the mnemonic passphrase for recovery
+      const passphraseHashHex = await hashPassphrase(mnemonicData.mnemonic);
+
       // Register account on server
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           publicKey: keyPair.publicKeyBase64,
+          passphraseHash: passphraseHashHex,
         }),
       });
 
@@ -128,11 +133,29 @@ export default function SignUp() {
     navigate("/");
   };
 
-  const copyPassphrase = () => {
-    navigator.clipboard.writeText(mnemonic);
-    setCopiedPassphrase(true);
-    toast.success("Passphrase copied to clipboard");
-    setTimeout(() => setCopiedPassphrase(false), 2000);
+  const copyPassphrase = async () => {
+    try {
+      await navigator.clipboard.writeText(mnemonic);
+      setCopiedPassphrase(true);
+      toast.success("Passphrase copied to clipboard");
+      setTimeout(() => setCopiedPassphrase(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy to clipboard:", err);
+      // Fallback: create a text area and copy manually
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = mnemonic;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setCopiedPassphrase(true);
+        toast.success("Passphrase copied to clipboard");
+        setTimeout(() => setCopiedPassphrase(false), 2000);
+      } catch {
+        toast.error("Failed to copy passphrase to clipboard");
+      }
+    }
   };
 
   // Step 1: Signup Form
