@@ -405,7 +405,10 @@ export default function SignUp() {
           </div>
 
           {/* Username Form */}
-          <form onSubmit={handleContinueWithUsername} className="space-y-4 mb-6">
+          <form
+            onSubmit={handleContinueWithUsername}
+            className="space-y-4 mb-6"
+          >
             {error && (
               <div className="p-3 bg-destructive/10 border border-destructive text-destructive rounded-lg text-sm">
                 {error}
@@ -431,7 +434,10 @@ export default function SignUp() {
                 />
                 {isCheckingUsername && (
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                    <svg className="animate-spin h-4 w-4 text-muted-foreground" viewBox="0 0 50 50">
+                    <svg
+                      className="animate-spin h-4 w-4 text-muted-foreground"
+                      viewBox="0 0 50 50"
+                    >
                       <circle
                         className="opacity-30"
                         cx="25"
