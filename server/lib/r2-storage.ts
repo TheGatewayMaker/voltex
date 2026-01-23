@@ -39,6 +39,37 @@ function initializeR2Client(): S3Client {
 }
 
 /**
+ * Ensure a bucket exists, creating it if necessary
+ */
+async function ensureBucketExists(bucketName: string): Promise<void> {
+  if (createdBuckets.has(bucketName)) {
+    return; // Already checked/created in this session
+  }
+
+  try {
+    const client = initializeR2Client();
+    const createCommand = new CreateBucketCommand({
+      Bucket: bucketName,
+    });
+
+    await client.send(createCommand);
+    console.log(`Created bucket ${bucketName} in R2`);
+    createdBuckets.add(bucketName);
+  } catch (error) {
+    const errorName = error instanceof Error ? (error as any).name : "";
+    if (errorName === "BucketAlreadyExists" || errorName === "BucketAlreadyOwnedByYou") {
+      // Bucket already exists, that's fine
+      createdBuckets.add(bucketName);
+      return;
+    }
+
+    // Log but don't throw - the actual upload will fail with more details if needed
+    console.log(`Bucket ${bucketName} may already exist or creation failed:`, error);
+    createdBuckets.add(bucketName); // Mark as attempted
+  }
+}
+
+/**
  * Upload a file/data to R2 bucket
  */
 export async function uploadToR2(
