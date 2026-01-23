@@ -12,18 +12,23 @@ import {
 import { hashPassphrase } from "@/lib/passphrase";
 import { toast } from "sonner";
 
-type SignUpStep = "form" | "passphrase" | "completed";
+type SignUpStep = "form" | "username" | "passphrase" | "completed";
 
 export default function SignUp() {
   const navigate = useNavigate();
   const [step, setStep] = useState<SignUpStep>("form");
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [userId, setUserId] = useState("");
   const [sessionToken, setSessionToken] = useState("");
   const [copiedPassphrase, setCopiedPassphrase] = useState(false);
+  const [keyPair, setKeyPair] = useState<any>(null);
+  const [mnemonicData, setMnemonicData] = useState<any>(null);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
