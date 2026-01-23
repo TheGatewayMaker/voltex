@@ -43,11 +43,95 @@ export default function SignUp() {
 
     try {
       // Generate key pair locally (non-blocking)
-      const keyPair = generateKeyPair();
+      const newKeyPair = generateKeyPair();
 
       // Generate mnemonic for recovery
-      const mnemonicData = generateMnemonicPhrase();
+      const newMnemonicData = generateMnemonicPhrase();
 
+      // Store for next step
+      setKeyPair(newKeyPair);
+      setMnemonicData(newMnemonicData);
+
+      // Move to username step
+      setStep("username");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Account creation failed");
+      toast.error(
+        err instanceof Error ? err.message : "Account creation failed",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkUsernameAvailability = async (usernameValue: string) => {
+    if (!usernameValue.trim()) {
+      setUsernameError("");
+      return;
+    }
+
+    // Validate format
+    if (usernameValue.length < 3) {
+      setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+
+    if (usernameValue.length > 30) {
+      setUsernameError("Username must be no more than 30 characters");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(usernameValue)) {
+      setUsernameError(
+        "Username can only contain letters, numbers, and underscores",
+      );
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    try {
+      const response = await fetch("/api/auth/username-availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: usernameValue }),
+      });
+
+      const data = await response.json();
+      if (!data.available) {
+        setUsernameError("The Username is not Available, Please try another");
+      } else {
+        setUsernameError("");
+      }
+    } catch (err) {
+      setUsernameError("Failed to check username availability");
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const handleContinueWithUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!username.trim()) {
+      setUsernameError("Username is required");
+      return;
+    }
+
+    if (usernameError) {
+      setUsernameError("Please choose a different username");
+      return;
+    }
+
+    if (!keyPair || !mnemonicData) {
+      setError("Session expired, please start over");
+      setStep("form");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
       // Derive user ID from public key
       const derivedUserId = await deriveUserIdFromPublicKey(
         keyPair.publicKeyBase64,
@@ -56,13 +140,14 @@ export default function SignUp() {
       // Hash the mnemonic passphrase for recovery
       const passphraseHashHex = await hashPassphrase(mnemonicData.mnemonic);
 
-      // Register account on server
+      // Register account on server with username
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           publicKey: keyPair.publicKeyBase64,
           passphraseHash: passphraseHashHex,
+          username: username.toLowerCase(),
         }),
       });
 
@@ -117,7 +202,7 @@ export default function SignUp() {
       localStorage.setItem("current_user_id", derivedUserId);
       localStorage.setItem("current_public_key", keyPair.publicKeyBase64);
 
-      // Save display name to profile
+      // Save display name and username to profile
       if (displayName.trim()) {
         try {
           await fetch("/api/profile/me", {
@@ -128,10 +213,11 @@ export default function SignUp() {
             },
             body: JSON.stringify({
               displayName: displayName.trim(),
+              username: username.toLowerCase(),
             }),
           });
         } catch (err) {
-          console.error("Failed to save display name:", err);
+          console.error("Failed to save profile:", err);
         }
       }
 
