@@ -70,6 +70,48 @@ export default function Conversations() {
     }
   };
 
+  const handleSearchUsers = async (query: string) => {
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setSearchError("");
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError("");
+
+    try {
+      const response = await fetch("/api/users/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: query.trim() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.results);
+      } else {
+        const errorData = await response.json();
+        setSearchError(errorData.error || "Search failed");
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchError("Failed to search users");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectUser = (user: SearchResult) => {
+    setShowSearchModal(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    // Navigate to chat with the selected user
+    navigate(`/chat/${user.userId}`);
+  };
+
   // Set up WebSocket connection (optional feature)
   const { isConnected } = useWebSocket({
     onMessage: (message) => {
