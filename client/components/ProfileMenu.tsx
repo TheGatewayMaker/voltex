@@ -27,7 +27,7 @@ export default function ProfileMenu({
   const [profileName, setProfileName] = useState(displayName);
 
   // Fetch the user's display name from profile if not provided
-  React.useEffect(() => {
+  useEffect(() => {
     if (displayName === "User") {
       const fetchProfile = async () => {
         try {
