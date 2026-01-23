@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import Layout from "@/components/Layout";
 import { useWebSocket } from "@/lib/useWebSocket";
 import {
@@ -294,17 +295,15 @@ export default function Chat() {
   };
 
   return (
-    <Layout>
+    <Layout
+      showBack={true}
+      onBackClick={() => navigate("/")}
+      showProfileMenu={false}
+    >
       <div className="flex flex-col h-full bg-background">
         {/* Header */}
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="p-2 hover:bg-secondary rounded-lg transition-colors md:hidden"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white font-semibold text-sm">
               {getInitials(recipientId || "")}
             </div>

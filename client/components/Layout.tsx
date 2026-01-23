@@ -39,7 +39,8 @@ export default function Layout({
             {showBack ? (
               <button
                 onClick={onBackClick}
-                className="md:hidden text-primary hover:text-primary/80 transition-colors"
+                className="text-primary hover:text-primary/80 transition-colors"
+                aria-label="Go back"
               >
                 <svg
                   className="w-6 h-6"

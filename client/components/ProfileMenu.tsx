@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Settings, LogOut } from "lucide-react";
 import {
@@ -24,6 +24,38 @@ export default function ProfileMenu({
 }: ProfileMenuProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [profileName, setProfileName] = useState(displayName);
+
+  // Fetch the user's display name from profile if not provided
+  useEffect(() => {
+    if (displayName === "User") {
+      const fetchProfile = async () => {
+        try {
+          const sessionToken = localStorage.getItem("session_token");
+          if (!sessionToken) return;
+
+          const response = await fetch("/api/profile/me", {
+            headers: {
+              Authorization: `Bearer ${sessionToken}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.displayName) {
+              setProfileName(data.displayName);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch profile name:", err);
+        }
+      };
+
+      fetchProfile();
+    } else {
+      setProfileName(displayName);
+    }
+  }, [displayName]);
 
   const handleLogout = async () => {
     try {
@@ -39,11 +71,10 @@ export default function ProfileMenu({
         });
       }
 
-      // Clear local storage
+      // Clear session but keep crypto_keypair for re-authentication on same device
       localStorage.removeItem("session_token");
       localStorage.removeItem("current_user_id");
       localStorage.removeItem("current_public_key");
-      localStorage.removeItem("crypto_keypair");
 
       toast.success("Logged out successfully");
       navigate("/signin");
@@ -87,7 +118,7 @@ export default function ProfileMenu({
         {/* User Info */}
         <div className="px-4 py-3 border-b border-border">
           <p className="text-sm font-semibold text-foreground truncate">
-            {displayName}
+            {profileName}
           </p>
           <p className="text-xs text-muted-foreground font-mono truncate">
             {userId}

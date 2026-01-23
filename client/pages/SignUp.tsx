@@ -112,6 +112,24 @@ export default function SignUp() {
       localStorage.setItem("current_user_id", derivedUserId);
       localStorage.setItem("current_public_key", keyPair.publicKeyBase64);
 
+      // Save display name to profile
+      if (displayName.trim()) {
+        try {
+          await fetch("/api/profile/me", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              displayName: displayName.trim(),
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to save display name:", err);
+        }
+      }
+
       // Show passphrase screen before completing
       setMnemonic(mnemonicData.mnemonic);
       setUserId(derivedUserId);
