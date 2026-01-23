@@ -91,6 +91,10 @@ export async function downloadFromR2(
       console.log(`Key ${key} not found in R2`);
       return null;
     }
+    if (error instanceof Error && error.name === "NoSuchBucket") {
+      console.log(`Bucket ${bucketName} not found in R2`);
+      return null;
+    }
     console.error("Error downloading from R2:", error);
     throw error;
   }
