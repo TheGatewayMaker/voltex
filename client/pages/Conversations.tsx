@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Lock } from "lucide-react";
+import { Lock, Search, X } from "lucide-react";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { toast } from "sonner";
 
@@ -15,12 +15,25 @@ interface Conversation {
   online: boolean;
 }
 
+interface SearchResult {
+  userId: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  avatar: string | null;
+}
+
 export default function Conversations() {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
   const [currentDisplayName, setCurrentDisplayName] = useState("User");
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
 
   // Check authentication status and fetch user profile
   useEffect(() => {
