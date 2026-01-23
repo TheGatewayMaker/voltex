@@ -5,17 +5,20 @@ This guide explains how to deploy Voltex to your VPS with proper environment con
 ## Environment Variables
 
 ### Public Variables (committed to repo)
+
 - `VITE_PUBLIC_BUILDER_KEY` - Builder.io API key
 - `PING_MESSAGE` - Demo ping message
 - `R2_ENDPOINT_URL` - Cloudflare R2 endpoint (public, non-sensitive)
 
 ### Secret Variables (NOT committed - set on deployment)
+
 - `R2_ACCESS_KEY_ID` - Cloudflare R2 access key
 - `R2_SECRET_ACCESS_KEY` - Cloudflare R2 secret key
 
 ## Setup on VPS
 
 ### 1. Clone the repository
+
 ```bash
 git clone <your-repo-url>
 cd voltex
@@ -23,9 +26,11 @@ pnpm install
 ```
 
 ### 2. Set environment variables
+
 You have two options:
 
 #### Option A: Create a `.env.local` file (for development)
+
 ```bash
 cat > .env.local << EOF
 R2_ACCESS_KEY_ID=your_access_key_id_here
@@ -34,17 +39,20 @@ EOF
 ```
 
 #### Option B: Set as system environment variables (for production)
+
 ```bash
 export R2_ACCESS_KEY_ID=your_access_key_id_here
 export R2_SECRET_ACCESS_KEY=your_secret_access_key_here
 ```
 
 ### 3. Build the application
+
 ```bash
 pnpm build
 ```
 
 ### 4. Start the server
+
 ```bash
 pnpm start
 ```
@@ -60,6 +68,7 @@ docker run -e R2_ACCESS_KEY_ID=xxx -e R2_SECRET_ACCESS_KEY=xxx your-image:latest
 ```
 
 Or use a `.env` file:
+
 ```bash
 docker run --env-file .env your-image:latest
 ```

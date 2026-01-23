@@ -57,14 +57,20 @@ async function ensureBucketExists(bucketName: string): Promise<void> {
     createdBuckets.add(bucketName);
   } catch (error) {
     const errorName = error instanceof Error ? (error as any).name : "";
-    if (errorName === "BucketAlreadyExists" || errorName === "BucketAlreadyOwnedByYou") {
+    if (
+      errorName === "BucketAlreadyExists" ||
+      errorName === "BucketAlreadyOwnedByYou"
+    ) {
       // Bucket already exists, that's fine
       createdBuckets.add(bucketName);
       return;
     }
 
     // Log but don't throw - the actual upload will fail with more details if needed
-    console.log(`Bucket ${bucketName} may already exist or creation failed:`, error);
+    console.log(
+      `Bucket ${bucketName} may already exist or creation failed:`,
+      error,
+    );
     createdBuckets.add(bucketName); // Mark as attempted
   }
 }
