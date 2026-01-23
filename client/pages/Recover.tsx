@@ -41,8 +41,10 @@ export default function Recover() {
     setError("");
 
     try {
-      // Hash the passphrase
-      const passphraseHashHex = await hashPassphrase(passphraseInput);
+      // Normalize and hash the passphrase
+      // Normalization ensures that variations in spacing and capitalization don't break recovery
+      const normalizedPassphrase = normalizePassphrase(passphraseInput);
+      const passphraseHashHex = await hashPassphrase(normalizedPassphrase);
 
       // Request account recovery
       const recoveryResponse = await fetch("/api/auth/recover", {
