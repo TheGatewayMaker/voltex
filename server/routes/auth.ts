@@ -30,6 +30,49 @@ const challenges = new Map<string, AuthChallenge>();
 const sessions = new Map<string, SessionData>();
 
 /**
+ * POST /api/auth/username-availability
+ * Check if a username is available
+ */
+export const handleCheckUsernameAvailability: RequestHandler = async (
+  req,
+  res,
+) => {
+  try {
+    const { username } = req.body;
+
+    if (!username || typeof username !== "string") {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    // Validate username format
+    if (username.length < 3 || username.length > 30) {
+      return res.status(400).json({
+        error: "Username must be between 3 and 30 characters",
+      });
+    }
+
+    // Check if username contains only alphanumeric and underscores
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({
+        error: "Username can only contain letters, numbers, and underscores",
+      });
+    }
+
+    const isAvailable = await checkUsernameAvailability(username);
+
+    return res.status(200).json({
+      available: isAvailable,
+      username: username.toLowerCase(),
+    });
+  } catch (error) {
+    console.error("Username availability check error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to check username availability" });
+  }
+};
+
+/**
  * POST /api/auth/register
  * Create a new account with public key and store in R2
  */
