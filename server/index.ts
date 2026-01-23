@@ -62,6 +62,7 @@ export function createServer() {
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
   app.post("/api/auth/recover", handleRecoverAccount);
   app.post("/api/auth/logout", handleLogout);
+  app.post("/api/auth/username-availability", handleCheckUsernameAvailability);
 
   // Message routes
   app.post("/api/messages/send", handleSendMessage);
