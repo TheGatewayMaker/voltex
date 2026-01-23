@@ -28,6 +28,10 @@ import {
   handleUpdateSettings,
 } from "./routes/profile";
 import {
+  handleSearchUsers,
+  handleGetUserByUsername,
+} from "./routes/users";
+import {
   registerUserConnection,
   unregisterUserConnection,
   deliverMessage,
