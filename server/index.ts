@@ -84,6 +84,10 @@ export function createServer() {
   app.post("/api/profile/avatar", handleUploadAvatar);
   app.post("/api/profile/settings", handleUpdateSettings);
 
+  // User search routes
+  app.post("/api/users/search", handleSearchUsers);
+  app.get("/api/users/by-username/:username", handleGetUserByUsername);
+
   // Create WebSocket server if not already created
   if (!wssInstance) {
     wssInstance = new WebSocketServer({ noServer: true });
