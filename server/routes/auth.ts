@@ -14,6 +14,9 @@ import {
   getUserAccount,
   savePassphraseRecovery,
   getPassphraseRecovery,
+  checkUsernameAvailability,
+  reserveUsername,
+  getUserIdByUsername,
 } from "../lib/r2-storage";
 import {
   UserAccount,
