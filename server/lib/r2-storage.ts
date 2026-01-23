@@ -79,6 +79,9 @@ export async function uploadToR2(
   contentType: string = "application/json",
 ): Promise<void> {
   try {
+    // Ensure bucket exists before uploading
+    await ensureBucketExists(bucketName);
+
     const client = initializeR2Client();
 
     // Try to upload with put object command
