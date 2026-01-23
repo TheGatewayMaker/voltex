@@ -118,7 +118,7 @@ export default function ProfileMenu({
         {/* User Info */}
         <div className="px-4 py-3 border-b border-border">
           <p className="text-sm font-semibold text-foreground truncate">
-            {displayName}
+            {profileName}
           </p>
           <p className="text-xs text-muted-foreground font-mono truncate">
             {userId}
