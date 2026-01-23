@@ -243,11 +243,7 @@ export default function Conversations() {
 
         {/* Floating Action Button */}
         <button
-          onClick={() => {
-            // TODO: Open modal to select user and start new conversation
-            // For now, show a placeholder message
-            toast.info("Feature coming soon: Start a new conversation");
-          }}
+          onClick={() => setShowSearchModal(true)}
           className="absolute bottom-6 right-6 w-14 h-14 md:w-16 md:h-16 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all active:scale-95 md:bottom-8 md:right-8"
         >
           <svg
@@ -264,6 +260,130 @@ export default function Conversations() {
             />
           </svg>
         </button>
+
+        {/* Username Search Modal */}
+        {showSearchModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-border">
+                <h2 className="text-lg font-semibold text-foreground">
+                  Start New Chat
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowSearchModal(false);
+                    setSearchQuery("");
+                    setSearchResults([]);
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Search Input */}
+              <div className="p-4 md:p-6 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchUsers(e.target.value)}
+                    placeholder="Search by username..."
+                    autoFocus
+                    className="w-full pl-10 pr-4 py-2 bg-secondary text-foreground placeholder-muted-foreground rounded-full border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Enter a username to find users
+                </p>
+              </div>
+
+              {/* Search Results */}
+              <div className="flex-1 overflow-y-auto">
+                {searchError && (
+                  <div className="p-4 md:p-6 text-sm text-destructive bg-destructive/10">
+                    {searchError}
+                  </div>
+                )}
+
+                {isSearching && (
+                  <div className="flex items-center justify-center h-32">
+                    <svg className="animate-spin h-6 w-6 text-primary" viewBox="0 0 50 50">
+                      <circle
+                        className="opacity-30"
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        stroke="currentColor"
+                        strokeWidth="5"
+                        fill="none"
+                      />
+                      <circle
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        stroke="currentColor"
+                        strokeWidth="5"
+                        fill="none"
+                        strokeDasharray="100"
+                        strokeDashoffset="75"
+                      />
+                    </svg>
+                  </div>
+                )}
+
+                {!isSearching && searchQuery && searchResults.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-32 p-4">
+                    <p className="text-muted-foreground text-sm">
+                      No users found for "{searchQuery}"
+                    </p>
+                  </div>
+                )}
+
+                {searchResults.map((user) => (
+                  <button
+                    key={user.userId}
+                    onClick={() => handleSelectUser(user)}
+                    className="w-full px-4 py-3 md:px-6 md:py-4 border-b border-border hover:bg-secondary transition-colors text-left flex items-center gap-3 active:bg-secondary"
+                  >
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        {user.avatar || user.displayName.charAt(0).toUpperCase()}
+                      </div>
+                    </div>
+
+                    {/* User Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground text-sm md:text-base truncate">
+                        {user.displayName}
+                      </h3>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">
+                        @{user.username}
+                      </p>
+                      {user.bio && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {user.bio}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+
+                {!searchQuery && !isSearching && (
+                  <div className="flex flex-col items-center justify-center h-32 p-4">
+                    <Search className="w-8 h-8 text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground text-sm text-center">
+                      Search for users by their username to start a conversation
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
