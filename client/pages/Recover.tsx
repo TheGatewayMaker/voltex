@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { signChallenge, deriveUserIdFromPublicKey } from "@/lib/crypto";
-import { hashPassphrase } from "@/lib/passphrase";
+import { hashPassphrase, normalizePassphrase } from "@/lib/passphrase";
 import { toast } from "sonner";
 
 type RecoverStep = "userId" | "passphrase" | "authenticating" | "success";
