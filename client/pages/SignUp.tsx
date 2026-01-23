@@ -384,7 +384,144 @@ export default function SignUp() {
     );
   }
 
-  // Step 2: Recovery Passphrase
+  // Step 2: Username Selection
+  if (step === "username") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          {/* Logo & Title */}
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Choose Your Username
+            </h1>
+            <p className="text-muted-foreground text-center">
+              This is how others will find and message you
+            </p>
+          </div>
+
+          {/* Username Form */}
+          <form onSubmit={handleContinueWithUsername} className="space-y-4 mb-6">
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive text-destructive rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Username
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    checkUsernameAvailability(e.target.value);
+                  }}
+                  placeholder="your_username"
+                  required
+                  disabled={isLoading || isCheckingUsername}
+                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                {isCheckingUsername && (
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    <svg className="animate-spin h-4 w-4 text-muted-foreground" viewBox="0 0 50 50">
+                      <circle
+                        className="opacity-30"
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        stroke="currentColor"
+                        strokeWidth="5"
+                        fill="none"
+                      />
+                      <circle
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        stroke="currentColor"
+                        strokeWidth="5"
+                        fill="none"
+                        strokeDasharray="100"
+                        strokeDashoffset="75"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                3-30 characters, letters, numbers, and underscores only
+              </p>
+              {usernameError && (
+                <p className="text-xs text-destructive mt-2">{usernameError}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || isCheckingUsername || !!usernameError}
+              className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
+                    <circle
+                      className="opacity-30"
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                    />
+                    <circle
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                      strokeDasharray="100"
+                      strokeDashoffset="75"
+                    />
+                  </svg>
+                  Creating Account...
+                </span>
+              ) : (
+                "Continue"
+              )}
+            </button>
+          </form>
+
+          {/* Info Box */}
+          <div className="p-4 bg-secondary border border-border rounded-lg">
+            <div className="flex gap-3">
+              <Lock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Username Requirements
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  • Minimum 3 characters
+                  <br />
+                  • Maximum 30 characters
+                  <br />
+                  • No spaces or special characters
+                  <br />• Must be unique
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: Recovery Passphrase
   if (step === "passphrase") {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
