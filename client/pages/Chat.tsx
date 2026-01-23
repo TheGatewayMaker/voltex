@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import Layout from "@/components/Layout";
 import { useWebSocket } from "@/lib/useWebSocket";
 import {
