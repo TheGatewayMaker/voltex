@@ -47,6 +47,8 @@ export async function uploadToR2(
 ): Promise<void> {
   try {
     const client = initializeR2Client();
+
+    // Try to upload with put object command
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: key,
@@ -57,6 +59,18 @@ export async function uploadToR2(
     await client.send(command);
     console.log(`Successfully uploaded ${key} to R2`);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // If bucket doesn't exist, provide helpful error message
+    if (errorMessage.includes("NoSuchBucket")) {
+      console.error(
+        `Error: R2 bucket "${bucketName}" does not exist. Please create the following buckets in your Cloudflare R2 account: voltex-users, voltex-messages, voltex-recovery`,
+      );
+      throw new Error(
+        `R2 bucket "${bucketName}" does not exist. Please create it in your Cloudflare R2 account.`,
+      );
+    }
+
     console.error("Error uploading to R2:", error);
     throw error;
   }
