@@ -264,6 +264,68 @@ export async function getMessage(messageId: string): Promise<any | null> {
 }
 
 /**
+ * Check if a username is available (not taken)
+ */
+export async function checkUsernameAvailability(
+  username: string,
+): Promise<boolean> {
+  try {
+    const bucketName = "voltex-users";
+    const key = `usernames/${username.toLowerCase()}.json`;
+
+    const exists = await fileExistsInR2(bucketName, key);
+    return !exists; // Username is available if file doesn't exist
+  } catch (error) {
+    console.error("Error checking username availability:", error);
+    return false; // If error, assume not available for safety
+  }
+}
+
+/**
+ * Reserve a username by storing a mapping to userId
+ */
+export async function reserveUsername(
+  username: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const bucketName = "voltex-users";
+    const key = `usernames/${username.toLowerCase()}.json`;
+    const data = JSON.stringify({
+      username: username.toLowerCase(),
+      userId,
+      createdAt: Date.now(),
+    });
+
+    await uploadToR2(bucketName, key, data, "application/json");
+  } catch (error) {
+    console.error("Error reserving username:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get userId by username
+ */
+export async function getUserIdByUsername(
+  username: string,
+): Promise<string | null> {
+  try {
+    const bucketName = "voltex-users";
+    const key = `usernames/${username.toLowerCase()}.json`;
+
+    const data = await downloadFromR2(bucketName, key);
+    if (!data) return null;
+
+    const usernameData = JSON.parse(data);
+    return usernameData.userId || null;
+  } catch (error) {
+    console.error("Error getting userId by username:", error);
+    return null;
+  }
+}
+
+/**
  * Save user account to R2
  */
 export async function saveUserAccount(
