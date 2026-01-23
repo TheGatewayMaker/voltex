@@ -4,11 +4,13 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   ListBucketsCommand,
+  CreateBucketCommand,
 } from "@aws-sdk/client-s3";
 import { sdkStreamMixin } from "@aws-sdk/util-stream-node";
 
 // Global R2 client instance
 let r2Client: S3Client | null = null;
+const createdBuckets = new Set<string>();
 
 // Initialize R2 client with Cloudflare credentials
 function initializeR2Client(): S3Client {
