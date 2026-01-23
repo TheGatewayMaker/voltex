@@ -138,7 +138,9 @@ export default function SignUp() {
       );
 
       // Hash the mnemonic passphrase for recovery
-      const passphraseHashHex = await hashPassphrase(mnemonicData.mnemonic);
+      // Normalize first to ensure consistency with recovery flow
+      const normalizedPassphrase = normalizePassphrase(mnemonicData.mnemonic);
+      const passphraseHashHex = await hashPassphrase(normalizedPassphrase);
 
       // Register account on server with username
       const registerResponse = await fetch("/api/auth/register", {
