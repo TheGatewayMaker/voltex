@@ -24,6 +24,38 @@ export default function ProfileMenu({
 }: ProfileMenuProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [profileName, setProfileName] = useState(displayName);
+
+  // Fetch the user's display name from profile if not provided
+  React.useEffect(() => {
+    if (displayName === "User") {
+      const fetchProfile = async () => {
+        try {
+          const sessionToken = localStorage.getItem("session_token");
+          if (!sessionToken) return;
+
+          const response = await fetch("/api/profile/me", {
+            headers: {
+              Authorization: `Bearer ${sessionToken}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.displayName) {
+              setProfileName(data.displayName);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch profile name:", err);
+        }
+      };
+
+      fetchProfile();
+    } else {
+      setProfileName(displayName);
+    }
+  }, [displayName]);
 
   const handleLogout = async () => {
     try {
