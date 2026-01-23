@@ -39,11 +39,10 @@ export default function ProfileMenu({
         });
       }
 
-      // Clear local storage
+      // Clear session but keep crypto_keypair for re-authentication on same device
       localStorage.removeItem("session_token");
       localStorage.removeItem("current_user_id");
       localStorage.removeItem("current_public_key");
-      localStorage.removeItem("crypto_keypair");
 
       toast.success("Logged out successfully");
       navigate("/signin");
