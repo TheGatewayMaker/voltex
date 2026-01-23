@@ -267,7 +267,7 @@ export default function SignUp() {
     }
   };
 
-  // Step 1: Signup Form
+  // Step 1: Display Name Form
   if (step === "form") {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
