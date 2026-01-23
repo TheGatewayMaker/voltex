@@ -11,6 +11,7 @@ import {
   handleGetPublicKey,
   handleLogout,
   handleRecoverAccount,
+  handleCheckUsernameAvailability,
   getSessionFromToken,
 } from "./routes/auth";
 import {
@@ -26,6 +27,10 @@ import {
   handleUploadAvatar,
   handleUpdateSettings,
 } from "./routes/profile";
+import {
+  handleSearchUsers,
+  handleGetUserByUsername,
+} from "./routes/users";
 import {
   registerUserConnection,
   unregisterUserConnection,
@@ -61,6 +66,7 @@ export function createServer() {
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
   app.post("/api/auth/recover", handleRecoverAccount);
   app.post("/api/auth/logout", handleLogout);
+  app.post("/api/auth/username-availability", handleCheckUsernameAvailability);
 
   // Message routes
   app.post("/api/messages/send", handleSendMessage);
@@ -77,6 +83,10 @@ export function createServer() {
   app.get("/api/profile/:userId", handleGetPublicProfile);
   app.post("/api/profile/avatar", handleUploadAvatar);
   app.post("/api/profile/settings", handleUpdateSettings);
+
+  // User search routes
+  app.post("/api/users/search", handleSearchUsers);
+  app.get("/api/users/by-username/:username", handleGetUserByUsername);
 
   // Create WebSocket server if not already created
   if (!wssInstance) {

@@ -17,6 +17,7 @@ export interface CryptoKeyPair {
 export interface UserAccount {
   userId: string; // Derived from public key hash
   publicKey: string; // base64-encoded
+  username?: string; // Optional username for user lookup
   createdAt: number;
 }
 
