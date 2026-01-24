@@ -80,6 +80,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       await saveMessageWithMetadata(messageId, session.userId, recipientId, {
         nonce,
         ciphertext,
+        signature,
         timestamp,
       });
       console.log(`Message ${messageId} stored in R2`);
