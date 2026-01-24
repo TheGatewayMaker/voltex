@@ -1,5 +1,12 @@
 import { EncryptedMessage } from "@shared/crypto";
-import { query, queryOne, isDatabaseConnected } from "./db";
+import {
+  query,
+  queryOne,
+  isDatabaseConnected as checkDatabaseConnected,
+} from "./db";
+
+// Re-export for convenience
+export const isDatabaseConnected = checkDatabaseConnected;
 
 export interface StoredMessage extends EncryptedMessage {
   id?: string;
@@ -18,7 +25,7 @@ export async function storeMessageInDB(
   recipientId: string,
   message: EncryptedMessage,
 ): Promise<boolean> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     console.log("Database not connected, falling back to in-memory storage");
     return false;
   }
@@ -65,7 +72,7 @@ export async function getConversationMessagesFromDB(
   limit: number = 50,
   offset: number = 0,
 ): Promise<StoredMessage[]> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return [];
   }
 
@@ -100,7 +107,7 @@ export async function getConversationMessageCount(
   userId1: string,
   userId2: string,
 ): Promise<number> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return 0;
   }
 
@@ -129,7 +136,7 @@ export async function getConversationMessageCount(
 export async function getUserConversationsFromDB(
   userId: string,
 ): Promise<Map<string, { lastMessage: StoredMessage; timestamp: number }>> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return new Map();
   }
 
@@ -196,7 +203,7 @@ async function updateConversation(
   recipientId: string,
   message: EncryptedMessage,
 ): Promise<void> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return;
   }
 
@@ -221,7 +228,7 @@ async function updateConversation(
  * Delete a specific message
  */
 export async function deleteMessageFromDB(messageId: string): Promise<boolean> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return false;
   }
 
@@ -245,7 +252,7 @@ export async function deleteConversationFromDB(
   userId1: string,
   userId2: string,
 ): Promise<boolean> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return false;
   }
 
@@ -272,7 +279,7 @@ export async function getMessagesForArchival(
   ageMs: number,
   limit: number = 1000,
 ): Promise<StoredMessage[]> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return [];
   }
 
@@ -303,7 +310,7 @@ export async function getMessagesForArchival(
 export async function markMessagesAsArchived(
   messageIds: string[],
 ): Promise<number> {
-  if (!isDatabaseConnected() || messageIds.length === 0) {
+  if (!checkDatabaseConnected() || messageIds.length === 0) {
     return 0;
   }
 
@@ -334,7 +341,7 @@ export async function markMessagesAsArchived(
 export async function deleteArchivedMessages(
   messageIds: string[],
 ): Promise<number> {
-  if (!isDatabaseConnected() || messageIds.length === 0) {
+  if (!checkDatabaseConnected() || messageIds.length === 0) {
     return 0;
   }
 
@@ -365,7 +372,7 @@ export async function getDatabaseStats(): Promise<{
   archived: number;
   active: number;
 }> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return { total: 0, archived: 0, active: 0 };
   }
 
