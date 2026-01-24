@@ -1,21 +1,44 @@
 import path from "path";
-import { createServer } from "./index";
+import * as serverModule from "./index.js";
 import express from "express";
 import { createServer as createHttpServer } from "http";
 
 async function main() {
-  const { app, wss } = await createServer();
+  // Verify createServer is available
+  if (
+    !serverModule.createServer ||
+    typeof serverModule.createServer !== "function"
+  ) {
+    throw new Error(
+      "Failed to import createServer function from server module",
+    );
+  }
+
+  const result = await serverModule.createServer();
+
+  if (!result || typeof result !== "object") {
+    throw new Error("createServer did not return a valid object");
+  }
+
+  const { app, wss } = result;
+
+  if (!app) {
+    throw new Error("createServer returned undefined app");
+  }
+
   const port = process.env.PORT || 3000;
 
   // Create HTTP server
   const httpServer = createHttpServer(app);
 
   // Attach WebSocket server to HTTP server
-  httpServer.on("upgrade", (request, socket, head) => {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit("connection", ws, request);
+  if (wss) {
+    httpServer.on("upgrade", (request, socket, head) => {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit("connection", ws, request);
+      });
     });
-  });
+  }
 
   // In production, serve the built SPA files
   const __dirname = import.meta.dirname;
