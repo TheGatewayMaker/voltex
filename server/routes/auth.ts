@@ -275,11 +275,13 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
         .json({ error: "Public key does not match registered user" });
     }
 
-    // Verify the signature
+    // Verify the signature using the signing public key
+    // The client signs with the signing private key (Ed25519), so we verify with the signing public key
+    const signPublicKeyToUse = userAccount.signPublicKey || publicKey;
     const isSignatureValid = verifySignedChallenge(
       challenge,
       signature,
-      publicKey,
+      signPublicKeyToUse,
     );
     if (!isSignatureValid) {
       return res.status(403).json({ error: "Invalid signature" });
