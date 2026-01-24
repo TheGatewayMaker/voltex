@@ -383,6 +383,10 @@ export default function Chat() {
         id: localMessageId,
         isOwn: true,
         status: "sent",
+        // Store encrypted data for retry on reconnect
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+        signature: encrypted.signature,
       };
 
       setMessages((prev) => [...prev, newMessage]);
