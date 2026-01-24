@@ -176,3 +176,6 @@ export function useWebSocket(options?: UseWebSocketOptions) {
     sendEncryptedMessage,
   };
 }
+
+// Note: The options callbacks should be memoized with useCallback in the consuming component
+// to prevent unnecessary WebSocket reconnections
