@@ -37,7 +37,10 @@ function expressPlugin(): Plugin {
       expressApp = app;
       expressWss = wss;
 
-      // Return a middleware function that Express app will handle
+      // Use server.middlewares.use to add Express app as middleware
+      server.middlewares.use(app);
+
+      // Return a function that handles WebSocket upgrades after HTTP server is ready
       return () => {
         const httpServer = server.httpServer;
 
@@ -65,16 +68,6 @@ function expressPlugin(): Plugin {
           console.log("WebSocket upgrade handler attached");
         }
       };
-    },
-    configResolved() {
-      // This hook is called after config is resolved
-    },
-    transformIndexHtml: {
-      // Add Express middleware handling here
-      order: "pre",
-      handler(html) {
-        return html;
-      },
     },
   };
 }
