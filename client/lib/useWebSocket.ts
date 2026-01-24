@@ -6,12 +6,15 @@ interface UseWebSocketOptions {
   onError?: (error: string) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
+  onAck?: (messageId: string, delivered: boolean) => void; // Track delivery ACKs
 }
 
 export function useWebSocket(options?: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const sessionToken = localStorage.getItem("session_token");
@@ -40,6 +43,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
           console.log("WebSocket connected");
           setIsConnecting(false);
           setIsConnected(true);
+          reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
           options?.onConnected?.();
         };
 
@@ -51,8 +55,12 @@ export function useWebSocket(options?: UseWebSocketOptions) {
               // Handle incoming encrypted message
               options?.onMessage?.(data.data);
             } else if (data.type === "message-ack") {
-              // Handle message acknowledgment
-              console.log("Message acknowledged:", data.messageId);
+              // Handle message acknowledgment - track delivery
+              const delivered = data.delivered !== false;
+              console.log(
+                `Message ${data.messageId} acknowledged (delivered: ${delivered})`,
+              );
+              options?.onAck?.(data.messageId, delivered);
             } else if (data.type === "error") {
               console.error("WebSocket error:", data.error);
               options?.onError?.(data.error);
@@ -63,12 +71,10 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         };
 
         ws.onerror = (error) => {
-          console.warn(
-            "WebSocket connection failed (optional feature):",
-            error,
-          );
+          console.warn("WebSocket connection error:", error);
           setIsConnecting(false);
-          // Don't call onError - WebSocket is optional
+          // Attempt to reconnect
+          scheduleReconnect();
         };
 
         ws.onclose = () => {
@@ -78,7 +84,8 @@ export function useWebSocket(options?: UseWebSocketOptions) {
           wsRef.current = null;
           options?.onDisconnected?.();
 
-          // Don't attempt to reconnect - WebSocket is optional
+          // Attempt to reconnect with exponential backoff
+          scheduleReconnect();
         };
 
         wsRef.current = ws;
@@ -86,12 +93,49 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         console.error("Error connecting to WebSocket:", error);
         setIsConnecting(false);
         options?.onError?.("Failed to connect to WebSocket");
+        scheduleReconnect();
       }
+    };
+
+    // Schedule reconnection with exponential backoff
+    const scheduleReconnect = () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+
+      const maxAttempts = 10;
+      if (reconnectAttemptsRef.current >= maxAttempts) {
+        console.error("Max WebSocket reconnection attempts reached, giving up");
+        return;
+      }
+
+      const baseDelay = 1000; // 1 second
+      const maxDelay = 30000; // 30 seconds
+      const delay = Math.min(
+        baseDelay * Math.pow(2, reconnectAttemptsRef.current),
+        maxDelay,
+      );
+
+      reconnectAttemptsRef.current += 1;
+      console.log(
+        `Scheduling WebSocket reconnect attempt ${reconnectAttemptsRef.current} in ${delay}ms`,
+      );
+
+      reconnectTimeoutRef.current = setTimeout(() => {
+        console.log(
+          `Attempting WebSocket reconnect (attempt ${reconnectAttemptsRef.current})`,
+        );
+        wsRef.current = null; // Clear the old reference
+        connectWebSocket();
+      }, delay);
     };
 
     connectWebSocket();
 
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (wsRef.current) {
         wsRef.current.close();
       }

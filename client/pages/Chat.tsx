@@ -15,12 +15,18 @@ import { toast } from "sonner";
 interface ChatMessage extends DecryptedMessage {
   id: string;
   isOwn: boolean;
+  status?: "sent" | "delivered" | "failed"; // Track delivery status
+  // Encrypted data stored for retry on reconnect
+  nonce?: string;
+  ciphertext?: string;
+  signature?: string;
 }
 
 export default function Chat() {
   const { id: recipientId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pendingMessagesRef = useRef<ChatMessage[]>([]); // Queue for offline messages
 
   // State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -30,6 +36,7 @@ export default function Chat() {
   const [recipientPublicKey, setRecipientPublicKey] = useState<string>("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [recipientName, setRecipientName] = useState<string>("");
+  const sentMessagesRef = useRef<Map<string, string>>(new Map()); // Map messageId -> localMessageId
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -88,7 +95,8 @@ export default function Chat() {
       // Get recipient's public key
       const pubKeyRes = await fetch(`/api/auth/public-key/${recipientId}`);
       if (!pubKeyRes.ok) {
-        throw new Error("Failed to load recipient's public key");
+        const error = await pubKeyRes.json();
+        throw new Error(error.error || "Failed to load recipient's public key");
       }
       const pubKeyData = await pubKeyRes.json();
       setRecipientPublicKey(pubKeyData.publicKey);
@@ -105,7 +113,8 @@ export default function Chat() {
       );
 
       if (!historyRes.ok) {
-        throw new Error("Failed to load conversation history");
+        const error = await historyRes.json();
+        throw new Error(error.error || "Failed to load conversation history");
       }
 
       const historyData = await historyRes.json();
@@ -173,7 +182,7 @@ export default function Chat() {
   };
 
   // Set up WebSocket for real-time messages
-  const { isConnected } = useWebSocket({
+  const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
     onMessage: async (encryptedMessage) => {
       // Only process messages from this conversation
       if (
@@ -232,14 +241,94 @@ export default function Chat() {
         console.error("WebSocket message processing error:", error);
       }
     },
+    onAck: (messageId, delivered) => {
+      // Update message delivery status based on ACK
+      const localMessageId = sentMessagesRef.current.get(messageId);
+      if (localMessageId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === localMessageId
+              ? { ...msg, status: delivered ? "delivered" : "sent" }
+              : msg,
+          ),
+        );
+      }
+    },
     onError: (error) => {
       console.error("WebSocket error:", error);
       toast.error("Connection error: " + error);
     },
     onConnected: () => {
       console.log("WebSocket connected for chat");
+      // Retry any pending messages that failed to send
+      retryPendingMessages();
     },
   });
+
+  // Retry pending messages (queued for offline delivery)
+  const retryPendingMessages = async () => {
+    if (pendingMessagesRef.current.length === 0) return;
+
+    console.log(
+      `Retrying ${pendingMessagesRef.current.length} pending messages`,
+    );
+
+    const pendingToRetry = [...pendingMessagesRef.current];
+    pendingMessagesRef.current = []; // Clear the queue
+
+    for (const message of pendingToRetry) {
+      try {
+        const sessionToken = localStorage.getItem("session_token");
+        if (!sessionToken) {
+          // Re-queue if no session
+          pendingMessagesRef.current.push(message);
+          continue;
+        }
+
+        // Validate we have encrypted data
+        if (!message.nonce || !message.ciphertext || !message.signature) {
+          console.warn(
+            `Message ${message.id} missing encrypted data, skipping`,
+          );
+          continue;
+        }
+
+        // Retry sending the message with stored encrypted data
+        const sendRes = await fetch("/api/messages/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify({
+            recipientId,
+            nonce: message.nonce,
+            ciphertext: message.ciphertext,
+            signature: message.signature,
+            timestamp: message.timestamp,
+          }),
+        });
+
+        if (sendRes.ok) {
+          // Update message status to delivered
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === message.id ? { ...msg, status: "delivered" } : msg,
+            ),
+          );
+          console.log(`Retried message ${message.id} successfully`);
+        } else {
+          // Re-queue if still failed
+          pendingMessagesRef.current.push(message);
+          console.warn(`Failed to retry message ${message.id}`);
+        }
+      } catch (error) {
+        // Re-queue if error occurred
+        pendingMessagesRef.current.push(message);
+        console.error(`Error retrying message ${message.id}:`, error);
+      }
+    }
+  };
 
   // Send message
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -280,48 +369,110 @@ export default function Chat() {
         keyPair.privateKeyBase64,
       );
 
-      // Send to server with signature for authenticity
-      const sessionToken = localStorage.getItem("session_token");
-      const sendRes = await fetch("/api/messages/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionToken}`,
-        },
-        body: JSON.stringify({
-          recipientId,
-          nonce: encrypted.nonce,
-          ciphertext: encrypted.ciphertext,
-          signature: encrypted.signature,
-          timestamp: encrypted.timestamp,
-        }),
-      });
+      // Create full encrypted message with sender info
+      const fullMessage = {
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+        signature: encrypted.signature,
+        senderId: currentUserId,
+        recipientId: recipientId || "",
+        timestamp: encrypted.timestamp,
+      };
 
-      if (!sendRes.ok) {
-        throw new Error("Failed to send message");
-      }
+      // Create local message ID for tracking delivery
+      const localMessageId = `${encrypted.timestamp}-${currentUserId}`;
 
-      // Add message to local state optimistically
+      // Add message to local state optimistically with "sent" status
       const newMessage: ChatMessage = {
         senderId: currentUserId,
         recipientId: recipientId || "",
         content: messageInput,
         timestamp: encrypted.timestamp,
-        id: `${encrypted.timestamp}-${currentUserId}`,
+        id: localMessageId,
         isOwn: true,
+        status: "sent",
+        // Store encrypted data for retry on reconnect
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+        signature: encrypted.signature,
       };
 
       setMessages((prev) => [...prev, newMessage]);
       setMessageInput("");
 
-      // Try to send via WebSocket if connected
+      // Try to send via WebSocket if connected (real-time delivery)
+      let sent = false;
       if (isConnected) {
-        const wsMessage: EncryptedMessage = {
-          ...encrypted,
-          senderId: currentUserId,
-          recipientId: recipientId || "",
-        };
-        // The useWebSocket hook will send this
+        // Generate a temporary message ID for this WebSocket transmission
+        const wsMessageId = `${encrypted.timestamp}-ws`;
+        sentMessagesRef.current.set(wsMessageId, localMessageId);
+
+        sent = sendViaWebSocket(fullMessage, wsMessageId);
+        if (sent) {
+          console.log("Message sent via WebSocket");
+        } else {
+          sentMessagesRef.current.delete(wsMessageId);
+        }
+      }
+
+      // If WebSocket not connected or failed, fall back to HTTP
+      if (!sent) {
+        try {
+          const sendRes = await fetch("/api/messages/send", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              recipientId,
+              nonce: encrypted.nonce,
+              ciphertext: encrypted.ciphertext,
+              signature: encrypted.signature,
+              timestamp: encrypted.timestamp,
+            }),
+          });
+
+          if (!sendRes.ok) {
+            const error = await sendRes.json();
+            throw new Error(error.error || "Failed to send message");
+          }
+
+          const response = await sendRes.json();
+
+          // Update message status to delivered
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === localMessageId ? { ...msg, status: "delivered" } : msg,
+            ),
+          );
+
+          // Warn user if message wasn't persisted to R2 (but still delivered to memory)
+          if (!response.persisted) {
+            console.warn("Message sent but not persisted to R2");
+            toast.warning(
+              "Message sent but backup storage failed - may not be recoverable if server restarts",
+            );
+          }
+
+          console.log("Message sent via HTTP (fallback)");
+        } catch (error) {
+          console.error("Failed to send message:", error);
+          // Update message status to failed
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === localMessageId ? { ...msg, status: "failed" } : msg,
+            ),
+          );
+          // Queue message for retry when connection is restored
+          const failedMessage = messages.find((m) => m.id === localMessageId);
+          if (failedMessage) {
+            pendingMessagesRef.current.push(failedMessage);
+            toast.error(
+              "Message queued - will retry when connection is restored",
+            );
+          }
+        }
       }
     } catch (error) {
       console.error("Send message error:", error);
@@ -480,9 +631,18 @@ export default function Chat() {
                   >
                     <p className="break-words text-sm">{message.content}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    {formatTime(message.timestamp)}
-                  </span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {formatTime(message.timestamp)}
+                    </span>
+                    {message.isOwn && message.status && (
+                      <span className="text-xs text-muted-foreground">
+                        {message.status === "sent" && "✓"}
+                        {message.status === "delivered" && "✓✓"}
+                        {message.status === "failed" && "✗"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))

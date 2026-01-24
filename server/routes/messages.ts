@@ -2,7 +2,12 @@ import { RequestHandler } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { EncryptedMessage } from "@shared/crypto";
 import { getSessionFromToken } from "./auth";
-import { saveMessageWithMetadata } from "../lib/r2-storage";
+import {
+  saveMessageWithMetadata,
+  getConversationMessages,
+  getUserAccount,
+} from "../lib/r2-storage";
+import { verifyMessageSignature } from "../lib/crypto";
 
 // In-memory message storage (messages are also stored in R2 for persistence)
 // Structure: { "senderId:recipientId": [messages] }
@@ -18,7 +23,7 @@ function getConversationKey(userId1: string, userId2: string): string {
 
 /**
  * POST /api/messages/send
- * Store an encrypted message
+ * Store an encrypted message with signature verification
  */
 export const handleSendMessage: RequestHandler = async (req, res) => {
   try {
@@ -53,10 +58,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       });
     }
 
-    // Generate unique message ID
-    const messageId = uuidv4();
-
-    // Create encrypted message object with signature for authenticity
+    // Create encrypted message object
     const message: EncryptedMessage = {
       nonce,
       ciphertext,
@@ -65,6 +67,20 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       recipientId,
       timestamp,
     };
+
+    // Verify message signature using sender's public key
+    const isSignatureValid = verifyMessageSignature(message, session.publicKey);
+    if (!isSignatureValid) {
+      console.warn(
+        `Invalid message signature from ${session.userId} to ${recipientId}`,
+      );
+      return res.status(403).json({
+        error: "Invalid message signature - authenticity verification failed",
+      });
+    }
+
+    // Generate unique message ID
+    const messageId = uuidv4();
 
     // Store in conversation history (in-memory for current session)
     const conversationKey = getConversationKey(session.userId, recipientId);
@@ -76,6 +92,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     messages.push(message);
 
     // Also store in R2 for persistence
+    let r2StorageSuccess = false;
     try {
       await saveMessageWithMetadata(messageId, session.userId, recipientId, {
         nonce,
@@ -84,9 +101,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
         timestamp,
       });
       console.log(`Message ${messageId} stored in R2`);
+      r2StorageSuccess = true;
     } catch (r2Error) {
       console.error("Failed to store message in R2:", r2Error);
-      // Continue anyway, message is in memory
+      // Continue anyway, message is in memory, but flag for client
     }
 
     // Keep only last 1000 messages per conversation
@@ -98,6 +116,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       success: true,
       messageId: `${timestamp}-${session.userId}`,
       timestamp,
+      persisted: r2StorageSuccess,
     });
   } catch (error) {
     console.error("Send message error:", error);
@@ -107,9 +126,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
 
 /**
  * GET /api/messages/conversation/:recipientId
- * Retrieve conversation history
+ * Retrieve conversation history (from memory + R2 persistence)
  */
-export const handleGetConversation: RequestHandler = (req, res) => {
+export const handleGetConversation: RequestHandler = async (req, res) => {
   try {
     const sessionToken = req.headers.authorization?.replace("Bearer ", "");
     if (!sessionToken) {
@@ -129,9 +148,33 @@ export const handleGetConversation: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Get conversation history
+    // Get conversation history from memory
     const conversationKey = getConversationKey(session.userId, recipientId);
-    const allMessages = conversationHistory.get(conversationKey) || [];
+    let allMessages = conversationHistory.get(conversationKey) || [];
+
+    // If in-memory is empty, try to load from R2 persistence
+    if (allMessages.length === 0) {
+      try {
+        const persistedMessages = await getConversationMessages(
+          session.userId,
+          recipientId,
+          1000, // Load up to 1000 messages from R2
+          0,
+        );
+
+        if (persistedMessages.length > 0) {
+          // Load persisted messages into memory cache
+          conversationHistory.set(conversationKey, persistedMessages);
+          allMessages = persistedMessages;
+          console.log(
+            `Loaded ${persistedMessages.length} messages from R2 for conversation ${conversationKey}`,
+          );
+        }
+      } catch (r2Error) {
+        console.error("Error loading messages from R2:", r2Error);
+        // Continue with in-memory data (if available)
+      }
+    }
 
     // Apply pagination
     const paginatedMessages = allMessages

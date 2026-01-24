@@ -36,7 +36,7 @@ import {
   deliverMessage,
   getQueuedMessages,
 } from "./lib/messaging";
-import { validateEncryptedMessage } from "./lib/crypto";
+import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
@@ -161,6 +161,23 @@ export function createServer() {
               console.warn(
                 `Spoofing attempt: user ${userId} tried to send as ${encryptedMessage.senderId}`,
               );
+              return;
+            }
+
+            // Verify message signature using authenticated user's public key
+            const isSignatureValid = verifyMessageSignature(
+              encryptedMessage,
+              session.publicKey,
+            );
+            if (!isSignatureValid) {
+              ws.send(
+                JSON.stringify({
+                  type: "error",
+                  error:
+                    "Invalid message signature - authenticity verification failed",
+                }),
+              );
+              console.warn(`Invalid message signature from user ${userId}`);
               return;
             }
 
