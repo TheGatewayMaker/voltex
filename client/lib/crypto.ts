@@ -132,17 +132,27 @@ function utf8Decode(bytes: Uint8Array): string {
 }
 
 /**
- * Generate a new cryptographic key pair for signing
- * Returns both raw Uint8Array and base64-encoded versions
+ * Generate a new cryptographic key pair for encryption and signing
+ * Uses box keys for encryption and derives sign keys from the box secret
  */
 export function generateKeyPair(): CryptoKeyPair {
-  const keypair = nacl.sign.keyPair();
+  // Generate box key pair for encryption (Curve25519)
+  const boxKeypair = nacl.box.keyPair();
+
+  // For signing, we use the box secret key to seed a sign key pair
+  // This ensures we have proper keys for both encryption and signing
+  const signKeypair = nacl.sign.keyPair.fromSeed(
+    boxKeypair.secretKey.slice(0, 32),
+  );
 
   return {
-    publicKey: keypair.publicKey,
-    privateKey: keypair.secretKey,
-    publicKeyBase64: bytesToBase64(keypair.publicKey),
-    privateKeyBase64: bytesToBase64(keypair.secretKey),
+    publicKey: boxKeypair.publicKey,
+    privateKey: boxKeypair.secretKey,
+    publicKeyBase64: bytesToBase64(boxKeypair.publicKey),
+    privateKeyBase64: bytesToBase64(boxKeypair.secretKey),
+    // Store sign keys for signing operations
+    signPublicKeyBase64: bytesToBase64(signKeypair.publicKey),
+    signPrivateKeyBase64: bytesToBase64(signKeypair.secretKey),
   };
 }
 
