@@ -326,7 +326,7 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
  * GET /api/auth/verify-session
  * Verify a session token
  */
-export const handleVerifySession: RequestHandler = (req, res) => {
+export const handleVerifySession: RequestHandler = async (req, res) => {
   try {
     const sessionToken = req.headers.authorization?.replace("Bearer ", "");
 
@@ -334,14 +334,9 @@ export const handleVerifySession: RequestHandler = (req, res) => {
       return res.status(401).json({ error: "No session token provided" });
     }
 
-    const session = sessions.get(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid session" });
-    }
-
-    if (session.expiresAt < Date.now()) {
-      sessions.delete(sessionToken);
-      return res.status(401).json({ error: "Session expired" });
     }
 
     return res.status(200).json({
