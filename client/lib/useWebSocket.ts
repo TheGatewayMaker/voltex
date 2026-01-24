@@ -47,7 +47,9 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
-          console.log("WebSocket connected");
+          console.log("[WS-CLIENT] WebSocket connected successfully");
+          console.log("[WS-CLIENT] Session token:", sessionToken.substring(0, 20) + "...");
+          console.log("[WS-CLIENT] User ID:", userId);
           setIsConnecting(false);
           setIsConnected(true);
           reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
