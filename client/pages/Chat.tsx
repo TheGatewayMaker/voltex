@@ -442,7 +442,14 @@ export default function Chat() {
                 : msg
             )
           );
-          throw error;
+          // Queue message for retry when connection is restored
+          const failedMessage = messages.find((m) => m.id === localMessageId);
+          if (failedMessage) {
+            pendingMessagesRef.current.push(failedMessage);
+            toast.error(
+              "Message queued - will retry when connection is restored"
+            );
+          }
         }
       }
     } catch (error) {
