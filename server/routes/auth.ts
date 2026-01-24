@@ -124,6 +124,15 @@ export const handleRegister: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Invalid public key format" });
     }
 
+    // Validate signing public key if provided
+    if (signPublicKey && typeof signPublicKey === "string") {
+      if (!isValidPublicKey(signPublicKey)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid signing public key format" });
+      }
+    }
+
     // Derive user ID from public key
     const userId = await deriveUserIdFromPublicKey(publicKey);
 
