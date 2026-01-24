@@ -151,12 +151,27 @@ export function createServer() {
               return;
             }
 
-            // Verify sender matches authenticated user
+            // CRITICAL: Verify sender matches authenticated user
+            // This prevents a user from spoofing another user's ID
             if (encryptedMessage.senderId !== userId) {
               ws.send(
                 JSON.stringify({
                   type: "error",
-                  error: "Sender ID does not match authenticated user",
+                  error: "Sender ID does not match authenticated user - spoofing attempt blocked",
+                }),
+              );
+              console.warn(
+                `Spoofing attempt: user ${userId} tried to send as ${encryptedMessage.senderId}`,
+              );
+              return;
+            }
+
+            // Verify recipient is specified
+            if (!encryptedMessage.recipientId) {
+              ws.send(
+                JSON.stringify({
+                  type: "error",
+                  error: "Recipient ID is required",
                 }),
               );
               return;
