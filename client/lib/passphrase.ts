@@ -149,11 +149,27 @@ export async function decryptKeypair(
     const keypairJson = decoder.decode(decrypted);
     const parsed = JSON.parse(keypairJson);
 
+    // For backward compatibility: derive signing keys from private key if they're missing
+    let signPublicKeyBase64 = parsed.signPublicKeyBase64;
+    let signPrivateKeyBase64 = parsed.signPrivateKeyBase64;
+
+    if (!signPublicKeyBase64 || !signPrivateKeyBase64) {
+      // Derive signing keys from the private key if they're missing
+      const privateKeyBytes = base64ToBytes(parsed.privateKeyBase64);
+      const signKeypair = nacl.sign.keyPair.fromSeed(
+        privateKeyBytes.slice(0, 32),
+      );
+      signPublicKeyBase64 = bytesToBase64(signKeypair.publicKey);
+      signPrivateKeyBase64 = bytesToBase64(signKeypair.secretKey);
+    }
+
     return {
       publicKey: base64ToBytes(parsed.publicKeyBase64),
       privateKey: base64ToBytes(parsed.privateKeyBase64),
       publicKeyBase64: parsed.publicKeyBase64,
       privateKeyBase64: parsed.privateKeyBase64,
+      signPublicKeyBase64,
+      signPrivateKeyBase64,
     };
   } catch (error) {
     console.error("Failed to decrypt keypair:", error);
