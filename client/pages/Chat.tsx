@@ -394,6 +394,7 @@ export default function Chat() {
         messageInput,
         recipientPublicKey,
         keyPair.privateKeyBase64,
+        keyPair.signPrivateKeyBase64,
       );
 
       // Create full encrypted message with sender info
