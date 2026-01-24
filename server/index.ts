@@ -69,6 +69,8 @@ export function createServer() {
   app.post("/api/auth/recover", handleRecoverAccount);
   app.post("/api/auth/logout", handleLogout);
   app.post("/api/auth/username-availability", handleCheckUsernameAvailability);
+  app.post("/api/auth/save-encrypted-keypair", handleSaveEncryptedKeypair);
+  app.get("/api/auth/encrypted-keypair/:userId", handleGetEncryptedKeypair);
 
   // Message routes
   app.post("/api/messages/send", handleSendMessage);
