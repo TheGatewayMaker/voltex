@@ -431,6 +431,14 @@ export default function Chat() {
             )
           );
 
+          // Warn user if message wasn't persisted to R2 (but still delivered to memory)
+          if (!response.persisted) {
+            console.warn("Message sent but not persisted to R2");
+            toast.warning(
+              "Message sent but backup storage failed - may not be recoverable if server restarts"
+            );
+          }
+
           console.log("Message sent via HTTP (fallback)");
         } catch (error) {
           console.error("Failed to send message:", error);
