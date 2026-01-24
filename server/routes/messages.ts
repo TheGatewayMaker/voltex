@@ -56,10 +56,11 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // Generate unique message ID
     const messageId = uuidv4();
 
-    // Create encrypted message object
+    // Create encrypted message object with signature for authenticity
     const message: EncryptedMessage = {
       nonce,
       ciphertext,
+      signature,
       senderId: session.userId,
       recipientId,
       timestamp,
