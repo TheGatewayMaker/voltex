@@ -2,7 +2,11 @@ import { RequestHandler } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { EncryptedMessage } from "@shared/crypto";
 import { getSessionFromToken } from "./auth";
-import { saveMessageWithMetadata, getConversationMessages, getUserAccount } from "../lib/r2-storage";
+import {
+  saveMessageWithMetadata,
+  getConversationMessages,
+  getUserAccount,
+} from "../lib/r2-storage";
 import { verifyMessageSignature } from "../lib/crypto";
 
 // In-memory message storage (messages are also stored in R2 for persistence)
@@ -68,7 +72,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     const isSignatureValid = verifyMessageSignature(message, session.publicKey);
     if (!isSignatureValid) {
       console.warn(
-        `Invalid message signature from ${session.userId} to ${recipientId}`
+        `Invalid message signature from ${session.userId} to ${recipientId}`,
       );
       return res.status(403).json({
         error: "Invalid message signature - authenticity verification failed",
@@ -155,7 +159,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
           session.userId,
           recipientId,
           1000, // Load up to 1000 messages from R2
-          0
+          0,
         );
 
         if (persistedMessages.length > 0) {
@@ -163,7 +167,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
           conversationHistory.set(conversationKey, persistedMessages);
           allMessages = persistedMessages;
           console.log(
-            `Loaded ${persistedMessages.length} messages from R2 for conversation ${conversationKey}`
+            `Loaded ${persistedMessages.length} messages from R2 for conversation ${conversationKey}`,
           );
         }
       } catch (r2Error) {

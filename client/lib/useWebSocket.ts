@@ -57,7 +57,9 @@ export function useWebSocket(options?: UseWebSocketOptions) {
             } else if (data.type === "message-ack") {
               // Handle message acknowledgment - track delivery
               const delivered = data.delivered !== false;
-              console.log(`Message ${data.messageId} acknowledged (delivered: ${delivered})`);
+              console.log(
+                `Message ${data.messageId} acknowledged (delivered: ${delivered})`,
+              );
               options?.onAck?.(data.messageId, delivered);
             } else if (data.type === "error") {
               console.error("WebSocket error:", data.error);
@@ -69,10 +71,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         };
 
         ws.onerror = (error) => {
-          console.warn(
-            "WebSocket connection error:",
-            error,
-          );
+          console.warn("WebSocket connection error:", error);
           setIsConnecting(false);
           // Attempt to reconnect
           scheduleReconnect();
@@ -106,9 +105,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
 
       const maxAttempts = 10;
       if (reconnectAttemptsRef.current >= maxAttempts) {
-        console.error(
-          "Max WebSocket reconnection attempts reached, giving up"
-        );
+        console.error("Max WebSocket reconnection attempts reached, giving up");
         return;
       }
 
@@ -116,17 +113,17 @@ export function useWebSocket(options?: UseWebSocketOptions) {
       const maxDelay = 30000; // 30 seconds
       const delay = Math.min(
         baseDelay * Math.pow(2, reconnectAttemptsRef.current),
-        maxDelay
+        maxDelay,
       );
 
       reconnectAttemptsRef.current += 1;
       console.log(
-        `Scheduling WebSocket reconnect attempt ${reconnectAttemptsRef.current} in ${delay}ms`
+        `Scheduling WebSocket reconnect attempt ${reconnectAttemptsRef.current} in ${delay}ms`,
       );
 
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log(
-          `Attempting WebSocket reconnect (attempt ${reconnectAttemptsRef.current})`
+          `Attempting WebSocket reconnect (attempt ${reconnectAttemptsRef.current})`,
         );
         wsRef.current = null; // Clear the old reference
         connectWebSocket();

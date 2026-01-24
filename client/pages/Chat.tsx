@@ -249,8 +249,8 @@ export default function Chat() {
           prev.map((msg) =>
             msg.id === localMessageId
               ? { ...msg, status: delivered ? "delivered" : "sent" }
-              : msg
-          )
+              : msg,
+          ),
         );
       }
     },
@@ -270,7 +270,7 @@ export default function Chat() {
     if (pendingMessagesRef.current.length === 0) return;
 
     console.log(
-      `Retrying ${pendingMessagesRef.current.length} pending messages`
+      `Retrying ${pendingMessagesRef.current.length} pending messages`,
     );
 
     const pendingToRetry = [...pendingMessagesRef.current];
@@ -287,7 +287,9 @@ export default function Chat() {
 
         // Validate we have encrypted data
         if (!message.nonce || !message.ciphertext || !message.signature) {
-          console.warn(`Message ${message.id} missing encrypted data, skipping`);
+          console.warn(
+            `Message ${message.id} missing encrypted data, skipping`,
+          );
           continue;
         }
 
@@ -311,10 +313,8 @@ export default function Chat() {
           // Update message status to delivered
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === message.id
-                ? { ...msg, status: "delivered" }
-                : msg
-            )
+              msg.id === message.id ? { ...msg, status: "delivered" } : msg,
+            ),
           );
           console.log(`Retried message ${message.id} successfully`);
         } else {
@@ -443,17 +443,15 @@ export default function Chat() {
           // Update message status to delivered
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === localMessageId
-                ? { ...msg, status: "delivered" }
-                : msg
-            )
+              msg.id === localMessageId ? { ...msg, status: "delivered" } : msg,
+            ),
           );
 
           // Warn user if message wasn't persisted to R2 (but still delivered to memory)
           if (!response.persisted) {
             console.warn("Message sent but not persisted to R2");
             toast.warning(
-              "Message sent but backup storage failed - may not be recoverable if server restarts"
+              "Message sent but backup storage failed - may not be recoverable if server restarts",
             );
           }
 
@@ -463,17 +461,15 @@ export default function Chat() {
           // Update message status to failed
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === localMessageId
-                ? { ...msg, status: "failed" }
-                : msg
-            )
+              msg.id === localMessageId ? { ...msg, status: "failed" } : msg,
+            ),
           );
           // Queue message for retry when connection is restored
           const failedMessage = messages.find((m) => m.id === localMessageId);
           if (failedMessage) {
             pendingMessagesRef.current.push(failedMessage);
             toast.error(
-              "Message queued - will retry when connection is restored"
+              "Message queued - will retry when connection is restored",
             );
           }
         }

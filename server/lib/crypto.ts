@@ -145,7 +145,8 @@ export function verifyMessageSignature(
     // The message signature is over the concatenation of:
     // nonce || ciphertext || timestamp
     // This ensures the entire message is authenticated
-    const messageToVerify = message.nonce + message.ciphertext + message.timestamp.toString();
+    const messageToVerify =
+      message.nonce + message.ciphertext + message.timestamp.toString();
     const messageBytes = utf8Encode(messageToVerify);
 
     const publicKeyBytes = base64ToBytes(senderPublicKeyBase64);

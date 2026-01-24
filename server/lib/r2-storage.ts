@@ -447,10 +447,7 @@ export async function getConversationMessages(
     });
 
     // Apply pagination
-    const paginatedContents = sortedContents.slice(
-      offset,
-      offset + limit
-    );
+    const paginatedContents = sortedContents.slice(offset, offset + limit);
 
     // Fetch each message
     const messages: any[] = [];
@@ -489,7 +486,9 @@ export async function getConversationMessages(
     return messages;
   } catch (error) {
     if (error instanceof Error && error.name === "NoSuchBucket") {
-      console.log(`Bucket ${bucketName} not found - messages not persisted yet`);
+      console.log(
+        `Bucket ${bucketName} not found - messages not persisted yet`,
+      );
       return [];
     }
     console.error("Error getting conversation messages from R2:", error);

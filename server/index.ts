@@ -173,12 +173,11 @@ export function createServer() {
               ws.send(
                 JSON.stringify({
                   type: "error",
-                  error: "Invalid message signature - authenticity verification failed",
+                  error:
+                    "Invalid message signature - authenticity verification failed",
                 }),
               );
-              console.warn(
-                `Invalid message signature from user ${userId}`,
-              );
+              console.warn(`Invalid message signature from user ${userId}`);
               return;
             }
 
