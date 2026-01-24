@@ -554,6 +554,48 @@ export default function Chat() {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  // Delete message handler
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      setIsDeletingMessageId(messageId);
+      const sessionToken = localStorage.getItem("session_token");
+
+      if (!sessionToken) {
+        toast.error("Session expired");
+        return;
+      }
+
+      const deleteRes = await fetch("/api/messages/message", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          messageId,
+          recipientId,
+        }),
+      });
+
+      if (!deleteRes.ok) {
+        const errorData = await deleteRes.json();
+        throw new Error(errorData.error || "Failed to delete message");
+      }
+
+      // Remove from local state
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setSelectedMessageId(null);
+      toast.success("Message deleted");
+    } catch (error) {
+      console.error("Delete message error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to delete message: ${errorMessage}`);
+    } finally {
+      setIsDeletingMessageId(null);
+    }
+  };
+
   return (
     <Layout
       showBack={true}
