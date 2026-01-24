@@ -419,19 +419,80 @@ export async function saveMessageWithMetadata(
 export async function getConversationMessages(
   userId1: string,
   userId2: string,
+  limit: number = 50,
+  offset: number = 0,
 ): Promise<any[]> {
-  // Note: This is a simplified version. For production, you'd want to list
-  // all objects in a prefix and retrieve them
   const bucketName = "voltex-messages";
   const conversationKey = [userId1, userId2].sort().join(":");
+  const prefix = `conversations/${conversationKey}/`;
 
   try {
     const client = initializeR2Client();
-    // For now, we'll return an empty array as listing objects requires more setup
-    // In production, you'd use ListObjectsV2Command to get all messages in a conversation
-    return [];
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: prefix,
+    });
+
+    const response = await client.send(command);
+
+    if (!response.Contents || response.Contents.length === 0) {
+      return [];
+    }
+
+    // Sort by key (messageId timestamp) in reverse order (newest first)
+    const sortedContents = response.Contents.sort((a, b) => {
+      const aKey = a.Key || "";
+      const bKey = b.Key || "";
+      return bKey.localeCompare(aKey);
+    });
+
+    // Apply pagination
+    const paginatedContents = sortedContents.slice(
+      offset,
+      offset + limit
+    );
+
+    // Fetch each message
+    const messages: any[] = [];
+    for (const content of paginatedContents) {
+      if (!content.Key) continue;
+
+      try {
+        const getCommand = new GetObjectCommand({
+          Bucket: bucketName,
+          Key: content.Key,
+        });
+
+        const getResponse = await client.send(getCommand);
+
+        if (getResponse.Body) {
+          const bodyStream = sdkStreamMixin(getResponse.Body);
+          const data = await bodyStream.transformToString();
+          const messageData = JSON.parse(data);
+
+          // Extract just the encrypted message fields
+          messages.push({
+            nonce: messageData.nonce,
+            ciphertext: messageData.ciphertext,
+            signature: messageData.signature,
+            senderId: messageData.senderId,
+            recipientId: messageData.recipientId,
+            timestamp: messageData.timestamp,
+          });
+        }
+      } catch (error) {
+        console.error(`Error retrieving message from ${content.Key}:`, error);
+        // Continue with next message on error
+      }
+    }
+
+    return messages;
   } catch (error) {
-    console.error("Error getting conversation messages:", error);
+    if (error instanceof Error && error.name === "NoSuchBucket") {
+      console.log(`Bucket ${bucketName} not found - messages not persisted yet`);
+      return [];
+    }
+    console.error("Error getting conversation messages from R2:", error);
     return [];
   }
 }
