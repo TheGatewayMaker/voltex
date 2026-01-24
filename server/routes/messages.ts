@@ -97,20 +97,18 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     if (!signPublicKeyToUse) {
       console.warn(
         `No sign public key available for user ${session.userId}. ` +
-        `Session has signPublicKey: ${!!session.signPublicKey}, ` +
-        `User account found: ${!!userAccount}`
+          `Session has signPublicKey: ${!!session.signPublicKey}, ` +
+          `User account found: ${!!userAccount}`,
       );
       return res.status(403).json({
-        error: "User account is missing signing key. Please sign out and sign in again, or create a new account",
+        error:
+          "User account is missing signing key. Please sign out and sign in again, or create a new account",
       });
     }
 
     let isSignatureValid;
     try {
-      isSignatureValid = verifyMessageSignature(
-        message,
-        signPublicKeyToUse,
-      );
+      isSignatureValid = verifyMessageSignature(message, signPublicKeyToUse);
     } catch (verifyError) {
       console.error("Signature verification error:", verifyError);
       return res.status(500).json({
@@ -121,14 +119,16 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     if (!isSignatureValid) {
       console.warn(
         `Invalid message signature from ${session.userId} to ${recipientId}. ` +
-        `Signature: ${signature.substring(0, 20)}...`
+          `Signature: ${signature.substring(0, 20)}...`,
       );
       return res.status(403).json({
         error: "Invalid message signature - authenticity verification failed",
       });
     }
 
-    console.log(`Message signature verified successfully for user ${session.userId}`);
+    console.log(
+      `Message signature verified successfully for user ${session.userId}`,
+    );
 
     // Generate unique message ID
     const messageId = uuidv4();
@@ -172,8 +172,11 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Unexpected error in send message handler:", error);
     // Return the actual error message to help with debugging
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return res.status(500).json({ error: `Failed to send message: ${errorMessage}` });
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return res
+      .status(500)
+      .json({ error: `Failed to send message: ${errorMessage}` });
   }
 };
 
