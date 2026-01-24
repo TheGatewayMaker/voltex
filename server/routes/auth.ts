@@ -124,6 +124,15 @@ export const handleRegister: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Invalid public key format" });
     }
 
+    // Validate signing public key if provided
+    if (signPublicKey && typeof signPublicKey === "string") {
+      if (!isValidPublicKey(signPublicKey)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid signing public key format" });
+      }
+    }
+
     // Derive user ID from public key
     const userId = await deriveUserIdFromPublicKey(publicKey);
 
@@ -275,11 +284,13 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
         .json({ error: "Public key does not match registered user" });
     }
 
-    // Verify the signature
+    // Verify the signature using the signing public key
+    // The client signs with the signing private key (Ed25519), so we verify with the signing public key
+    const signPublicKeyToUse = userAccount.signPublicKey || publicKey;
     const isSignatureValid = verifySignedChallenge(
       challenge,
       signature,
-      publicKey,
+      signPublicKeyToUse,
     );
     if (!isSignatureValid) {
       return res.status(403).json({ error: "Invalid signature" });

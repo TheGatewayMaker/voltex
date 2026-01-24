@@ -270,6 +270,24 @@ export function encryptMessage(
   const recipientPublicKey = base64ToBytes(recipientPublicKeyBase64);
   const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
 
+  // Validate key sizes before encryption
+  if (recipientPublicKey.length !== 32) {
+    throw new Error(
+      `Invalid recipient public key size: ${recipientPublicKey.length} bytes (expected 32). Make sure you have the correct public key for the recipient.`,
+    );
+  }
+
+  if (senderPrivateKey.length !== 32) {
+    // This likely means the keypair was corrupted during storage
+    console.error("Invalid sender private key size - keypair corrupted", {
+      actualSize: senderPrivateKey.length,
+      base64Length: senderPrivateKeyBase64.length,
+    });
+    throw new Error(
+      `Your encryption keys appear to be corrupted (${senderPrivateKey.length} bytes instead of 32). Please sign out and sign back in to restore your keys.`,
+    );
+  }
+
   const messageBytes = utf8Encode(message);
   const nonce = nacl.randomBytes(nacl.box.nonceLength);
 
@@ -455,6 +473,19 @@ export function getStoredKeyPair(): CryptoKeyPair | null {
 
   try {
     const parsed = JSON.parse(stored);
+
+    // Validate that privateKey is actually the box private key (32 bytes when decoded)
+    const privateKeyBytes = base64ToBytes(parsed.privateKey);
+    if (privateKeyBytes.length !== 32) {
+      console.error(
+        "Stored privateKey has invalid size:",
+        privateKeyBytes.length,
+        "bytes. This keypair is corrupted.",
+      );
+      // Clear the corrupted keypair
+      clearKeyPair();
+      return null;
+    }
 
     // If signPrivateKeyBase64 is missing, derive it from the encryption private key
     // This handles keypairs created before signing keys were properly stored

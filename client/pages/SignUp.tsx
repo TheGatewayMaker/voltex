@@ -182,8 +182,8 @@ export default function SignUp() {
 
       const { challenge } = await challengeResponse.json();
 
-      // Sign challenge with private key
-      const signature = signChallenge(challenge, keyPair.privateKeyBase64);
+      // Sign challenge with signing private key
+      const signature = signChallenge(challenge, keyPair.signPrivateKeyBase64);
 
       // Verify challenge and get session token
       const verifyResponse = await fetch("/api/auth/verify", {

@@ -391,7 +391,9 @@ export default function Chat() {
 
       const keyPair = getStoredKeyPair();
       if (!keyPair) {
-        throw new Error("No keys found on this device");
+        throw new Error(
+          "Your encryption keys are missing. Please sign out and sign back in to restore them using your passphrase, or create a new account.",
+        );
       }
 
       // Encrypt message

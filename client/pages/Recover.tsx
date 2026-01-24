@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
-import { signChallenge, deriveUserIdFromPublicKey } from "@/lib/crypto";
+import {
+  signChallenge,
+  deriveUserIdFromPublicKey,
+  storeKeyPair,
+} from "@/lib/crypto";
 import {
   normalizePassphrase,
   deriveEncryptionKey,
@@ -135,10 +139,10 @@ export default function Recover() {
       const challengeData = await challengeResponse.json();
       const challenge = challengeData.challenge;
 
-      // Sign the challenge with decrypted private key
+      // Sign the challenge with decrypted signing private key
       const signature = signChallenge(
         challenge,
-        decryptedKeypair.privateKeyBase64,
+        decryptedKeypair.signPrivateKeyBase64,
       );
 
       // Verify signed challenge with server
@@ -159,6 +163,9 @@ export default function Recover() {
       }
 
       const authData = await verifyResponse.json();
+
+      // Store the decrypted keypair locally
+      storeKeyPair(decryptedKeypair);
 
       // Store session token and user ID
       localStorage.setItem("session_token", authData.sessionToken);
