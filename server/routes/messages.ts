@@ -359,10 +359,28 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // Get all conversations for this user from shared history (in-memory)
-    let userConversations = getUserConversations(session.userId);
+    // Try to get conversations from PostgreSQL first
+    let userConversations = new Map<
+      string,
+      { lastMessage: any; timestamp: number }
+    >();
+    let fromDatabase = false;
 
-    // If in-memory cache is empty, try to load from R2 persistence
+    if (isDatabaseConnected()) {
+      try {
+        userConversations = await getUserConversationsFromDB(session.userId);
+        if (userConversations.size > 0) {
+          fromDatabase = true;
+          console.log(
+            `Loaded ${userConversations.size} conversations from PostgreSQL for user ${session.userId}`,
+          );
+        }
+      } catch (dbError) {
+        console.error("Error loading conversations from PostgreSQL:", dbError);
+      }
+    }
+
+    // If database is empty or disabled, try R2 persistence
     if (userConversations.size === 0) {
       try {
         userConversations = await getUserConversationsFromR2(session.userId);
@@ -371,7 +389,18 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
         );
       } catch (r2Error) {
         console.error("Error loading conversations from R2:", r2Error);
-        // Continue with empty conversations (user just hasn't chatted yet)
+      }
+    }
+
+    // Also check in-memory conversations
+    const inMemoryConversations = getUserConversations(session.userId);
+    if (inMemoryConversations.size > 0) {
+      // Merge with database conversations, newer timestamps win
+      for (const [userId, data] of inMemoryConversations) {
+        const existing = userConversations.get(userId);
+        if (!existing || data.timestamp > existing.timestamp) {
+          userConversations.set(userId, data);
+        }
       }
     }
 
@@ -390,6 +419,7 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
     return res.status(200).json({
       conversations,
       count: conversations.length,
+      source: fromDatabase ? "database+r2" : "r2+memory",
     });
   } catch (error) {
     console.error("Get conversations error:", error);
