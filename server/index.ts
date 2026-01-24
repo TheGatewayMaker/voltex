@@ -232,21 +232,9 @@ export function createServer() {
               return;
             }
 
-            // Store message in conversation history (in-memory)
-            const conversationKey = getConversationKey(
-              userId,
-              encryptedMessage.recipientId,
-            );
-            if (!conversationHistory.has(conversationKey)) {
-              conversationHistory.set(conversationKey, []);
-            }
-            conversationHistory.get(conversationKey)!.push(encryptedMessage);
-
-            // Keep only last 1000 messages per conversation
-            const messages = conversationHistory.get(conversationKey)!;
-            if (messages.length > 1000) {
-              messages.shift();
-            }
+            // Store message in shared conversation history (in-memory)
+            // This ensures both WebSocket and HTTP routes access the same data
+            storeMessage(userId, encryptedMessage.recipientId, encryptedMessage);
 
             // Store message in R2 for persistence
             const messageId = uuidv4();
