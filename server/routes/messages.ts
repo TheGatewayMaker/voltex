@@ -202,9 +202,8 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Get conversation history from memory
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    let allMessages = conversationHistory.get(conversationKey) || [];
+    // Get conversation history from shared memory
+    let allMessages = getStoredMessages(session.userId, recipientId);
 
     // If in-memory is empty, try to load from R2 persistence
     if (allMessages.length === 0) {
@@ -218,10 +217,12 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
 
         if (persistedMessages.length > 0) {
           // Load persisted messages into memory cache
-          conversationHistory.set(conversationKey, persistedMessages);
+          for (const msg of persistedMessages) {
+            storeMessage(session.userId, recipientId, msg);
+          }
           allMessages = persistedMessages;
           console.log(
-            `Loaded ${persistedMessages.length} messages from R2 for conversation ${conversationKey}`,
+            `Loaded ${persistedMessages.length} messages from R2 for conversation ${session.userId}:${recipientId}`,
           );
         }
       } catch (r2Error) {
