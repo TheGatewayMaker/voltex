@@ -141,7 +141,9 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         wsRef.current.close();
       }
     };
-  }, [options]);
+    // Dependencies: only depend on sessionToken/userId changes, not options
+    // The callbacks are part of the closure and will use the latest versions
+  }, []);
 
   /**
    * Send an encrypted message through WebSocket
