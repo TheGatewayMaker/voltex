@@ -405,11 +405,11 @@ export default function SignUp() {
               <Lock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-foreground mb-1">
-                  Privacy First
+                  Your Privacy
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Your account is secured with a cryptographic key pair. Only
-                  you can decrypt your messages.
+                  Your account is secure and private. Only you can read your
+                  messages.
                 </p>
               </div>
             </div>
