@@ -137,6 +137,7 @@ export const handleRegister: RequestHandler = async (req, res) => {
     const userAccount: UserAccount = {
       userId,
       publicKey,
+      signPublicKey: signPublicKey || undefined, // Store the sign public key if provided
       username: username ? username.toLowerCase() : undefined,
       createdAt: Date.now(),
     };
