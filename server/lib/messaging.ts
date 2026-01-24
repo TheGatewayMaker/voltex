@@ -121,8 +121,13 @@ function queueMessage(message: EncryptedMessage): void {
   // Limit queue size to prevent memory issues
   if (queue.length < 1000) {
     queue.push(message);
+    console.log(
+      `[QUEUE] Message queued for ${recipientId}. Queue size: ${queue.length}`,
+    );
   } else {
-    console.warn(`Message queue for ${recipientId} is full, dropping message`);
+    console.warn(
+      `[QUEUE] Message queue for ${recipientId} is full (${queue.length} messages), dropping message`,
+    );
   }
 }
 
