@@ -326,13 +326,6 @@ export const handleDeleteConversation: RequestHandler = async (req, res) => {
 };
 
 /**
- * Utility: Get all messages (admin/testing)
- */
-export function getAllMessages(): Map<string, EncryptedMessage[]> {
-  return conversationHistory;
-}
-
-/**
  * DELETE /api/messages/message/:messageId
  * Delete a specific message from conversation
  */
@@ -356,20 +349,8 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
         .json({ error: "messageId and recipientId are required" });
     }
 
-    // Remove from in-memory conversation history
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    const messages = conversationHistory.get(conversationKey);
-
-    if (messages) {
-      const initialLength = messages.length;
-      const filtered = messages.filter(
-        (m) => `${m.timestamp}-${m.senderId}` !== messageId,
-      );
-
-      if (filtered.length < initialLength) {
-        conversationHistory.set(conversationKey, filtered);
-      }
-    }
+    // Remove from shared conversation history
+    deleteStoredMessage(session.userId, recipientId, messageId);
 
     // Delete from R2 persistence
     try {
@@ -391,10 +372,3 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
     return res.status(500).json({ error: "Failed to delete message" });
   }
 };
-
-/**
- * Utility: Clear all messages (testing)
- */
-export function clearAllMessages(): void {
-  conversationHistory.clear();
-}
