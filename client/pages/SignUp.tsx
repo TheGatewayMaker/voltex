@@ -151,11 +151,13 @@ export default function SignUp() {
       const passphraseHashHex = await hashPassphrase(normalizedPassphrase);
 
       // Register account on server with username
+      // Send both signing key (for auth) and encryption key (for messaging)
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           publicKey: signPublicKey,
+          encryptionPublicKey: keyPair.publicKeyBase64, // Box public key for encryption
           passphraseHash: passphraseHashHex,
           username: username.toLowerCase(),
         }),
