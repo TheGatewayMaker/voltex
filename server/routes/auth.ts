@@ -298,7 +298,17 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
       expiresAt,
     };
 
+    // Save to in-memory cache
     sessions.set(sessionToken, sessionData);
+
+    // Also save to R2 for persistence across server restarts
+    try {
+      await saveSession(sessionToken, sessionData);
+      console.log(`Session ${sessionToken} saved to R2`);
+    } catch (r2Error) {
+      console.error("Failed to save session to R2:", r2Error);
+      // Continue anyway - session is in memory, but won't survive server restart
+    }
 
     return res.status(200).json({
       sessionToken,
