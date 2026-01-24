@@ -37,6 +37,7 @@ export interface AuthResponse {
 export interface EncryptedMessage {
   nonce: string; // base64-encoded
   ciphertext: string; // base64-encoded
+  signature: string; // base64-encoded NaCl signature for authenticity
   senderId: string;
   recipientId: string;
   timestamp: number;
