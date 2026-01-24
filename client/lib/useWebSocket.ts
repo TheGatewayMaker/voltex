@@ -11,10 +11,16 @@ interface UseWebSocketOptions {
 
 export function useWebSocket(options?: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
+  const optionsRef = useRef(options); // Keep a mutable reference to latest options
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Update the ref whenever options change so handlers always call the latest callbacks
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   useEffect(() => {
     const sessionToken = localStorage.getItem("session_token");
@@ -45,7 +51,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
           setIsConnecting(false);
           setIsConnected(true);
           reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
-          options?.onConnected?.();
+          optionsRef.current?.onConnected?.();
         };
 
         ws.onmessage = (event) => {
@@ -54,17 +60,17 @@ export function useWebSocket(options?: UseWebSocketOptions) {
 
             if (data.type === "message") {
               // Handle incoming encrypted message
-              options?.onMessage?.(data.data);
+              optionsRef.current?.onMessage?.(data.data);
             } else if (data.type === "message-ack") {
               // Handle message acknowledgment - track delivery
               const delivered = data.delivered !== false;
               console.log(
                 `Message ${data.messageId} acknowledged (delivered: ${delivered})`,
               );
-              options?.onAck?.(data.messageId, delivered);
+              optionsRef.current?.onAck?.(data.messageId, delivered);
             } else if (data.type === "error") {
               console.error("WebSocket error:", data.error);
-              options?.onError?.(data.error);
+              optionsRef.current?.onError?.(data.error);
             }
           } catch (error) {
             console.error("Error parsing WebSocket message:", error);
@@ -83,7 +89,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
           setIsConnected(false);
           setIsConnecting(false);
           wsRef.current = null;
-          options?.onDisconnected?.();
+          optionsRef.current?.onDisconnected?.();
 
           // Attempt to reconnect with exponential backoff
           scheduleReconnect();
@@ -93,7 +99,7 @@ export function useWebSocket(options?: UseWebSocketOptions) {
       } catch (error) {
         console.error("Error connecting to WebSocket:", error);
         setIsConnecting(false);
-        options?.onError?.("Failed to connect to WebSocket");
+        optionsRef.current?.onError?.("Failed to connect to WebSocket");
         scheduleReconnect();
       }
     };
@@ -141,8 +147,6 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         wsRef.current.close();
       }
     };
-    // Dependencies: only depend on sessionToken/userId changes, not options
-    // The callbacks are part of the closure and will use the latest versions
   }, []);
 
   /**
