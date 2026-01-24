@@ -56,6 +56,16 @@ export default function Conversations() {
     loadConversations(sessionToken);
   }, [navigate]);
 
+  // Refresh conversations when navigating back to this page
+  useEffect(() => {
+    if (location.pathname === "/") {
+      const sessionToken = localStorage.getItem("session_token");
+      if (sessionToken) {
+        loadConversations(sessionToken);
+      }
+    }
+  }, [location]);
+
   const fetchUserProfile = async (sessionToken: string) => {
     try {
       const response = await fetch("/api/profile/me", {
