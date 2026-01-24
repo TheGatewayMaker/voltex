@@ -108,6 +108,16 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       // Continue anyway, message is in memory, but flag for client
     }
 
+    // Attempt to deliver message to recipient in real-time (if connected via WebSocket)
+    const delivered = deliverMessage(message);
+    if (delivered) {
+      console.log(`Message delivered in real-time to ${recipientId}`);
+    } else {
+      console.log(
+        `Message queued for ${recipientId} (not currently connected)`,
+      );
+    }
+
     // Keep only last 1000 messages per conversation
     if (messages.length > 1000) {
       messages.shift();
@@ -118,6 +128,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       messageId: `${timestamp}-${session.userId}`,
       timestamp,
       persisted: r2StorageSuccess,
+      delivered,
     });
   } catch (error) {
     console.error("Send message error:", error);
