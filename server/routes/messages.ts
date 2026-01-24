@@ -6,6 +6,7 @@ import {
   saveMessageWithMetadata,
   getConversationMessages,
   getUserAccount,
+  getUserConversationsFromR2,
 } from "../lib/r2-storage";
 import { verifyMessageSignature } from "../lib/crypto";
 import { deliverMessage } from "../lib/messaging";
