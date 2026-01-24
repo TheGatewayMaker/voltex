@@ -107,9 +107,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
 
 /**
  * GET /api/messages/conversation/:recipientId
- * Retrieve conversation history
+ * Retrieve conversation history (from memory + R2 persistence)
  */
-export const handleGetConversation: RequestHandler = (req, res) => {
+export const handleGetConversation: RequestHandler = async (req, res) => {
   try {
     const sessionToken = req.headers.authorization?.replace("Bearer ", "");
     if (!sessionToken) {
@@ -129,9 +129,33 @@ export const handleGetConversation: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Get conversation history
+    // Get conversation history from memory
     const conversationKey = getConversationKey(session.userId, recipientId);
-    const allMessages = conversationHistory.get(conversationKey) || [];
+    let allMessages = conversationHistory.get(conversationKey) || [];
+
+    // If in-memory is empty, try to load from R2 persistence
+    if (allMessages.length === 0) {
+      try {
+        const persistedMessages = await getConversationMessages(
+          session.userId,
+          recipientId,
+          1000, // Load up to 1000 messages from R2
+          0
+        );
+
+        if (persistedMessages.length > 0) {
+          // Load persisted messages into memory cache
+          conversationHistory.set(conversationKey, persistedMessages);
+          allMessages = persistedMessages;
+          console.log(
+            `Loaded ${persistedMessages.length} messages from R2 for conversation ${conversationKey}`
+          );
+        }
+      } catch (r2Error) {
+        console.error("Error loading messages from R2:", r2Error);
+        // Continue with in-memory data (if available)
+      }
+    }
 
     // Apply pagination
     const paginatedMessages = allMessages
