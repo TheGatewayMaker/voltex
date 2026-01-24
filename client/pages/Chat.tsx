@@ -39,6 +39,8 @@ export default function Chat() {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [recipientName, setRecipientName] = useState<string>("");
   const sentMessagesRef = useRef<Map<string, string>>(new Map()); // Map messageId -> localMessageId
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(null);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
