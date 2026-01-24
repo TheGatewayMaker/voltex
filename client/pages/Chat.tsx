@@ -234,6 +234,19 @@ export default function Chat() {
         console.error("WebSocket message processing error:", error);
       }
     },
+    onAck: (messageId, delivered) => {
+      // Update message delivery status based on ACK
+      const localMessageId = sentMessagesRef.current.get(messageId);
+      if (localMessageId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === localMessageId
+              ? { ...msg, status: delivered ? "delivered" : "sent" }
+              : msg
+          )
+        );
+      }
+    },
     onError: (error) => {
       console.error("WebSocket error:", error);
       toast.error("Connection error: " + error);
