@@ -42,6 +42,8 @@ import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
 import { EncryptedMessage } from "@shared/crypto";
 import { getConversationKey, storeMessage } from "./lib/conversation-history";
+import { storeMessageInDB, isDatabaseConnected } from "./lib/db-messages";
+import { initializeDatabase } from "./lib/db";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
