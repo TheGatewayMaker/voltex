@@ -19,10 +19,16 @@ const messageQueues = new Map<string, EncryptedMessage[]>();
  */
 export function registerUserConnection(userId: string, ws: WebSocket): void {
   userConnections.set(userId, ws);
+  console.log(
+    `[REGISTRY] User ${userId} registered WebSocket connection. Total connected users: ${userConnections.size}`,
+  );
 
   // If user has queued messages, send them now
   const queuedMessages = messageQueues.get(userId) || [];
   if (queuedMessages.length > 0) {
+    console.log(
+      `[REGISTRY] Flushing ${queuedMessages.length} queued messages for ${userId}`,
+    );
     queuedMessages.forEach((message) => {
       try {
         ws.send(
@@ -31,8 +37,14 @@ export function registerUserConnection(userId: string, ws: WebSocket): void {
             data: message,
           }),
         );
+        console.log(
+          `[REGISTRY] ✓ Delivered queued message from ${message.senderId}`,
+        );
       } catch (error) {
-        console.error("Error sending queued message:", error);
+        console.error(
+          `[REGISTRY] ✗ Error sending queued message to ${userId}:`,
+          error,
+        );
       }
     });
     messageQueues.delete(userId);
