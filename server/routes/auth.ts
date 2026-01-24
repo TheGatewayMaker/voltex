@@ -295,6 +295,7 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
     const sessionData: SessionData = {
       userId,
       publicKey,
+      signPublicKey: userAccount.signPublicKey,
       sessionToken,
       expiresAt,
     };
