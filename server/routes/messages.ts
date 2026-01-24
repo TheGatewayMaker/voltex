@@ -268,34 +268,24 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // Get all conversations for this user
-    const conversations = new Map<
-      string,
-      { userId: string; lastMessage: string; timestamp: number }
-    >();
+    // Get all conversations for this user from shared history
+    const userConversations = getUserConversations(session.userId);
 
-    for (const [conversationKey, messages] of conversationHistory.entries()) {
-      const [user1, user2] = conversationKey.split(":");
-      const otherUserId = user1 === session.userId ? user2 : user1;
-
-      if (messages.length > 0) {
-        const lastMessage = messages[messages.length - 1];
-        conversations.set(otherUserId, {
-          userId: otherUserId,
-          lastMessage: lastMessage.ciphertext.substring(0, 50),
-          timestamp: lastMessage.timestamp,
-        });
-      }
-    }
-
-    // Sort by timestamp (newest first)
-    const sorted = Array.from(conversations.values()).sort(
-      (a, b) => b.timestamp - a.timestamp,
+    // Convert to API response format
+    const conversations = Array.from(userConversations.entries()).map(
+      ([userId, data]) => ({
+        userId,
+        lastMessage: data.lastMessage.ciphertext.substring(0, 50),
+        timestamp: data.timestamp,
+      }),
     );
 
+    // Sort by timestamp (newest first)
+    conversations.sort((a, b) => b.timestamp - a.timestamp);
+
     return res.status(200).json({
-      conversations: sorted,
-      count: sorted.length,
+      conversations,
+      count: conversations.length,
     });
   } catch (error) {
     console.error("Get conversations error:", error);
