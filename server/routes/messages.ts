@@ -34,12 +34,19 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
         : undefined;
 
     if (!sessionToken) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: "Unauthorized - no session token" });
     }
 
-    const session = await getSessionFromToken(sessionToken);
+    let session;
+    try {
+      session = await getSessionFromToken(sessionToken);
+    } catch (sessionError) {
+      console.error("Session validation error:", sessionError);
+      return res.status(401).json({ error: "Invalid session token" });
+    }
+
     if (!session) {
-      return res.status(401).json({ error: "Invalid session" });
+      return res.status(401).json({ error: "Session not found or expired" });
     }
 
     const { recipientId, nonce, ciphertext, signature, timestamp } = req.body;
@@ -80,6 +87,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
         }
       } catch (error) {
         console.error("Failed to fetch user account for signPublicKey:", error);
+        return res.status(500).json({
+          error: `Failed to fetch user account: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
       }
     }
 
@@ -91,10 +101,19 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       });
     }
 
-    const isSignatureValid = verifyMessageSignature(
-      message,
-      signPublicKeyToUse,
-    );
+    let isSignatureValid;
+    try {
+      isSignatureValid = verifyMessageSignature(
+        message,
+        signPublicKeyToUse,
+      );
+    } catch (verifyError) {
+      console.error("Signature verification error:", verifyError);
+      return res.status(500).json({
+        error: `Signature verification failed: ${verifyError instanceof Error ? verifyError.message : "Unknown error"}`,
+      });
+    }
+
     if (!isSignatureValid) {
       console.warn(
         `Invalid message signature from ${session.userId} to ${recipientId}`,
@@ -144,8 +163,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       persisted: r2StorageSuccess,
     });
   } catch (error) {
-    console.error("Send message error:", error);
-    return res.status(500).json({ error: "Failed to send message" });
+    console.error("Unexpected error in send message handler:", error);
+    // Return the actual error message to help with debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return res.status(500).json({ error: `Failed to send message: ${errorMessage}` });
   }
 };
 
