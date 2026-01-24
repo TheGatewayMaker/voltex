@@ -24,8 +24,9 @@ export function useWebSocket(options?: UseWebSocketOptions) {
       return;
     }
 
-    // Only connect once
-    if (wsRef.current) {
+    // Only connect once per session
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      // WebSocket already connected, update the callbacks
       return;
     }
 
