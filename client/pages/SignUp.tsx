@@ -238,6 +238,11 @@ export default function SignUp() {
       localStorage.setItem("current_user_id", derivedUserId);
       localStorage.setItem("current_public_key", keyPair.publicKeyBase64);
 
+      // Store signing public key
+      if (keyPair.signPublicKeyBase64) {
+        localStorage.setItem("current_sign_public_key", keyPair.signPublicKeyBase64);
+      }
+
       // Save display name and username to profile
       if (displayName.trim()) {
         try {
