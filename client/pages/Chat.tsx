@@ -151,22 +151,28 @@ export default function Chat() {
       const decryptedMessages: ChatMessage[] = [];
       for (const encMsg of historyData.messages) {
         try {
-          // Determine sender's public key for decryption
-          // NaCl box.open requires: the SENDER's public key and our PRIVATE key
-          let senderPublicKey: string;
+          // Determine sender's public keys for decryption
+          // NaCl box.open requires: the SENDER's box public key and our PRIVATE key
+          // Signature verification requires: the SENDER's sign public key
+          let senderBoxPublicKey: string;
+          let senderSignPublicKey: string | undefined;
 
           if (encMsg.senderId === userId) {
-            // This is our message - use our own public key
-            senderPublicKey = currentUserPublicKey;
+            // This is our message - use our own public keys
+            senderBoxPublicKey = currentUserPublicKey;
+            // Get our own sign public key from localStorage
+            senderSignPublicKey = localStorage.getItem("current_sign_public_key") || undefined;
           } else {
-            // This is from the other user - use recipient's public key
-            senderPublicKey = pubKeyData.publicKey;
+            // This is from the other user - use recipient's public keys
+            senderBoxPublicKey = pubKeyData.publicKey;
+            senderSignPublicKey = pubKeyData.signPublicKey;
           }
 
           const decrypted = decryptMessage(
             encMsg,
-            senderPublicKey,
+            senderBoxPublicKey,
             keyPair.privateKeyBase64,
+            senderSignPublicKey,
           );
 
           if (decrypted) {
