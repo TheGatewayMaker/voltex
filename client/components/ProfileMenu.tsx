@@ -75,6 +75,7 @@ export default function ProfileMenu({
       localStorage.removeItem("session_token");
       localStorage.removeItem("current_user_id");
       localStorage.removeItem("current_public_key");
+      localStorage.removeItem("current_sign_public_key");
 
       toast.success("Logged out successfully");
       navigate("/signin");
