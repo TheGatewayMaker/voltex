@@ -130,7 +130,7 @@ export function createServer() {
       }
 
       // Handle incoming messages
-      ws.on("message", (data) => {
+      ws.on("message", async (data) => {
         try {
           const message = JSON.parse(data.toString());
 
@@ -164,10 +164,41 @@ export function createServer() {
               return;
             }
 
-            // Verify message signature using authenticated user's public key
+            // Verify message signature using authenticated user's sign public key
+            let signPublicKeyToUse = session.signPublicKey;
+
+            // If signPublicKey is not in session, fetch it from user account
+            if (!signPublicKeyToUse) {
+              try {
+                const { getUserAccount } = await import("./lib/r2-storage");
+                const userAccount = await getUserAccount(userId);
+                if (userAccount && userAccount.signPublicKey) {
+                  signPublicKeyToUse = userAccount.signPublicKey;
+                }
+              } catch (error) {
+                console.error(
+                  "Failed to fetch user account for signPublicKey:",
+                  error,
+                );
+              }
+            }
+
+            // If we still don't have a signPublicKey, we cannot verify the signature
+            if (!signPublicKeyToUse) {
+              ws.send(
+                JSON.stringify({
+                  type: "error",
+                  error:
+                    "User account is missing signing key - please re-register",
+                }),
+              );
+              console.warn(`No sign public key available for user ${userId}`);
+              return;
+            }
+
             const isSignatureValid = verifyMessageSignature(
               encryptedMessage,
-              session.publicKey,
+              signPublicKeyToUse,
             );
             if (!isSignatureValid) {
               ws.send(

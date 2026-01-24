@@ -69,8 +69,28 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     };
 
     // Verify message signature using sender's sign public key
-    // If signPublicKey exists, use it; otherwise fall back to publicKey for backward compatibility
-    const signPublicKeyToUse = session.signPublicKey || session.publicKey;
+    let signPublicKeyToUse = session.signPublicKey;
+
+    // If signPublicKey is not in session, fetch it from user account
+    if (!signPublicKeyToUse) {
+      try {
+        const userAccount = await getUserAccount(session.userId);
+        if (userAccount && userAccount.signPublicKey) {
+          signPublicKeyToUse = userAccount.signPublicKey;
+        }
+      } catch (error) {
+        console.error("Failed to fetch user account for signPublicKey:", error);
+      }
+    }
+
+    // If we still don't have a signPublicKey, we cannot verify the signature
+    if (!signPublicKeyToUse) {
+      console.warn(`No sign public key available for user ${session.userId}`);
+      return res.status(403).json({
+        error: "User account is missing signing key - please re-register",
+      });
+    }
+
     const isSignatureValid = verifyMessageSignature(
       message,
       signPublicKeyToUse,
