@@ -497,6 +497,113 @@ export async function getConversationMessages(
 }
 
 /**
+ * Get all conversations for a user from R2
+ * Lists all conversation folders and returns the last message from each
+ */
+export async function getUserConversationsFromR2(
+  userId: string,
+): Promise<Map<string, { lastMessage: any; timestamp: number }>> {
+  const bucketName = "voltex-messages";
+  const prefix = "conversations/";
+  const conversations = new Map<
+    string,
+    { lastMessage: any; timestamp: number }
+  >();
+
+  try {
+    const client = initializeR2Client();
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: prefix,
+    });
+
+    const response = await client.send(command);
+
+    if (!response.Contents || response.Contents.length === 0) {
+      return conversations;
+    }
+
+    // Find all conversation folders that include this user
+    const conversationFolders = new Set<string>();
+    for (const content of response.Contents) {
+      if (!content.Key) continue;
+      // Key format: conversations/{userId1}:{userId2}/{messageId}.json
+      const match = content.Key.match(/conversations\/([^/]+)\//);
+      if (match) {
+        const conversationKey = match[1];
+        const [user1, user2] = conversationKey.split(":");
+        if (user1 === userId || user2 === userId) {
+          conversationFolders.add(conversationKey);
+        }
+      }
+    }
+
+    // For each conversation, get the last message
+    for (const conversationKey of conversationFolders) {
+      try {
+        const [user1, user2] = conversationKey.split(":");
+        const otherUserId = user1 === userId ? user2 : user1;
+
+        // List messages in this conversation
+        const listCommand = new ListObjectsV2Command({
+          Bucket: bucketName,
+          Prefix: `conversations/${conversationKey}/`,
+        });
+
+        const listResponse = await client.send(listCommand);
+        if (!listResponse.Contents || listResponse.Contents.length === 0) {
+          continue;
+        }
+
+        // Get the last message (most recent by name sorting)
+        const sortedContents = listResponse.Contents.sort((a, b) => {
+          const aKey = a.Key || "";
+          const bKey = b.Key || "";
+          return bKey.localeCompare(aKey);
+        });
+
+        const lastMessageKey = sortedContents[0].Key;
+        if (!lastMessageKey) continue;
+
+        const getCommand = new GetObjectCommand({
+          Bucket: bucketName,
+          Key: lastMessageKey,
+        });
+
+        const getResponse = await client.send(getCommand);
+        if (getResponse.Body) {
+          const bodyStream = sdkStreamMixin(getResponse.Body);
+          const data = await bodyStream.transformToString();
+          const messageData = JSON.parse(data);
+
+          conversations.set(otherUserId, {
+            lastMessage: messageData,
+            timestamp: messageData.timestamp,
+          });
+        }
+      } catch (error) {
+        console.error(
+          `Error retrieving conversation ${conversationKey} from R2:`,
+          error,
+        );
+        // Continue with next conversation
+      }
+    }
+
+    return conversations;
+  } catch (error) {
+    if (error instanceof Error && error.name === "NoSuchBucket") {
+      console.log(
+        `Bucket ${bucketName} not found - conversations not persisted yet`,
+      );
+      return conversations;
+    }
+    console.error("Error getting conversations from R2:", error);
+    return conversations;
+  }
+}
+
+/**
  * Save encrypted keypair to R2 for cross-device recovery
  * Server stores ciphertext only (client encrypts/decrypts)
  */
