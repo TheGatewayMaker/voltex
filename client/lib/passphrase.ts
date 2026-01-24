@@ -154,10 +154,9 @@ export async function decryptKeypair(
     let signPrivateKeyBase64 = parsed.signPrivateKeyBase64;
 
     if (!signPublicKeyBase64 || !signPrivateKeyBase64) {
-      // Import nacl to derive signing keys
-      const nacl = await import("tweetnacl");
+      // Derive signing keys from the private key if they're missing
       const privateKeyBytes = base64ToBytes(parsed.privateKeyBase64);
-      const signKeypair = nacl.default.sign.keyPair.fromSeed(
+      const signKeypair = nacl.sign.keyPair.fromSeed(
         privateKeyBytes.slice(0, 32),
       );
       signPublicKeyBase64 = bytesToBase64(signKeypair.publicKey);
