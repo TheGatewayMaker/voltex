@@ -15,6 +15,7 @@ import { toast } from "sonner";
 interface ChatMessage extends DecryptedMessage {
   id: string;
   isOwn: boolean;
+  status?: "sent" | "delivered" | "failed"; // Track delivery status
 }
 
 export default function Chat() {
