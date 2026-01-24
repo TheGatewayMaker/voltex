@@ -5,7 +5,11 @@ import {
   deleteArchivedMessages,
   isDatabaseConnected,
 } from "./db-messages";
-import { saveMessageArchiveToR2, deleteArchivedMessagesFromR2, deleteFromR2 } from "./r2-storage";
+import {
+  saveMessageArchiveToR2,
+  deleteArchivedMessagesFromR2,
+  deleteFromR2,
+} from "./r2-storage";
 
 /**
  * Configuration for archival job
@@ -64,9 +68,7 @@ const DEFAULT_CONFIG: ArchivalConfig = {
 /**
  * Start the archival job
  */
-export function startArchivalJob(
-  customConfig?: Partial<ArchivalConfig>,
-): void {
+export function startArchivalJob(customConfig?: Partial<ArchivalConfig>): void {
   if (archivalJobInterval) {
     console.log("Archival job is already running");
     return;
@@ -142,9 +144,8 @@ export async function runArchivalJob(
     );
 
     // Group messages by conversation for efficient R2 storage
-    const messagesByConversation = groupMessagesByConversation(
-      messagesToArchive,
-    );
+    const messagesByConversation =
+      groupMessagesByConversation(messagesToArchive);
 
     let archivedCount = 0;
     let deletedCount = 0;
@@ -161,10 +162,14 @@ export async function runArchivalJob(
         const archiveKey = `archives/${conversationKey}/${Date.now()}.json`;
         await saveMessageArchiveToR2(archiveKey, messages);
 
-        console.log(`Successfully archived conversation ${conversationKey} to R2`);
+        console.log(
+          `Successfully archived conversation ${conversationKey} to R2`,
+        );
 
         // Mark messages as archived in PostgreSQL
-        const messageIds = messages.map((m) => m.id!).filter((id): id is string => !!id);
+        const messageIds = messages
+          .map((m) => m.id!)
+          .filter((id): id is string => !!id);
         const markedCount = await markMessagesAsArchived(messageIds);
         archivedCount += markedCount;
 
@@ -174,7 +179,9 @@ export async function runArchivalJob(
             console.log(
               `Grace period: waiting ${config.deleteGraceMs}ms before deletion`,
             );
-            await new Promise((resolve) => setTimeout(resolve, config.deleteGraceMs));
+            await new Promise((resolve) =>
+              setTimeout(resolve, config.deleteGraceMs),
+            );
           }
 
           const deletedCountForConv = await deleteArchivedMessages(messageIds);

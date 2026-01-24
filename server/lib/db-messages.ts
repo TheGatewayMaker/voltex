@@ -210,12 +210,7 @@ async function updateConversation(
       SET last_message_timestamp = $3,
           last_message_preview = $4,
           updated_at = CURRENT_TIMESTAMP;`,
-      [
-        user1,
-        user2,
-        message.timestamp,
-        message.ciphertext.substring(0, 100),
-      ],
+      [user1, user2, message.timestamp, message.ciphertext.substring(0, 100)],
     );
   } catch (error) {
     console.error("Failed to update conversation:", error);
@@ -225,9 +220,7 @@ async function updateConversation(
 /**
  * Delete a specific message
  */
-export async function deleteMessageFromDB(
-  messageId: string,
-): Promise<boolean> {
+export async function deleteMessageFromDB(messageId: string): Promise<boolean> {
   if (!isDatabaseConnected()) {
     return false;
   }

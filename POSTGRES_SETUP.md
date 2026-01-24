@@ -288,6 +288,7 @@ The system is optimized for:
 4. **Bulk Archival**: Batch processing with connection pooling
 
 **Index Strategy**:
+
 - Sender + Recipient + Timestamp for conversation queries
 - Timestamp + Archived status for archival queries
 - User ID + Updated time for conversation list queries
@@ -322,7 +323,7 @@ SELECT COUNT(*) FROM messages;
 ### Check Archival Job Status
 
 ```typescript
-import { getArchivalJobStatus } from './server/lib/archival-job';
+import { getArchivalJobStatus } from "./server/lib/archival-job";
 
 const status = getArchivalJobStatus();
 console.log(status);
@@ -359,6 +360,7 @@ Error: connect ECONNREFUSED 127.0.0.1:5432
 ```
 
 **Solution**:
+
 - Ensure PostgreSQL service is running: `sudo systemctl start postgresql`
 - Check if port 5432 is open: `sudo netstat -tlnp | grep 5432`
 - Verify DATABASE_URL is correct in `.env`
@@ -370,6 +372,7 @@ Error: password authentication failed for user "voltex_app"
 ```
 
 **Solution**:
+
 - Reset user password: `ALTER USER voltex_app WITH PASSWORD 'new-password';`
 - Update DATABASE_URL with new password
 - Verify username in connection string
@@ -381,6 +384,7 @@ Error: disk quota exceeded
 ```
 
 **Solution**:
+
 1. Run archival job manually to clear old messages
 2. Increase disk space on VPS
 3. Check R2 archival is working: verify files in R2 bucket
@@ -413,13 +417,13 @@ The system remains **fully functional** even without PostgreSQL.
 
 Expected performance with proper PostgreSQL setup:
 
-| Operation | Time | Storage |
-|-----------|------|---------|
-| Send message | 5-15ms | <1KB per message |
-| Retrieve recent messages (50) | 10-50ms | - |
-| List conversations | 5-20ms | - |
-| Archive batch (1000 messages) | 500-2000ms | ~1MB to R2 |
-| Delete from PostgreSQL | 100-500ms | - |
+| Operation                     | Time       | Storage          |
+| ----------------------------- | ---------- | ---------------- |
+| Send message                  | 5-15ms     | <1KB per message |
+| Retrieve recent messages (50) | 10-50ms    | -                |
+| List conversations            | 5-20ms     | -                |
+| Archive batch (1000 messages) | 500-2000ms | ~1MB to R2       |
+| Delete from PostgreSQL        | 100-500ms  | -                |
 
 ## Support and Resources
 

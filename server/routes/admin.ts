@@ -159,8 +159,7 @@ export const handleArchivalConfig: RequestHandler = async (req, res) => {
         deleteGraceMinutes: (config.deleteGraceMs / (60 * 1000)).toFixed(2),
       },
       environment: {
-        archivalIntervalFromEnv:
-          process.env.ARCHIVAL_INTERVAL_MS || "not set",
+        archivalIntervalFromEnv: process.env.ARCHIVAL_INTERVAL_MS || "not set",
         messageAgeFromEnv: process.env.MESSAGE_AGE_MS || "not set",
         batchSizeFromEnv: process.env.ARCHIVAL_BATCH_SIZE || "not set",
         deleteAfterFromEnv: process.env.DELETE_AFTER_ARCHIVAL || "not set",

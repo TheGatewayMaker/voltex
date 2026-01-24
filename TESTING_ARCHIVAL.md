@@ -18,6 +18,7 @@ curl http://localhost:3000/api/admin/health
 ```
 
 Expected response:
+
 ```json
 {
   "status": "healthy",
@@ -44,7 +45,7 @@ Use the chat UI or simulate a message via WebSocket:
 
 ```javascript
 // Open browser console and run:
-const token = localStorage.getItem('session_token');
+const token = localStorage.getItem("session_token");
 const ws = new WebSocket(`ws://localhost:3000/ws?token=${token}`);
 
 ws.onopen = () => {
@@ -56,8 +57,8 @@ ws.onopen = () => {
       nonce: "test-nonce",
       ciphertext: "test-ciphertext",
       signature: "test-signature",
-      timestamp: Date.now()
-    }
+      timestamp: Date.now(),
+    },
   };
   ws.send(JSON.stringify(message));
 };
@@ -74,6 +75,7 @@ curl http://localhost:3000/api/admin/database-stats
 ```
 
 Expected response:
+
 ```json
 {
   "messages": {
@@ -101,14 +103,17 @@ curl http://localhost:3000/api/admin/archival-config
 **Steps**:
 
 1. Start the application:
+
 ```bash
 npm start
 ```
 
 2. Check database is connected:
+
 ```bash
 curl http://localhost:3000/api/admin/health
 ```
+
 Verify: `"connected": true`
 
 3. Send messages through chat UI
@@ -116,12 +121,15 @@ Verify: `"connected": true`
    - Exchange 5-10 messages between them
 
 4. Check database stats:
+
 ```bash
 curl http://localhost:3000/api/admin/database-stats
 ```
+
 Verify: `"active": 5+` (messages should be in active state)
 
 5. Query database directly:
+
 ```bash
 psql -U voltex_app -d voltex_messages
 SELECT COUNT(*) FROM messages WHERE archived = FALSE;
@@ -168,6 +176,7 @@ curl -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
 Verify response includes: `"source": "database+r2"`
 
 4. Query PostgreSQL to confirm storage:
+
 ```bash
 psql -U voltex_app -d voltex_messages
 SELECT COUNT(*) FROM messages WHERE archived = FALSE;
@@ -187,26 +196,31 @@ SELECT COUNT(*) FROM messages WHERE archived = FALSE;
 
 1. Send 5+ messages
 2. Verify all in PostgreSQL:
+
 ```bash
 curl http://localhost:3000/api/admin/database-stats
 ```
 
 3. For quick testing, modify MESSAGE_AGE_MS to 1 second:
+
 ```env
 MESSAGE_AGE_MS=1000  # 1 second (for testing only!)
 ```
 
 4. Restart application:
+
 ```bash
 npm start
 ```
 
 5. Wait 1 second, then manually trigger archival:
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/run-archival
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -223,9 +237,11 @@ Expected response:
    - Look for `archives/` folder with files named like `archives/user1:user2/1234567890.json`
 
 7. Verify deletion from PostgreSQL:
+
 ```bash
 curl http://localhost:3000/api/admin/database-stats
 ```
+
 Verify: `"active": 0`, `"archived": 0` (deleted after R2 upload)
 
 **Expected Result**: ✅ Messages archived to R2 and deleted from PostgreSQL
@@ -240,12 +256,14 @@ Verify: `"active": 0`, `"archived": 0` (deleted after R2 upload)
 
 1. Archive messages as in Scenario 4
 2. Query conversation history:
+
 ```bash
 curl -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
   http://localhost:3000/api/messages/conversation/user2
 ```
 
 3. Verify response:
+
 ```json
 {
   "messages": [...],
@@ -270,18 +288,20 @@ curl -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
    - User1 → User4: 2 messages
 
 2. Retrieve conversation list:
+
 ```bash
 curl -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
   http://localhost:3000/api/messages/conversations
 ```
 
 Expected response:
+
 ```json
 {
   "conversations": [
-    {"userId": "user3", "timestamp": 1234567890, "lastMessage": "..."},
-    {"userId": "user2", "timestamp": 1234567885, "lastMessage": "..."},
-    {"userId": "user4", "timestamp": 1234567880, "lastMessage": "..."}
+    { "userId": "user3", "timestamp": 1234567890, "lastMessage": "..." },
+    { "userId": "user2", "timestamp": 1234567885, "lastMessage": "..." },
+    { "userId": "user4", "timestamp": 1234567880, "lastMessage": "..." }
   ],
   "count": 3,
   "source": "database+r2"
@@ -301,17 +321,20 @@ Expected response:
 **Steps**:
 
 1. Set archival parameters for testing:
+
 ```env
 ARCHIVAL_INTERVAL_MS=60000      # Run every 1 minute (for testing)
 MESSAGE_AGE_MS=10000             # Archive messages 10+ seconds old
 ```
 
 2. Restart application:
+
 ```bash
 npm start
 ```
 
 3. Watch server logs for archival startup:
+
 ```
 Message archival job started
 Starting archival job...
@@ -324,6 +347,7 @@ Starting archival job...
 5. Wait 15 seconds for messages to age
 
 6. Check logs as archival runs (at 60-second intervals):
+
 ```
 Found X messages ready for archival
 Archiving X messages from conversation user1:user2
@@ -334,6 +358,7 @@ Archival job completed: X archived, X deleted
 ```
 
 7. Monitor database stats over time:
+
 ```bash
 # Before archival (X active messages)
 curl http://localhost:3000/api/admin/database-stats
@@ -415,7 +440,7 @@ Expected: <100ms per request for PostgreSQL, <500ms for R2 fallback
 psql -U voltex_app -d voltex_messages
 
 -- Check message counts over time
-SELECT COUNT(*) as total, 
+SELECT COUNT(*) as total,
        SUM(CASE WHEN archived = FALSE THEN 1 END) as active,
        SUM(CASE WHEN archived = TRUE THEN 1 END) as archived
 FROM messages;
@@ -451,6 +476,7 @@ aws s3 ls s3://your-bucket/archives/ --recursive \
 ### Problem: Database not connected
 
 **Solution**:
+
 ```bash
 # Verify PostgreSQL is running
 sudo systemctl status postgresql
@@ -465,6 +491,7 @@ psql "postgresql://voltex_app:password@localhost:5432/voltex_messages"
 ### Problem: Archival job not running
 
 **Check**:
+
 1. Verify database is connected
 2. Check environment variables:
    ```bash
@@ -477,6 +504,7 @@ psql "postgresql://voltex_app:password@localhost:5432/voltex_messages"
 ### Problem: Messages not in PostgreSQL
 
 **Check**:
+
 1. Verify `isDatabaseConnected()` returns true
 2. Check PostgreSQL logs: `sudo tail -f /var/log/postgresql/postgresql.log`
 3. Test database connection: `psql "postgresql://..."`
@@ -485,6 +513,7 @@ psql "postgresql://voltex_app:password@localhost:5432/voltex_messages"
 ### Problem: R2 archival failing
 
 **Check**:
+
 1. Verify R2 credentials in `.env`
 2. Check R2 buckets exist (voltex-messages)
 3. Verify IAM permissions

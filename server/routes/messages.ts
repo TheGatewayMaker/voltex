@@ -460,7 +460,10 @@ export const handleDeleteConversation: RequestHandler = async (req, res) => {
           `Deleted conversation ${session.userId}:${recipientId} from PostgreSQL`,
         );
       } catch (dbError) {
-        console.error("Failed to delete conversation from PostgreSQL:", dbError);
+        console.error(
+          "Failed to delete conversation from PostgreSQL:",
+          dbError,
+        );
         // Continue anyway, message is already removed from memory
       }
     }
