@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, Eye, EyeOff, LogOut } from "lucide-react";
 import Layout from "@/components/Layout";
 import { toast } from "sonner";
 
 interface UserProfile {
   userId: string;
   displayName?: string;
-  publicKey?: string;
   bio?: string;
   avatar?: string;
   createdAt?: number;
@@ -21,6 +20,7 @@ export default function Account() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showUserId, setShowUserId] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -40,7 +40,6 @@ export default function Account() {
       setIsLoading(true);
       const sessionToken = localStorage.getItem("session_token");
       const currentUserId = localStorage.getItem("current_user_id");
-      const currentPublicKey = localStorage.getItem("current_public_key");
 
       const response = await fetch("/api/profile/me", {
         headers: {
@@ -56,7 +55,6 @@ export default function Account() {
 
       setProfile({
         userId: currentUserId || "",
-        publicKey: currentPublicKey || "",
         ...data,
       });
 
@@ -126,9 +124,28 @@ export default function Account() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const sessionToken = localStorage.getItem("session_token");
+      if (sessionToken) {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.clear();
+      navigate("/signin");
+    }
+  };
+
   if (isLoading) {
     return (
-      <Layout showProfileMenu={false}>
+      <Layout showProfileMenu={false} showBack={true} onBackClick={() => navigate("/")} title="Account">
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <svg
@@ -164,7 +181,7 @@ export default function Account() {
 
   if (!profile) {
     return (
-      <Layout showProfileMenu={false}>
+      <Layout showProfileMenu={false} showBack={true} onBackClick={() => navigate("/")} title="Account">
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <p className="text-destructive">Failed to load profile</p>
@@ -177,7 +194,7 @@ export default function Account() {
   return (
     <Layout
       showBack={true}
-      title="Account Settings"
+      title="Account"
       onBackClick={() => navigate("/")}
       showProfileMenu={false}
     >
@@ -185,103 +202,39 @@ export default function Account() {
         <div className="max-w-2xl mx-auto px-4 py-6 md:px-6 md:py-8">
           {/* Profile Header */}
           <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-              Account Information
-            </h1>
-            <p className="text-muted-foreground">
-              View and manage your account details
-            </p>
-          </div>
-
-          {/* User ID Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              User Identification
-            </h2>
-
-            <div className="space-y-4">
-              {/* User ID */}
+            <div className="flex items-start justify-between">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  User ID
-                </label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={profile.userId}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-secondary border border-border text-foreground rounded-lg font-mono text-sm"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(profile.userId, "User ID")}
-                    className="p-2 hover:bg-secondary rounded-lg transition-colors"
-                  >
-                    {copiedField === "User ID" ? (
-                      <Check className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <Copy className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Your unique identifier derived from your cryptographic public
-                  key
-                </p>
-              </div>
-
-              {/* Public Key */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Public Key
-                </label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={profile.publicKey || ""}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-secondary border border-border text-foreground rounded-lg font-mono text-sm overflow-hidden text-ellipsis"
-                  />
-                  <button
-                    onClick={() =>
-                      copyToClipboard(profile.publicKey || "", "Public Key")
-                    }
-                    className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
-                  >
-                    {copiedField === "Public Key" ? (
-                      <Check className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <Copy className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Your public cryptographic key used for encryption
+                <h1 className="text-3xl font-bold text-foreground mb-2">
+                  {displayName || "Your Account"}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  Manage your profile and security settings
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Profile Details Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              Profile Details
+          {/* Profile Information Section */}
+          <div className="bg-card border border-border rounded-xl p-6 mb-6">
+            <h2 className="text-lg font-semibold text-foreground mb-5">
+              Profile Information
             </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Display Name */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Display Name
+                  Name
                 </label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Enter your display name"
+                  placeholder="Add a display name"
                   maxLength={50}
-                  className="w-full px-4 py-2 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1.5">
                   {displayName.length}/50 characters
                 </p>
               </div>
@@ -289,7 +242,7 @@ export default function Account() {
               {/* Bio */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Bio
+                  About
                 </label>
                 <textarea
                   value={bio}
@@ -297,9 +250,9 @@ export default function Account() {
                   placeholder="Tell others about yourself"
                   maxLength={200}
                   rows={4}
-                  className="w-full px-4 py-2 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none transition-all"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1.5">
                   {bio.length}/200 characters
                 </p>
               </div>
@@ -309,81 +262,147 @@ export default function Account() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Account Created
                 </label>
-                <input
-                  type="text"
-                  value={
-                    profile.createdAt
-                      ? new Date(profile.createdAt).toLocaleDateString(
-                          "en-US",
-                          {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )
-                      : "Unknown"
-                  }
-                  readOnly
-                  className="w-full px-4 py-2 bg-secondary border border-border text-foreground rounded-lg"
-                />
+                <div className="px-4 py-3 bg-secondary border border-border text-foreground rounded-lg text-sm">
+                  {profile.createdAt
+                    ? new Date(profile.createdAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "Unknown"}
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveProfile}
+              disabled={isSaving}
+              className="w-full mt-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
+                    <circle
+                      className="opacity-30"
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                    />
+                    <circle
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                      strokeDasharray="100"
+                      strokeDashoffset="75"
+                    />
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Account Identification Section */}
+          <div className="bg-card border border-border rounded-xl p-6 mb-6">
+            <h2 className="text-lg font-semibold text-foreground mb-5">
+              Account Identification
+            </h2>
+
+            <div className="space-y-4">
+              {/* User ID with Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  User ID
+                </label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type={showUserId ? "text" : "password"}
+                    value={profile.userId}
+                    readOnly
+                    className="flex-1 px-4 py-3 bg-secondary border border-border text-foreground rounded-lg font-mono text-sm"
+                  />
+                  <button
+                    onClick={() => setShowUserId(!showUserId)}
+                    className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+                    title={showUserId ? "Hide ID" : "Show ID"}
+                  >
+                    {showUserId ? (
+                      <EyeOff className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <Eye className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(profile.userId, "User ID")}
+                    className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+                    title="Copy to clipboard"
+                  >
+                    {copiedField === "User ID" ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Your unique account identifier
+                </p>
               </div>
             </div>
           </div>
 
           {/* Security Notice */}
-          <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4 mb-6">
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-blue-600 mb-1">
-                  Security Information
+                  End-to-End Encrypted
                 </p>
                 <p className="text-xs text-blue-600/90">
-                  Your cryptographic keys are stored securely on this device.
-                  Your private key is never sent to our servers and is only used
-                  to sign authentication challenges.
+                  Your messages are encrypted on your device before being sent. Only the recipient can decrypt them. We never have access to your message content.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Save Button */}
-          <button
-            onClick={handleSaveProfile}
-            disabled={isSaving}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
-                  <circle
-                    className="opacity-30"
-                    cx="25"
-                    cy="25"
-                    r="20"
-                    stroke="currentColor"
-                    strokeWidth="5"
-                    fill="none"
-                  />
-                  <circle
-                    cx="25"
-                    cy="25"
-                    r="20"
-                    stroke="currentColor"
-                    strokeWidth="5"
-                    fill="none"
-                    strokeDasharray="100"
-                    strokeDashoffset="75"
-                  />
-                </svg>
-                Saving...
-              </span>
-            ) : (
-              "Save Changes"
-            )}
-          </button>
+          {/* Danger Zone */}
+          <div className="border-t border-border pt-6 mt-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Danger Zone
+            </h2>
+            <button
+              onClick={handleLogout}
+              className="w-full py-3 bg-destructive/10 text-destructive hover:bg-destructive/20 font-semibold rounded-lg transition-all border border-destructive/30 flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     </Layout>
