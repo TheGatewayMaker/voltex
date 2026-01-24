@@ -12,11 +12,14 @@ export interface CryptoKeyPair {
   privateKey: Uint8Array;
   publicKeyBase64: string;
   privateKeyBase64: string;
+  signPublicKeyBase64?: string; // For message signing/verification
+  signPrivateKeyBase64?: string; // For message signing
 }
 
 export interface UserAccount {
   userId: string; // Derived from public key hash
-  publicKey: string; // base64-encoded
+  publicKey: string; // base64-encoded (box public key)
+  signPublicKey?: string; // base64-encoded (sign public key for message authentication)
   username?: string; // Optional username for user lookup
   createdAt: number;
 }
@@ -53,6 +56,7 @@ export interface DecryptedMessage {
 export interface SessionData {
   userId: string;
   publicKey: string;
+  signPublicKey?: string;
   sessionToken: string;
   expiresAt: number;
 }

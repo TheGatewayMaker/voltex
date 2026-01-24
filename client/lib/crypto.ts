@@ -132,17 +132,28 @@ function utf8Decode(bytes: Uint8Array): string {
 }
 
 /**
- * Generate a new cryptographic key pair for signing
+ * Generate a new cryptographic key pair for encryption and signing
+ * Uses box keys for encryption and derives sign keys from the box secret
  * Returns both raw Uint8Array and base64-encoded versions
  */
 export function generateKeyPair(): CryptoKeyPair {
-  const keypair = nacl.sign.keyPair();
+  // Generate box key pair for encryption (Curve25519)
+  const boxKeypair = nacl.box.keyPair();
+
+  // For signing, we use the box secret key to seed a sign key pair
+  // This ensures we have proper keys for both encryption and signing
+  const signKeypair = nacl.sign.keyPair.fromSeed(
+    boxKeypair.secretKey.slice(0, 32),
+  );
 
   return {
-    publicKey: keypair.publicKey,
-    privateKey: keypair.secretKey,
-    publicKeyBase64: bytesToBase64(keypair.publicKey),
-    privateKeyBase64: bytesToBase64(keypair.secretKey),
+    publicKey: boxKeypair.publicKey,
+    privateKey: boxKeypair.secretKey,
+    publicKeyBase64: bytesToBase64(boxKeypair.publicKey),
+    privateKeyBase64: bytesToBase64(boxKeypair.secretKey),
+    // Store sign keys for signing operations
+    signPublicKeyBase64: bytesToBase64(signKeypair.publicKey),
+    signPrivateKeyBase64: bytesToBase64(signKeypair.secretKey),
   };
 }
 
@@ -246,14 +257,15 @@ function signMessage(
 
 /**
  * Encrypt a message for a recipient
- * Uses recipient's public key for encryption
- * Signs the encrypted message with sender's private key
+ * Uses recipient's public key for encryption (Curve25519)
+ * Signs the encrypted message with sender's signing key (Ed25519)
  * Returns encrypted message with nonce and signature
  */
 export function encryptMessage(
   message: string,
   recipientPublicKeyBase64: string,
   senderPrivateKeyBase64: string,
+  senderSignPrivateKeyBase64?: string,
 ): EncryptedMessage {
   const recipientPublicKey = base64ToBytes(recipientPublicKeyBase64);
   const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
@@ -269,7 +281,9 @@ export function encryptMessage(
   );
 
   // Sign the encrypted payload for authenticity
-  const signature = signMessage(nonce, ciphertext, senderPrivateKeyBase64);
+  // Use the sign private key if provided, otherwise fall back to private key
+  const signKeyToUse = senderSignPrivateKeyBase64 || senderPrivateKeyBase64;
+  const signature = signMessage(nonce, ciphertext, signKeyToUse);
 
   // Note: You'll need to add senderId and recipientId in the calling code
   return {

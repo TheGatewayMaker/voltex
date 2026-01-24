@@ -83,7 +83,7 @@ export const handleCheckUsernameAvailability: RequestHandler = async (
  */
 export const handleRegister: RequestHandler = async (req, res) => {
   try {
-    const { publicKey, passphraseHash, username } = req.body;
+    const { publicKey, signPublicKey, passphraseHash, username } = req.body;
 
     if (!publicKey || typeof publicKey !== "string") {
       return res.status(400).json({ error: "Public key is required" });
@@ -137,6 +137,7 @@ export const handleRegister: RequestHandler = async (req, res) => {
     const userAccount: UserAccount = {
       userId,
       publicKey,
+      signPublicKey: signPublicKey || undefined, // Store the sign public key if provided
       username: username ? username.toLowerCase() : undefined,
       createdAt: Date.now(),
     };
@@ -294,6 +295,7 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
     const sessionData: SessionData = {
       userId,
       publicKey,
+      signPublicKey: userAccount.signPublicKey,
       sessionToken,
       expiresAt,
     };
@@ -372,6 +374,7 @@ export const handleGetPublicKey: RequestHandler = async (req, res) => {
     return res.status(200).json({
       userId,
       publicKey: userAccount.publicKey,
+      signPublicKey: userAccount.signPublicKey,
     });
   } catch (error) {
     console.error("Get public key error:", error);
