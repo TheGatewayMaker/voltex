@@ -71,6 +71,49 @@ export default function Conversations() {
     }
   };
 
+  const loadConversations = async (sessionToken: string) => {
+    try {
+      const response = await fetch("/api/messages/conversations", {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Convert server data to UI format
+        const conversationList: Conversation[] = data.conversations.map(
+          (conv: any) => ({
+            id: conv.userId,
+            name: conv.userId.substring(0, 8),
+            avatar: conv.userId.substring(0, 2).toUpperCase(),
+            lastMessage: conv.lastMessage || "(No messages)",
+            timestamp: formatTimestamp(conv.timestamp),
+            unread: 0,
+            online: false,
+          }),
+        );
+        setConversations(conversationList);
+      }
+    } catch (error) {
+      console.error("Failed to load conversations:", error);
+    }
+  };
+
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   const handleSearchUsers = async (query: string) => {
     setSearchQuery(query);
 
