@@ -4,11 +4,12 @@ import {
   getUserIdByUsername,
   getUserAccount,
 } from "../lib/r2-storage";
+import { getSessionFromToken } from "./auth";
 
 /**
  * POST /api/users/search
  * Search for users by username (supports partial username matching)
- * Returns public profile information
+ * Returns public profile information with privacy controls
  */
 export const handleSearchUsers: RequestHandler = async (req, res) => {
   try {
@@ -28,32 +29,47 @@ export const handleSearchUsers: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Search query is too long" });
     }
 
-    // Note: Since R2 doesn't support full-text search efficiently,
-    // we're implementing a simple exact match + prefix match approach.
-    // For a production app, consider using an external search service
-    // or a database with full-text search capabilities.
+    // Get authenticated user if available (optional for search)
+    const authHeader = req.headers.authorization;
+    const sessionToken =
+      typeof authHeader === "string"
+        ? authHeader.replace("Bearer ", "")
+        : undefined;
+    const session = sessionToken ? getSessionFromToken(sessionToken) : null;
 
     const results: any[] = [];
 
-    // Try exact match first
+    // Try exact match first (privacy-aware: only search by username)
     const exactMatchUserId = await getUserIdByUsername(searchQuery);
     if (exactMatchUserId) {
-      const profile = await getUserProfile(exactMatchUserId);
-      if (profile) {
+      // Exclude self from results
+      if (session && exactMatchUserId === session.userId) {
+        return res.status(200).json({
+          results: [],
+          query: searchQuery,
+          count: 0,
+        });
+      }
+
+      const account = await getUserAccount(exactMatchUserId);
+      if (account) {
+        const profile = await getUserProfile(exactMatchUserId);
         results.push({
           userId: exactMatchUserId,
-          username: profile.username,
-          displayName: profile.displayName || "User",
-          bio: profile.bio || "",
-          avatar: profile.avatar || null,
+          username: account.username || exactMatchUserId.substring(0, 8),
+          displayName: profile?.displayName || "User",
+          bio: profile?.bio || "",
+          avatar: profile?.avatar || null,
+          publicKey: account.publicKey,
         });
       }
     }
 
-    // For a better search experience in production, you would:
-    // 1. Maintain a list of all usernames in a searchable format
-    // 2. Use a service like Elasticsearch or Meilisearch
-    // 3. Implement a prefix search with a trie or similar structure
+    // Note: For production scale, implement:
+    // 1. Prefix search with cached index in R2
+    // 2. External search service (Elasticsearch, Meilisearch)
+    // 3. Rate limiting to prevent enumeration attacks
+    // 4. Usernames list maintained separately for performance
 
     return res.status(200).json({
       results,
