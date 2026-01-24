@@ -280,24 +280,46 @@ export default function Chat() {
         keyPair.privateKeyBase64,
       );
 
-      // Send to server with signature for authenticity
-      const sendRes = await fetch("/api/messages/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionToken}`,
-        },
-        body: JSON.stringify({
-          recipientId,
-          nonce: encrypted.nonce,
-          ciphertext: encrypted.ciphertext,
-          signature: encrypted.signature,
-          timestamp: encrypted.timestamp,
-        }),
-      });
+      // Create full encrypted message with sender info
+      const fullMessage = {
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+        signature: encrypted.signature,
+        senderId: currentUserId,
+        recipientId: recipientId || "",
+        timestamp: encrypted.timestamp,
+      };
 
-      if (!sendRes.ok) {
-        throw new Error("Failed to send message");
+      // Try to send via WebSocket if connected (real-time delivery)
+      let sent = false;
+      if (isConnected) {
+        sent = sendViaWebSocket(fullMessage);
+        if (sent) {
+          console.log("Message sent via WebSocket");
+        }
+      }
+
+      // If WebSocket not connected or failed, fall back to HTTP
+      if (!sent) {
+        const sendRes = await fetch("/api/messages/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify({
+            recipientId,
+            nonce: encrypted.nonce,
+            ciphertext: encrypted.ciphertext,
+            signature: encrypted.signature,
+            timestamp: encrypted.timestamp,
+          }),
+        });
+
+        if (!sendRes.ok) {
+          throw new Error("Failed to send message");
+        }
+        console.log("Message sent via HTTP (fallback)");
       }
 
       // Add message to local state optimistically
