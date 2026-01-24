@@ -56,6 +56,7 @@ export interface DecryptedMessage {
 export interface SessionData {
   userId: string;
   publicKey: string;
+  signPublicKey?: string;
   sessionToken: string;
   expiresAt: number;
 }
