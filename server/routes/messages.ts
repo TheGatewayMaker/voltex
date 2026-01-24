@@ -8,6 +8,7 @@ import {
   getUserAccount,
 } from "../lib/r2-storage";
 import { verifyMessageSignature } from "../lib/crypto";
+import { deliverMessage } from "../lib/messaging";
 
 // In-memory message storage (messages are also stored in R2 for persistence)
 // Structure: { "senderId:recipientId": [messages] }
