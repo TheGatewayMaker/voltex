@@ -176,7 +176,10 @@ export function createServer() {
                   signPublicKeyToUse = userAccount.signPublicKey;
                 }
               } catch (error) {
-                console.error("Failed to fetch user account for signPublicKey:", error);
+                console.error(
+                  "Failed to fetch user account for signPublicKey:",
+                  error,
+                );
               }
             }
 
@@ -185,7 +188,8 @@ export function createServer() {
               ws.send(
                 JSON.stringify({
                   type: "error",
-                  error: "User account is missing signing key - please re-register",
+                  error:
+                    "User account is missing signing key - please re-register",
                 }),
               );
               console.warn(`No sign public key available for user ${userId}`);

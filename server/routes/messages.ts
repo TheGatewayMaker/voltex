@@ -85,9 +85,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
 
     // If we still don't have a signPublicKey, we cannot verify the signature
     if (!signPublicKeyToUse) {
-      console.warn(
-        `No sign public key available for user ${session.userId}`,
-      );
+      console.warn(`No sign public key available for user ${session.userId}`);
       return res.status(403).json({
         error: "User account is missing signing key - please re-register",
       });
