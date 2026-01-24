@@ -21,7 +21,7 @@ export async function storeMessageInDB(
   recipientId: string,
   message: EncryptedMessage,
 ): Promise<boolean> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     console.log("Database not connected, falling back to in-memory storage");
     return false;
   }
