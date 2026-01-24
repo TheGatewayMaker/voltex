@@ -373,6 +373,7 @@ export const handleGetPublicKey: RequestHandler = async (req, res) => {
     return res.status(200).json({
       userId,
       publicKey: userAccount.publicKey,
+      encryptionPublicKey: userAccount.encryptionPublicKey || userAccount.publicKey,
     });
   } catch (error) {
     console.error("Get public key error:", error);
