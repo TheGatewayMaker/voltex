@@ -16,6 +16,10 @@ interface ChatMessage extends DecryptedMessage {
   id: string;
   isOwn: boolean;
   status?: "sent" | "delivered" | "failed"; // Track delivery status
+  // Encrypted data stored for retry on reconnect
+  nonce?: string;
+  ciphertext?: string;
+  signature?: string;
 }
 
 export default function Chat() {
