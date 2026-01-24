@@ -33,6 +33,13 @@ import {
 } from "./routes/profile";
 import { handleSearchUsers, handleGetUserByUsername } from "./routes/users";
 import {
+  handleHealthCheck,
+  handleArchivalStatus,
+  handleDatabaseStats,
+  handleRunArchival,
+  handleArchivalConfig,
+} from "./routes/admin";
+import {
   registerUserConnection,
   unregisterUserConnection,
   deliverMessage,
