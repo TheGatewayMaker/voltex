@@ -35,7 +35,7 @@ export const handleSearchUsers: RequestHandler = async (req, res) => {
       typeof authHeader === "string"
         ? authHeader.replace("Bearer ", "")
         : undefined;
-    const session = sessionToken ? getSessionFromToken(sessionToken) : null;
+    const session = sessionToken ? await getSessionFromToken(sessionToken) : null;
 
     const results: any[] = [];
 
