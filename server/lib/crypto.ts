@@ -40,6 +40,7 @@ export function verifySignedChallenge(
 /**
  * Verify an encrypted message format and structure
  * Does not decrypt - just validates format
+ * CRITICAL: Now requires signature field for authenticity
  */
 export function validateEncryptedMessage(
   message: any,
@@ -49,6 +50,7 @@ export function validateEncryptedMessage(
     message !== null &&
     typeof message.nonce === "string" &&
     typeof message.ciphertext === "string" &&
+    typeof message.signature === "string" && // REQUIRED: signature for authenticity
     typeof message.senderId === "string" &&
     typeof message.recipientId === "string" &&
     typeof message.timestamp === "number"
