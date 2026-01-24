@@ -446,6 +446,8 @@ export function getStoredKeyPair(): CryptoKeyPair | null {
       privateKey: base64ToBytes(parsed.privateKey),
       publicKeyBase64: parsed.publicKey,
       privateKeyBase64: parsed.privateKey,
+      signPublicKeyBase64: parsed.signPublicKeyBase64,
+      signPrivateKeyBase64: parsed.signPrivateKeyBase64,
     };
   } catch {
     return null;
