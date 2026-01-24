@@ -173,7 +173,7 @@ export default function Chat() {
   };
 
   // Set up WebSocket for real-time messages
-  const { isConnected } = useWebSocket({
+  const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
     onMessage: async (encryptedMessage) => {
       // Only process messages from this conversation
       if (
