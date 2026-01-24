@@ -76,35 +76,46 @@ export default function Recover() {
       return;
     }
 
+    if (!encryptionData) {
+      setError("Session expired. Please start over.");
+      setStep("userId");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
-      // Normalize and hash the passphrase
-      // Normalization ensures that variations in spacing and capitalization don't break recovery
+      // Normalize passphrase
       const normalizedPassphrase = normalizePassphrase(passphraseInput);
-      const passphraseHashHex = await hashPassphrase(normalizedPassphrase);
 
-      // Request account recovery
-      const recoveryResponse = await fetch("/api/auth/recover", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userIdInput,
-          passphraseHash: passphraseHashHex,
-        }),
-      });
+      // Derive decryption key from passphrase
+      const decryptionKey = await deriveEncryptionKey(
+        normalizedPassphrase,
+        encryptionData.salt,
+      );
 
-      if (!recoveryResponse.ok) {
-        const errorData = await recoveryResponse.json();
-        throw new Error(errorData.error || "Account recovery failed");
+      // Decrypt keypair
+      const decryptedKeypair = await decryptKeypair(
+        encryptionData.encryptedData,
+        encryptionData.iv,
+        decryptionKey,
+      );
+
+      if (!decryptedKeypair) {
+        throw new Error("Failed to decrypt keypair. Invalid passphrase?");
       }
 
-      const recoveryData = await recoveryResponse.json();
+      // Verify the decrypted keypair matches the user ID
+      const derivedUserId = await deriveUserIdFromPublicKey(
+        decryptedKeypair.publicKeyBase64,
+      );
 
-      // Store recovered data temporarily for authentication
-      setRecoveredUserId(recoveryData.userId);
-      setRecoveredPublicKey(recoveryData.publicKey);
+      if (encryptionData.userId !== derivedUserId) {
+        throw new Error("Decrypted keypair does not match user ID");
+      }
+
+      setRecoveredUserId(encryptionData.userId);
       setStep("authenticating");
 
       // Proceed with challenge-response authentication
@@ -112,8 +123,8 @@ export default function Recover() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: recoveryData.userId,
-          publicKey: recoveryData.publicKey,
+          userId: encryptionData.userId,
+          publicKey: decryptedKeypair.publicKeyBase64,
         }),
       });
 
@@ -125,29 +136,46 @@ export default function Recover() {
       const challengeData = await challengeResponse.json();
       const challenge = challengeData.challenge;
 
-      // Sign the challenge with the passphrase (derive key from passphrase)
-      // For recovery, we can't use the original private key, so we derive it from the passphrase
-      // This is a simplified approach - in production, you'd want a proper key derivation function
+      // Sign the challenge with decrypted private key
+      const signature = signChallenge(challenge, decryptedKeypair.privateKeyBase64);
 
-      // For now, we'll ask the user to use their original device or provide their private key
-      // Let's redirect them to restore their keypair from their original device
+      // Verify signed challenge with server
+      const verifyResponse = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: encryptionData.userId,
+          challenge,
+          signature,
+          publicKey: decryptedKeypair.publicKeyBase64,
+        }),
+      });
 
-      toast.error(
-        "To complete recovery, please use a device with your original cryptographic keys installed",
-      );
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        throw new Error(errorData.error || "Authentication failed");
+      }
 
-      // Navigate back to signin
-      setTimeout(() => {
-        setStep("userId");
-        setPassphraseInput("");
-        setUserIdInput("");
-      }, 2000);
+      const authData = await verifyResponse.json();
+
+      // Store session token and user ID
+      localStorage.setItem("session_token", authData.sessionToken);
+      localStorage.setItem("current_user_id", authData.userId);
+      localStorage.setItem("current_public_key", decryptedKeypair.publicKeyBase64);
+
+      setStep("success");
+
+      toast.success("Account recovered successfully!");
+
+      // Redirect after a short delay
+      setTimeout(() => navigate("/"), 1500);
     } catch (err) {
-      setIsLoading(false);
       setError(err instanceof Error ? err.message : "Account recovery failed");
       toast.error(
         err instanceof Error ? err.message : "Account recovery failed",
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
