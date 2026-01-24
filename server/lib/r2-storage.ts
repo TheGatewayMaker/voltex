@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
   ListBucketsCommand,
   CreateBucketCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { sdkStreamMixin } from "@aws-sdk/util-stream-node";
 
