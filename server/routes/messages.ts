@@ -212,7 +212,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
 
 /**
  * GET /api/messages/conversation/:recipientId
- * Retrieve conversation history (from memory + R2 persistence)
+ * Retrieve conversation history (from PostgreSQL + R2 for older messages)
  */
 export const handleGetConversation: RequestHandler = async (req, res) => {
   try {
@@ -234,34 +234,92 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Get conversation history from shared memory
-    let allMessages = getStoredMessages(session.userId, recipientId);
+    // Try to get recent messages from PostgreSQL first
+    let allMessages = [];
+    let fromDatabase = false;
 
-    // If in-memory is empty, try to load from R2 persistence
+    if (isDatabaseConnected()) {
+      try {
+        const dbMessages = await getConversationMessagesFromDB(
+          session.userId,
+          recipientId,
+          1000, // Load up to 1000 recent messages from DB
+          0,
+        );
+
+        if (dbMessages && dbMessages.length > 0) {
+          // Convert database message format to EncryptedMessage format
+          allMessages = dbMessages.map((msg) => ({
+            nonce: msg.nonce,
+            ciphertext: msg.ciphertext,
+            signature: msg.signature,
+            senderId: msg.sender_id || msg.senderId,
+            recipientId: msg.recipient_id || msg.recipientId,
+            timestamp: msg.timestamp,
+          }));
+          fromDatabase = true;
+          console.log(
+            `Loaded ${dbMessages.length} messages from PostgreSQL for conversation ${session.userId}:${recipientId}`,
+          );
+        }
+      } catch (dbError) {
+        console.error("Error loading messages from PostgreSQL:", dbError);
+      }
+    }
+
+    // If database is empty or disabled, try R2 persistence
     if (allMessages.length === 0) {
       try {
-        const persistedMessages = await getConversationMessages(
+        const r2Messages = await getConversationMessagesFromR2(
           session.userId,
           recipientId,
           1000, // Load up to 1000 messages from R2
           0,
         );
 
-        if (persistedMessages.length > 0) {
-          // Load persisted messages into memory cache
-          for (const msg of persistedMessages) {
-            storeMessage(session.userId, recipientId, msg);
-          }
-          allMessages = persistedMessages;
+        if (r2Messages && r2Messages.length > 0) {
+          allMessages = r2Messages;
           console.log(
-            `Loaded ${persistedMessages.length} messages from R2 for conversation ${session.userId}:${recipientId}`,
+            `Loaded ${r2Messages.length} messages from R2 for conversation ${session.userId}:${recipientId}`,
           );
         }
       } catch (r2Error) {
         console.error("Error loading messages from R2:", r2Error);
-        // Continue with in-memory data (if available)
+      }
+    } else if (allMessages.length < limit + offset) {
+      // If we have fewer messages than requested, try to load older ones from R2
+      try {
+        const r2Messages = await getConversationMessagesFromR2(
+          session.userId,
+          recipientId,
+          1000,
+          0,
+        );
+
+        if (r2Messages && r2Messages.length > 0) {
+          allMessages = [...allMessages, ...r2Messages];
+          console.log(
+            `Loaded ${r2Messages.length} older messages from R2 for conversation ${session.userId}:${recipientId}`,
+          );
+        }
+      } catch (r2Error) {
+        console.error("Error loading older messages from R2:", r2Error);
       }
     }
+
+    // Also get conversation from in-memory cache to ensure real-time messages are included
+    const inMemoryMessages = getStoredMessages(session.userId, recipientId);
+    if (inMemoryMessages.length > 0) {
+      // Merge with DB messages, avoiding duplicates
+      const dbTimestamps = new Set(allMessages.map((m) => m.timestamp));
+      const newMessages = inMemoryMessages.filter(
+        (m) => !dbTimestamps.has(m.timestamp),
+      );
+      allMessages = [...allMessages, ...newMessages];
+    }
+
+    // Sort all messages by timestamp
+    allMessages.sort((a, b) => a.timestamp - b.timestamp);
 
     // Apply pagination
     const paginatedMessages = allMessages
@@ -277,6 +335,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       total: allMessages.length,
       limit,
       offset,
+      source: fromDatabase ? "database+r2" : "r2+memory",
     });
   } catch (error) {
     console.error("Get conversation error:", error);
