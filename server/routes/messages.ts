@@ -4,7 +4,7 @@ import { EncryptedMessage } from "@shared/crypto";
 import { getSessionFromToken } from "./auth";
 import {
   saveMessageWithMetadata,
-  getConversationMessages,
+  getConversationMessages as getConversationMessagesFromR2,
   getUserAccount,
   getUserConversationsFromR2,
 } from "../lib/r2-storage";
@@ -18,6 +18,14 @@ import {
   deleteConversation as deleteStoredConversation,
   getUserConversations,
 } from "../lib/conversation-history";
+import {
+  storeMessageInDB,
+  getConversationMessagesFromDB,
+  getUserConversationsFromDB,
+  deleteMessageFromDB,
+  deleteConversationFromDB,
+  isDatabaseConnected,
+} from "../lib/db-messages";
 
 /**
  * POST /api/messages/send
@@ -135,7 +143,28 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // This ensures both WebSocket and HTTP routes access the same data
     storeMessage(session.userId, recipientId, message);
 
-    // Also store in R2 for persistence
+    // Try to store in PostgreSQL first (if available)
+    let dbStorageSuccess = false;
+    if (isDatabaseConnected()) {
+      try {
+        dbStorageSuccess = await storeMessageInDB(
+          messageId,
+          session.userId,
+          recipientId,
+          {
+            nonce,
+            ciphertext,
+            signature,
+            timestamp,
+          },
+        );
+        console.log(`Message ${messageId} stored in PostgreSQL`);
+      } catch (dbError) {
+        console.error("Failed to store message in PostgreSQL:", dbError);
+      }
+    }
+
+    // Also store in R2 for persistence (fallback if no DB or for redundancy)
     let r2StorageSuccess = false;
     try {
       await saveMessageWithMetadata(messageId, session.userId, recipientId, {
@@ -148,7 +177,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       r2StorageSuccess = true;
     } catch (r2Error) {
       console.error("Failed to store message in R2:", r2Error);
-      // Continue anyway, message is in memory, but flag for client
+      // Continue anyway, message is in memory and possibly in DB
     }
 
     // Attempt to deliver message to recipient in real-time (if connected)
@@ -165,7 +194,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       success: true,
       messageId: `${timestamp}-${session.userId}`,
       timestamp,
-      persisted: r2StorageSuccess,
+      persisted: dbStorageSuccess || r2StorageSuccess,
+      persistedInDB: dbStorageSuccess,
+      persistedInR2: r2StorageSuccess,
       delivered,
     });
   } catch (error) {
@@ -181,7 +212,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
 
 /**
  * GET /api/messages/conversation/:recipientId
- * Retrieve conversation history (from memory + R2 persistence)
+ * Retrieve conversation history (from PostgreSQL + R2 for older messages)
  */
 export const handleGetConversation: RequestHandler = async (req, res) => {
   try {
@@ -203,34 +234,92 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Get conversation history from shared memory
-    let allMessages = getStoredMessages(session.userId, recipientId);
+    // Try to get recent messages from PostgreSQL first
+    let allMessages = [];
+    let fromDatabase = false;
 
-    // If in-memory is empty, try to load from R2 persistence
+    if (isDatabaseConnected()) {
+      try {
+        const dbMessages = await getConversationMessagesFromDB(
+          session.userId,
+          recipientId,
+          1000, // Load up to 1000 recent messages from DB
+          0,
+        );
+
+        if (dbMessages && dbMessages.length > 0) {
+          // Convert database message format to EncryptedMessage format
+          allMessages = dbMessages.map((msg) => ({
+            nonce: msg.nonce,
+            ciphertext: msg.ciphertext,
+            signature: msg.signature,
+            senderId: msg.sender_id || msg.senderId,
+            recipientId: msg.recipient_id || msg.recipientId,
+            timestamp: msg.timestamp,
+          }));
+          fromDatabase = true;
+          console.log(
+            `Loaded ${dbMessages.length} messages from PostgreSQL for conversation ${session.userId}:${recipientId}`,
+          );
+        }
+      } catch (dbError) {
+        console.error("Error loading messages from PostgreSQL:", dbError);
+      }
+    }
+
+    // If database is empty or disabled, try R2 persistence
     if (allMessages.length === 0) {
       try {
-        const persistedMessages = await getConversationMessages(
+        const r2Messages = await getConversationMessagesFromR2(
           session.userId,
           recipientId,
           1000, // Load up to 1000 messages from R2
           0,
         );
 
-        if (persistedMessages.length > 0) {
-          // Load persisted messages into memory cache
-          for (const msg of persistedMessages) {
-            storeMessage(session.userId, recipientId, msg);
-          }
-          allMessages = persistedMessages;
+        if (r2Messages && r2Messages.length > 0) {
+          allMessages = r2Messages;
           console.log(
-            `Loaded ${persistedMessages.length} messages from R2 for conversation ${session.userId}:${recipientId}`,
+            `Loaded ${r2Messages.length} messages from R2 for conversation ${session.userId}:${recipientId}`,
           );
         }
       } catch (r2Error) {
         console.error("Error loading messages from R2:", r2Error);
-        // Continue with in-memory data (if available)
+      }
+    } else if (allMessages.length < limit + offset) {
+      // If we have fewer messages than requested, try to load older ones from R2
+      try {
+        const r2Messages = await getConversationMessagesFromR2(
+          session.userId,
+          recipientId,
+          1000,
+          0,
+        );
+
+        if (r2Messages && r2Messages.length > 0) {
+          allMessages = [...allMessages, ...r2Messages];
+          console.log(
+            `Loaded ${r2Messages.length} older messages from R2 for conversation ${session.userId}:${recipientId}`,
+          );
+        }
+      } catch (r2Error) {
+        console.error("Error loading older messages from R2:", r2Error);
       }
     }
+
+    // Also get conversation from in-memory cache to ensure real-time messages are included
+    const inMemoryMessages = getStoredMessages(session.userId, recipientId);
+    if (inMemoryMessages.length > 0) {
+      // Merge with DB messages, avoiding duplicates
+      const dbTimestamps = new Set(allMessages.map((m) => m.timestamp));
+      const newMessages = inMemoryMessages.filter(
+        (m) => !dbTimestamps.has(m.timestamp),
+      );
+      allMessages = [...allMessages, ...newMessages];
+    }
+
+    // Sort all messages by timestamp
+    allMessages.sort((a, b) => a.timestamp - b.timestamp);
 
     // Apply pagination
     const paginatedMessages = allMessages
@@ -246,6 +335,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       total: allMessages.length,
       limit,
       offset,
+      source: fromDatabase ? "database+r2" : "r2+memory",
     });
   } catch (error) {
     console.error("Get conversation error:", error);
@@ -269,10 +359,28 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // Get all conversations for this user from shared history (in-memory)
-    let userConversations = getUserConversations(session.userId);
+    // Try to get conversations from PostgreSQL first
+    let userConversations = new Map<
+      string,
+      { lastMessage: any; timestamp: number }
+    >();
+    let fromDatabase = false;
 
-    // If in-memory cache is empty, try to load from R2 persistence
+    if (isDatabaseConnected()) {
+      try {
+        userConversations = await getUserConversationsFromDB(session.userId);
+        if (userConversations.size > 0) {
+          fromDatabase = true;
+          console.log(
+            `Loaded ${userConversations.size} conversations from PostgreSQL for user ${session.userId}`,
+          );
+        }
+      } catch (dbError) {
+        console.error("Error loading conversations from PostgreSQL:", dbError);
+      }
+    }
+
+    // If database is empty or disabled, try R2 persistence
     if (userConversations.size === 0) {
       try {
         userConversations = await getUserConversationsFromR2(session.userId);
@@ -281,7 +389,18 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
         );
       } catch (r2Error) {
         console.error("Error loading conversations from R2:", r2Error);
-        // Continue with empty conversations (user just hasn't chatted yet)
+      }
+    }
+
+    // Also check in-memory conversations
+    const inMemoryConversations = getUserConversations(session.userId);
+    if (inMemoryConversations.size > 0) {
+      // Merge with database conversations, newer timestamps win
+      for (const [userId, data] of inMemoryConversations) {
+        const existing = userConversations.get(userId);
+        if (!existing || data.timestamp > existing.timestamp) {
+          userConversations.set(userId, data);
+        }
       }
     }
 
@@ -300,6 +419,7 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
     return res.status(200).json({
       conversations,
       count: conversations.length,
+      source: fromDatabase ? "database+r2" : "r2+memory",
     });
   } catch (error) {
     console.error("Get conversations error:", error);
@@ -329,8 +449,24 @@ export const handleDeleteConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Delete from shared conversation history
+    // Delete from shared conversation history (in-memory)
     deleteStoredConversation(session.userId, recipientId);
+
+    // Delete from PostgreSQL
+    if (isDatabaseConnected()) {
+      try {
+        await deleteConversationFromDB(session.userId, recipientId);
+        console.log(
+          `Deleted conversation ${session.userId}:${recipientId} from PostgreSQL`,
+        );
+      } catch (dbError) {
+        console.error(
+          "Failed to delete conversation from PostgreSQL:",
+          dbError,
+        );
+        // Continue anyway, message is already removed from memory
+      }
+    }
 
     return res.status(200).json({ success: true, deleted: true });
   } catch (error) {
@@ -366,6 +502,17 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
     // Remove from shared conversation history
     deleteStoredMessage(session.userId, recipientId, messageId);
 
+    // Delete from PostgreSQL
+    if (isDatabaseConnected()) {
+      try {
+        await deleteMessageFromDB(messageId);
+        console.log(`Deleted message ${messageId} from PostgreSQL`);
+      } catch (dbError) {
+        console.error("Failed to delete message from PostgreSQL:", dbError);
+        // Continue anyway, message is already removed from memory
+      }
+    }
+
     // Delete from R2 persistence
     try {
       const sortedIds = [session.userId, recipientId].sort();
@@ -377,7 +524,7 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
       );
     } catch (r2Error) {
       console.error("Failed to delete message from R2:", r2Error);
-      // Continue anyway, message is already removed from memory
+      // Continue anyway, message is already removed from memory and DB
     }
 
     return res.status(200).json({ success: true, deleted: true });
