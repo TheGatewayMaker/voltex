@@ -6,9 +6,14 @@ import {
   signChallenge,
   deriveUserIdFromPublicKey,
 } from "@/lib/crypto";
+import {
+  normalizePassphrase,
+  deriveEncryptionKey,
+  decryptKeypair,
+} from "@/lib/passphrase";
 import { toast } from "sonner";
 
-type SignInStep = "userId" | "authenticating" | "success";
+type SignInStep = "userId" | "passphrase" | "authenticating" | "success";
 
 export default function SignIn() {
   const navigate = useNavigate();
