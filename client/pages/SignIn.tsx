@@ -32,13 +32,20 @@ export default function SignIn() {
 
   const authenticateWithKeyPair = async (userId: string, keyPair: any) => {
     try {
+      // For authentication, use the signing keys (Ed25519)
+      // Fall back to privateKey if signPrivateKeyBase64 not available (old keypair format)
+      const signPrivateKey =
+        keyPair.signPrivateKeyBase64 || keyPair.privateKeyBase64;
+      const signPublicKey =
+        keyPair.signPublicKeyBase64 || keyPair.publicKeyBase64;
+
       // Request challenge from server
       const challengeResponse = await fetch("/api/auth/challenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          publicKey: keyPair.publicKeyBase64,
+          publicKey: signPublicKey,
         }),
       });
 
@@ -50,8 +57,8 @@ export default function SignIn() {
       const challengeData = await challengeResponse.json();
       const challenge = challengeData.challenge;
 
-      // Sign the challenge with private key
-      const signature = signChallenge(challenge, keyPair.privateKeyBase64);
+      // Sign the challenge with signing private key
+      const signature = signChallenge(challenge, signPrivateKey);
 
       // Verify signed challenge with server
       const verifyResponse = await fetch("/api/auth/verify", {
@@ -61,7 +68,7 @@ export default function SignIn() {
           userId,
           challenge,
           signature,
-          publicKey: keyPair.publicKeyBase64,
+          publicKey: signPublicKey,
         }),
       });
 
