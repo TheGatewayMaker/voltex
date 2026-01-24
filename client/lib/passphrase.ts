@@ -153,6 +153,8 @@ export async function decryptKeypair(
       privateKey: base64ToBytes(parsed.privateKeyBase64),
       publicKeyBase64: parsed.publicKeyBase64,
       privateKeyBase64: parsed.privateKeyBase64,
+      signPublicKeyBase64: parsed.signPublicKeyBase64,
+      signPrivateKeyBase64: parsed.signPrivateKeyBase64,
     };
   } catch (error) {
     console.error("Failed to decrypt keypair:", error);
