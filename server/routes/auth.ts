@@ -422,6 +422,96 @@ export const handleRecoverAccount: RequestHandler = async (req, res) => {
 };
 
 /**
+ * POST /api/auth/save-encrypted-keypair
+ * Save encrypted keypair to R2 for cross-device recovery
+ * Client encrypts the keypair before sending, server stores ciphertext only
+ */
+export const handleSaveEncryptedKeypair: RequestHandler = async (
+  req,
+  res,
+) => {
+  try {
+    const { userId, encryptedData, salt, iv } = req.body;
+
+    if (!userId || !encryptedData || !salt || !iv) {
+      return res.status(400).json({
+        error: "userId, encryptedData, salt, and iv are required",
+      });
+    }
+
+    if (typeof userId !== "string") {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
+
+    if (typeof encryptedData !== "string") {
+      return res.status(400).json({ error: "Invalid encryptedData" });
+    }
+
+    if (typeof salt !== "string") {
+      return res.status(400).json({ error: "Invalid salt" });
+    }
+
+    if (typeof iv !== "string") {
+      return res.status(400).json({ error: "Invalid iv" });
+    }
+
+    // Verify user exists
+    const userAccount = await getUserAccount(userId);
+    if (!userAccount) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Save encrypted keypair to R2
+    await saveEncryptedKeypair(userId, encryptedData, salt, iv);
+
+    return res.status(200).json({
+      message: "Encrypted keypair saved successfully",
+    });
+  } catch (error) {
+    console.error("Save encrypted keypair error:", error);
+    return res.status(500).json({ error: "Failed to save encrypted keypair" });
+  }
+};
+
+/**
+ * GET /api/auth/encrypted-keypair/:userId
+ * Get encrypted keypair from R2 for cross-device recovery
+ * Server returns ciphertext only (client decrypts locally)
+ */
+export const handleGetEncryptedKeypair: RequestHandler = async (req, res) => {
+  try {
+    const userId =
+      typeof req.params.userId === "string" ? req.params.userId : "";
+
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    // Verify user exists
+    const userAccount = await getUserAccount(userId);
+    if (!userAccount) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Get encrypted keypair from R2
+    const encryptedKeypair = await getEncryptedKeypair(userId);
+    if (!encryptedKeypair) {
+      return res.status(404).json({ error: "Encrypted keypair not found" });
+    }
+
+    return res.status(200).json({
+      userId,
+      ...encryptedKeypair,
+    });
+  } catch (error) {
+    console.error("Get encrypted keypair error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to retrieve encrypted keypair" });
+  }
+};
+
+/**
  * POST /api/auth/logout
  * Invalidate a session
  */
