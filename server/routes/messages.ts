@@ -68,8 +68,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       timestamp,
     };
 
-    // Verify message signature using sender's public key
-    const isSignatureValid = verifyMessageSignature(message, session.publicKey);
+    // Verify message signature using sender's sign public key
+    // If signPublicKey exists, use it; otherwise fall back to publicKey for backward compatibility
+    const signPublicKeyToUse = session.signPublicKey || session.publicKey;
+    const isSignatureValid = verifyMessageSignature(message, signPublicKeyToUse);
     if (!isSignatureValid) {
       console.warn(
         `Invalid message signature from ${session.userId} to ${recipientId}`,
