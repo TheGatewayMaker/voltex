@@ -71,11 +71,13 @@ export default function ProfileMenu({
         });
       }
 
-      // Clear session but keep crypto_keypair for re-authentication on same device
+      // Clear all session data including crypto_keypair to prevent user ID mismatch errors
       localStorage.removeItem("session_token");
       localStorage.removeItem("current_user_id");
       localStorage.removeItem("current_public_key");
       localStorage.removeItem("current_sign_public_key");
+      localStorage.removeItem("crypto_keypair");
+      localStorage.removeItem("crypto_mnemonic");
 
       toast.success("Logged out successfully");
       navigate("/signin");

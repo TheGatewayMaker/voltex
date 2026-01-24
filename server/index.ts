@@ -33,6 +33,13 @@ import {
 } from "./routes/profile";
 import { handleSearchUsers, handleGetUserByUsername } from "./routes/users";
 import {
+  handleHealthCheck,
+  handleArchivalStatus,
+  handleDatabaseStats,
+  handleRunArchival,
+  handleArchivalConfig,
+} from "./routes/admin";
+import {
   registerUserConnection,
   unregisterUserConnection,
   deliverMessage,
@@ -41,24 +48,38 @@ import {
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
 import { EncryptedMessage } from "@shared/crypto";
+import { getConversationKey, storeMessage } from "./lib/conversation-history";
+import { storeMessageInDB, isDatabaseConnected } from "./lib/db-messages";
+import { initializeDatabase } from "./lib/db";
+import { startArchivalJob } from "./lib/archival-job";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
 
-// In-memory message storage (messages are also stored in R2 for persistence)
-// Structure: { "senderId:recipientId": [messages] }
-const conversationHistory = new Map<string, EncryptedMessage[]>();
-
-/**
- * Helper: Get conversation key (ordered to support bidirectional chats)
- */
-function getConversationKey(userId1: string, userId2: string): string {
-  const sorted = [userId1, userId2].sort();
-  return `${sorted[0]}:${sorted[1]}`;
-}
-
-export function createServer() {
+export async function createServer() {
   const app = express();
+
+  // Initialize database
+  try {
+    await initializeDatabase();
+
+    // Start archival job if database is connected
+    if (isDatabaseConnected()) {
+      const archivalConfig = {
+        intervalMs: parseInt(process.env.ARCHIVAL_INTERVAL_MS || "7200000"), // 2 hours
+        messageAgeMs: parseInt(process.env.MESSAGE_AGE_MS || "7200000"), // 2 hours old
+        batchSize: parseInt(process.env.ARCHIVAL_BATCH_SIZE || "1000"),
+        deleteAfterArchival: process.env.DELETE_AFTER_ARCHIVAL !== "false",
+        deleteGraceMs: parseInt(process.env.DELETE_GRACE_MS || "0"),
+      };
+
+      startArchivalJob(archivalConfig);
+      console.log("Message archival job started");
+    }
+  } catch (error) {
+    console.warn("Database initialization failed:", error);
+    console.log("Falling back to in-memory storage");
+  }
 
   // Middleware
   app.use(cors());
@@ -105,6 +126,13 @@ export function createServer() {
   // User search routes
   app.post("/api/users/search", handleSearchUsers);
   app.get("/api/users/by-username/:username", handleGetUserByUsername);
+
+  // Admin routes (for monitoring and testing)
+  app.get("/api/admin/health", handleHealthCheck);
+  app.get("/api/admin/archival-status", handleArchivalStatus);
+  app.get("/api/admin/database-stats", handleDatabaseStats);
+  app.get("/api/admin/archival-config", handleArchivalConfig);
+  app.post("/api/admin/run-archival", handleRunArchival);
 
   // Create WebSocket server if not already created
   if (!wssInstance) {
@@ -240,24 +268,45 @@ export function createServer() {
               return;
             }
 
-            // Store message in conversation history (in-memory)
-            const conversationKey = getConversationKey(
+            // Store message in shared conversation history (in-memory)
+            // This ensures both WebSocket and HTTP routes access the same data
+            storeMessage(
               userId,
               encryptedMessage.recipientId,
+              encryptedMessage,
             );
-            if (!conversationHistory.has(conversationKey)) {
-              conversationHistory.set(conversationKey, []);
-            }
-            conversationHistory.get(conversationKey)!.push(encryptedMessage);
 
-            // Keep only last 1000 messages per conversation
-            const messages = conversationHistory.get(conversationKey)!;
-            if (messages.length > 1000) {
-              messages.shift();
-            }
-
-            // Store message in R2 for persistence
+            // Generate unique message ID
             const messageId = uuidv4();
+
+            // Try to store in PostgreSQL first (if available)
+            let dbStorageSuccess = false;
+            if (isDatabaseConnected()) {
+              try {
+                dbStorageSuccess = await storeMessageInDB(
+                  messageId,
+                  userId,
+                  encryptedMessage.recipientId,
+                  {
+                    nonce: encryptedMessage.nonce,
+                    ciphertext: encryptedMessage.ciphertext,
+                    signature: encryptedMessage.signature,
+                    timestamp: encryptedMessage.timestamp,
+                  },
+                );
+                console.log(
+                  `Message ${messageId} stored in PostgreSQL (via WebSocket)`,
+                );
+              } catch (dbError) {
+                console.error(
+                  "Failed to store message in PostgreSQL:",
+                  dbError,
+                );
+              }
+            }
+
+            // Store message in R2 for persistence (fallback if no DB or for redundancy)
+            let r2StorageSuccess = false;
             try {
               await saveMessageWithMetadata(
                 messageId,
@@ -271,9 +320,10 @@ export function createServer() {
                 },
               );
               console.log(`Message ${messageId} stored in R2 (via WebSocket)`);
+              r2StorageSuccess = true;
             } catch (r2Error) {
               console.error("Failed to store message in R2:", r2Error);
-              // Continue anyway, message is in memory
+              // Continue anyway, message is in memory and possibly in DB
             }
 
             // Deliver message to recipient
