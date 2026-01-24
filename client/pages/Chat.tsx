@@ -281,7 +281,6 @@ export default function Chat() {
       );
 
       // Send to server with signature for authenticity
-      const sessionToken = localStorage.getItem("session_token");
       const sendRes = await fetch("/api/messages/send", {
         method: "POST",
         headers: {
