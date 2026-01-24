@@ -146,10 +146,9 @@ export async function decryptKeypair(
     const keypairJson = decoder.decode(decrypted);
     const parsed = JSON.parse(keypairJson);
 
-    const { base64ToBytes: b64ToB } = await import("./crypto");
     return {
-      publicKey: b64ToB(parsed.publicKeyBase64),
-      privateKey: b64ToB(parsed.privateKeyBase64),
+      publicKey: base64ToBytes(parsed.publicKeyBase64),
+      privateKey: base64ToBytes(parsed.privateKeyBase64),
       publicKeyBase64: parsed.publicKeyBase64,
       privateKeyBase64: parsed.privateKeyBase64,
     };
