@@ -549,18 +549,43 @@ export const handleLogout: RequestHandler = (req, res) => {
 /**
  * Utility: Get session from token
  * Used by other routes to verify authentication
+ * Checks in-memory first, then falls back to R2 for persistence
  */
-export function getSessionFromToken(sessionToken: string): SessionData | null {
-  const session = sessions.get(sessionToken);
-
-  if (!session) return null;
-
-  if (session.expiresAt < Date.now()) {
-    sessions.delete(sessionToken);
-    return null;
+export async function getSessionFromToken(sessionToken: string): Promise<SessionData | null> {
+  // First check in-memory cache
+  const cachedSession = sessions.get(sessionToken);
+  if (cachedSession) {
+    // Check if expired
+    if (cachedSession.expiresAt < Date.now()) {
+      sessions.delete(sessionToken);
+      return null;
+    }
+    return cachedSession;
   }
 
-  return session;
+  // If not in memory, try R2 (for persistence across server restarts)
+  try {
+    const sessionData = await getSessionData(sessionToken);
+    if (!sessionData) return null;
+
+    // Check if expired
+    if (sessionData.expiresAt < Date.now()) {
+      // Clean up expired session from R2
+      try {
+        await deleteSessionData(sessionToken);
+      } catch (error) {
+        console.error("Failed to delete expired session from R2:", error);
+      }
+      return null;
+    }
+
+    // Restore to in-memory cache for faster subsequent lookups
+    sessions.set(sessionToken, sessionData);
+    return sessionData;
+  } catch (error) {
+    console.error("Error retrieving session from R2:", error);
+    return null;
+  }
 }
 
 /**
