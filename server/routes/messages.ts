@@ -19,7 +19,7 @@ function getConversationKey(userId1: string, userId2: string): string {
 
 /**
  * POST /api/messages/send
- * Store an encrypted message
+ * Store an encrypted message with signature verification
  */
 export const handleSendMessage: RequestHandler = async (req, res) => {
   try {
@@ -54,10 +54,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       });
     }
 
-    // Generate unique message ID
-    const messageId = uuidv4();
-
-    // Create encrypted message object with signature for authenticity
+    // Create encrypted message object
     const message: EncryptedMessage = {
       nonce,
       ciphertext,
@@ -66,6 +63,20 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       recipientId,
       timestamp,
     };
+
+    // Verify message signature using sender's public key
+    const isSignatureValid = verifyMessageSignature(message, session.publicKey);
+    if (!isSignatureValid) {
+      console.warn(
+        `Invalid message signature from ${session.userId} to ${recipientId}`
+      );
+      return res.status(403).json({
+        error: "Invalid message signature - authenticity verification failed",
+      });
+    }
+
+    // Generate unique message ID
+    const messageId = uuidv4();
 
     // Store in conversation history (in-memory for current session)
     const conversationKey = getConversationKey(session.userId, recipientId);
@@ -77,6 +88,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     messages.push(message);
 
     // Also store in R2 for persistence
+    let r2StorageSuccess = false;
     try {
       await saveMessageWithMetadata(messageId, session.userId, recipientId, {
         nonce,
@@ -85,9 +97,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
         timestamp,
       });
       console.log(`Message ${messageId} stored in R2`);
+      r2StorageSuccess = true;
     } catch (r2Error) {
       console.error("Failed to store message in R2:", r2Error);
-      // Continue anyway, message is in memory
+      // Continue anyway, message is in memory, but flag for client
     }
 
     // Keep only last 1000 messages per conversation
@@ -99,6 +112,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       success: true,
       messageId: `${timestamp}-${session.userId}`,
       timestamp,
+      persisted: r2StorageSuccess,
     });
   } catch (error) {
     console.error("Send message error:", error);
