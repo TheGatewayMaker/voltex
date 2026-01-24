@@ -22,6 +22,7 @@ import {
   handleGetConversation,
   handleGetConversations,
   handleDeleteConversation,
+  handleDeleteMessage,
 } from "./routes/messages";
 import {
   handleGetProfile,
