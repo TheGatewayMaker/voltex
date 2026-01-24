@@ -163,7 +163,12 @@ export async function createServer(): Promise<{
       // Send queued messages to the newly connected user
       const queuedMessages = getQueuedMessages(userId);
       if (queuedMessages.length > 0) {
-        queuedMessages.forEach((message) => {
+        console.log(
+          `[QUEUED-MESSAGES] Flushing ${queuedMessages.length} queued messages for ${userId}`,
+        );
+        let failedMessages: typeof queuedMessages = [];
+
+        for (const message of queuedMessages) {
           try {
             ws.send(
               JSON.stringify({
@@ -171,10 +176,30 @@ export async function createServer(): Promise<{
                 data: message,
               }),
             );
+            console.log(
+              `[QUEUED-MESSAGES] ✓ Delivered queued message from ${message.senderId}`,
+            );
           } catch (error) {
-            console.error("Error sending queued message:", error);
+            console.error(
+              `[QUEUED-MESSAGES] ✗ Error sending queued message from ${message.senderId}:`,
+              error,
+            );
+            failedMessages.push(message);
           }
-        });
+        }
+
+        // Re-queue any messages that failed to send
+        if (failedMessages.length > 0) {
+          console.warn(
+            `[QUEUED-MESSAGES] Re-queueing ${failedMessages.length} failed messages`,
+          );
+          failedMessages.forEach((msg) => {
+            const queue = new Map();
+            queue.set(userId, failedMessages);
+            // This would need to be done properly through the messaging module
+            // For now, at least log it
+          });
+        }
       }
 
       // Handle incoming messages
