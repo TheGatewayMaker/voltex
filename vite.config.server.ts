@@ -32,6 +32,14 @@ export default defineConfig({
         // External dependencies that should not be bundled
         "express",
         "cors",
+        "ws",
+        "dotenv",
+        "uuid",
+        "pg",
+        "@aws-sdk/client-s3",
+        "@aws-sdk/util-stream-node",
+        "bip39",
+        "tweetnacl",
       ],
       output: {
         format: "es",
