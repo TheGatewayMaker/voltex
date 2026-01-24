@@ -270,6 +270,19 @@ export function encryptMessage(
   const recipientPublicKey = base64ToBytes(recipientPublicKeyBase64);
   const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
 
+  // Validate key sizes before encryption
+  if (recipientPublicKey.length !== 32) {
+    throw new Error(
+      `Invalid recipient public key size: ${recipientPublicKey.length} bytes (expected 32)`,
+    );
+  }
+
+  if (senderPrivateKey.length !== 32) {
+    throw new Error(
+      `Invalid sender private key size: ${senderPrivateKey.length} bytes (expected 32)`,
+    );
+  }
+
   const messageBytes = utf8Encode(message);
   const nonce = nacl.randomBytes(nacl.box.nonceLength);
 
