@@ -19,9 +19,16 @@ export default function SignIn() {
   const navigate = useNavigate();
   const [step, setStep] = useState<SignInStep>("userId");
   const [userIdInput, setUserIdInput] = useState("");
+  const [passphraseInput, setPassphraseInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [authenticatedUserId, setAuthenticatedUserId] = useState("");
+  const [encryptionData, setEncryptionData] = useState<{
+    userId: string;
+    encryptedData: string;
+    salt: string;
+    iv: string;
+  } | null>(null);
 
   const handleCheckUserId = async (e: React.FormEvent) => {
     e.preventDefault();
