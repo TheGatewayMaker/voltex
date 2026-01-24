@@ -130,7 +130,7 @@ export function createServer() {
       }
 
       // Handle incoming messages
-      ws.on("message", (data) => {
+      ws.on("message", async (data) => {
         try {
           const message = JSON.parse(data.toString());
 
@@ -170,9 +170,8 @@ export function createServer() {
             // If signPublicKey is not in session, fetch it from user account
             if (!signPublicKeyToUse) {
               try {
-                const userAccount = await (
-                  await import("./lib/r2-storage")
-                ).getUserAccount(userId);
+                const { getUserAccount } = await import("./lib/r2-storage");
+                const userAccount = await getUserAccount(userId);
                 if (userAccount && userAccount.signPublicKey) {
                   signPublicKeyToUse = userAccount.signPublicKey;
                 }
