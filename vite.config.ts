@@ -26,17 +26,21 @@ export default defineConfig(({ mode }) => ({
 }));
 
 function expressPlugin(): Plugin {
+  let expressApp: any;
+  let expressWss: any;
+
   return {
     name: "express-plugin",
     apply: "serve", // Only apply during development (serve mode)
-    configureServer(server) {
-      const { app, wss } = createServer();
+    async configureServer(server) {
+      const { app, wss } = await createServer();
+      expressApp = app;
+      expressWss = wss;
 
-      // Add Express app as middleware to Vite dev server
+      // Use server.middlewares.use to add Express app as middleware
       server.middlewares.use(app);
 
-      // Handle WebSocket upgrades
-      // This return function is called after the HTTP server is initialized
+      // Return a function that handles WebSocket upgrades after HTTP server is ready
       return () => {
         const httpServer = server.httpServer;
 
