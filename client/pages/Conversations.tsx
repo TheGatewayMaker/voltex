@@ -218,6 +218,7 @@ export default function Conversations() {
         userId: currentUserId,
         displayName: currentDisplayName,
       }}
+      onSearchClick={() => setShowSearchModal(true)}
     >
       <div className="flex flex-col h-full bg-background">
         {/* Header with User Info */}
