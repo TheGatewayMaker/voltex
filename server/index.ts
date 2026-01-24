@@ -164,6 +164,24 @@ export function createServer() {
               return;
             }
 
+            // Verify message signature using authenticated user's public key
+            const isSignatureValid = verifyMessageSignature(
+              encryptedMessage,
+              session.publicKey,
+            );
+            if (!isSignatureValid) {
+              ws.send(
+                JSON.stringify({
+                  type: "error",
+                  error: "Invalid message signature - authenticity verification failed",
+                }),
+              );
+              console.warn(
+                `Invalid message signature from user ${userId}`,
+              );
+              return;
+            }
+
             // Verify recipient is specified
             if (!encryptedMessage.recipientId) {
               ws.send(
