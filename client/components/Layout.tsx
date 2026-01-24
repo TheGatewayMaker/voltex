@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Lock, Search } from "lucide-react";
 import ProfileMenu from "./ProfileMenu";
 
 interface LayoutProps {
@@ -14,6 +14,7 @@ interface LayoutProps {
     displayName?: string;
     avatar?: string;
   };
+  onSearchClick?: () => void;
 }
 
 export default function Layout({
@@ -23,7 +24,9 @@ export default function Layout({
   onBackClick,
   showProfileMenu = false,
   profileData = {},
+  onSearchClick,
 }: LayoutProps) {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
