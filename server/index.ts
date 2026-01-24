@@ -41,21 +41,13 @@ import {
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
 import { EncryptedMessage } from "@shared/crypto";
+import {
+  getConversationKey,
+  storeMessage,
+} from "./lib/conversation-history";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
-
-// In-memory message storage (messages are also stored in R2 for persistence)
-// Structure: { "senderId:recipientId": [messages] }
-const conversationHistory = new Map<string, EncryptedMessage[]>();
-
-/**
- * Helper: Get conversation key (ordered to support bidirectional chats)
- */
-function getConversationKey(userId1: string, userId2: string): string {
-  const sorted = [userId1, userId2].sort();
-  return `${sorted[0]}:${sorted[1]}`;
-}
 
 export function createServer() {
   const app = express();
