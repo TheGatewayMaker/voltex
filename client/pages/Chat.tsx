@@ -226,19 +226,26 @@ export default function Chat() {
           return;
         }
 
-        // Get sender's public key for decryption
-        // For messages from other user, use their public key
-        const senderPublicKey = recipientPublicKey;
+        // Get sender's public keys for decryption
+        // For messages from other user, use their box and sign public keys
+        const senderBoxPublicKey = recipientPublicKey;
+        const senderSignPublicKey = recipientSignPublicKey;
 
-        if (!senderPublicKey) {
-          console.error("No sender public key available for decryption");
+        if (!senderBoxPublicKey) {
+          console.error("No sender box public key available for decryption");
+          return;
+        }
+
+        if (!senderSignPublicKey) {
+          console.error("No sender sign public key available for signature verification");
           return;
         }
 
         const decrypted = decryptMessage(
           encryptedMessage,
-          senderPublicKey,
+          senderBoxPublicKey,
           keyPair.privateKeyBase64,
+          senderSignPublicKey,
         );
 
         if (decrypted) {
