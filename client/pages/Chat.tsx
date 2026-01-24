@@ -101,6 +101,7 @@ export default function Chat() {
       }
       const pubKeyData = await pubKeyRes.json();
       setRecipientPublicKey(pubKeyData.publicKey);
+      setRecipientSignPublicKey(pubKeyData.signPublicKey || pubKeyData.publicKey);
 
       // Get recipient's display name and username
       try {
