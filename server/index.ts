@@ -44,6 +44,7 @@ import {
   unregisterUserConnection,
   deliverMessage,
   getQueuedMessages,
+  queueMessage,
 } from "./lib/messaging";
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
