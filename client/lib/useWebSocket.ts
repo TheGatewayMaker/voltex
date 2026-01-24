@@ -52,8 +52,10 @@ export function useWebSocket(options?: UseWebSocketOptions) {
               // Handle incoming encrypted message
               options?.onMessage?.(data.data);
             } else if (data.type === "message-ack") {
-              // Handle message acknowledgment
-              console.log("Message acknowledged:", data.messageId);
+              // Handle message acknowledgment - track delivery
+              const delivered = data.delivered !== false;
+              console.log(`Message ${data.messageId} acknowledged (delivered: ${delivered})`);
+              options?.onAck?.(data.messageId, delivered);
             } else if (data.type === "error") {
               console.error("WebSocket error:", data.error);
               options?.onError?.(data.error);
