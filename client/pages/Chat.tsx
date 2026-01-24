@@ -89,31 +89,31 @@ export default function Chat() {
         throw new Error("No keys found on this device");
       }
 
+      // Get current user's public key for when we sent messages
+      const currentUserPublicKey = localStorage.getItem("current_public_key");
+      if (!currentUserPublicKey) {
+        throw new Error("No public key found for current user");
+      }
+
       // Decrypt messages
       const decryptedMessages: ChatMessage[] = [];
       for (const encMsg of historyData.messages) {
         try {
-          // Determine which public key to use for verification
-          const senderPublicKey =
-            encMsg.senderId === userId
-              ? pubKeyData.publicKey
-              : pubKeyData.publicKey;
+          // Determine sender's public key for decryption
+          // NaCl box.open requires: the SENDER's public key and our PRIVATE key
+          let senderPublicKey: string;
 
-          // Fetch sender's public key if not our message
-          let verificationPublicKey = senderPublicKey;
-          if (encMsg.senderId !== userId) {
-            const senderKeyRes = await fetch(
-              `/api/auth/public-key/${encMsg.senderId}`,
-            );
-            if (senderKeyRes.ok) {
-              const senderKeyData = await senderKeyRes.json();
-              verificationPublicKey = senderKeyData.publicKey;
-            }
+          if (encMsg.senderId === userId) {
+            // This is our message - use our own public key
+            senderPublicKey = currentUserPublicKey;
+          } else {
+            // This is from the other user - use recipient's public key
+            senderPublicKey = pubKeyData.publicKey;
           }
 
           const decrypted = decryptMessage(
             encMsg,
-            verificationPublicKey,
+            senderPublicKey,
             keyPair.privateKeyBase64,
           );
 
@@ -124,10 +124,16 @@ export default function Chat() {
               isOwn: encMsg.senderId === userId,
             });
           } else {
-            console.warn("Failed to decrypt message:", encMsg);
+            console.error(
+              `Failed to decrypt message from ${encMsg.senderId}: wrong key or corrupted message`,
+            );
+            toast.error(
+              `Could not decrypt message from ${encMsg.senderId.substring(0, 8)}`,
+            );
           }
         } catch (error) {
           console.error("Decryption error:", error);
+          toast.error("Decryption error - message corrupted?");
         }
       }
 
