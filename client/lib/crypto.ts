@@ -255,14 +255,15 @@ function signMessage(
 
 /**
  * Encrypt a message for a recipient
- * Uses recipient's public key for encryption
- * Signs the encrypted message with sender's private key
+ * Uses recipient's public key for encryption (Curve25519)
+ * Signs the encrypted message with sender's signing key (Ed25519)
  * Returns encrypted message with nonce and signature
  */
 export function encryptMessage(
   message: string,
   recipientPublicKeyBase64: string,
   senderPrivateKeyBase64: string,
+  senderSignPrivateKeyBase64?: string,
 ): EncryptedMessage {
   const recipientPublicKey = base64ToBytes(recipientPublicKeyBase64);
   const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
@@ -278,7 +279,9 @@ export function encryptMessage(
   );
 
   // Sign the encrypted payload for authenticity
-  const signature = signMessage(nonce, ciphertext, senderPrivateKeyBase64);
+  // Use the sign private key if provided, otherwise fall back to private key
+  const signKeyToUse = senderSignPrivateKeyBase64 || senderPrivateKeyBase64;
+  const signature = signMessage(nonce, ciphertext, signKeyToUse);
 
   // Note: You'll need to add senderId and recipientId in the calling code
   return {
