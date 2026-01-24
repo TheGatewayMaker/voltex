@@ -449,8 +449,21 @@ export const handleDeleteConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Delete from shared conversation history
+    // Delete from shared conversation history (in-memory)
     deleteStoredConversation(session.userId, recipientId);
+
+    // Delete from PostgreSQL
+    if (isDatabaseConnected()) {
+      try {
+        await deleteConversationFromDB(session.userId, recipientId);
+        console.log(
+          `Deleted conversation ${session.userId}:${recipientId} from PostgreSQL`,
+        );
+      } catch (dbError) {
+        console.error("Failed to delete conversation from PostgreSQL:", dbError);
+        // Continue anyway, message is already removed from memory
+      }
+    }
 
     return res.status(200).json({ success: true, deleted: true });
   } catch (error) {
@@ -486,6 +499,17 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
     // Remove from shared conversation history
     deleteStoredMessage(session.userId, recipientId, messageId);
 
+    // Delete from PostgreSQL
+    if (isDatabaseConnected()) {
+      try {
+        await deleteMessageFromDB(messageId);
+        console.log(`Deleted message ${messageId} from PostgreSQL`);
+      } catch (dbError) {
+        console.error("Failed to delete message from PostgreSQL:", dbError);
+        // Continue anyway, message is already removed from memory
+      }
+    }
+
     // Delete from R2 persistence
     try {
       const sortedIds = [session.userId, recipientId].sort();
@@ -497,7 +521,7 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
       );
     } catch (r2Error) {
       console.error("Failed to delete message from R2:", r2Error);
-      // Continue anyway, message is already removed from memory
+      // Continue anyway, message is already removed from memory and DB
     }
 
     return res.status(200).json({ success: true, deleted: true });
