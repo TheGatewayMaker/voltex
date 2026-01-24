@@ -1,4 +1,5 @@
 import { CryptoKeyPair } from "@shared/crypto";
+import nacl from "tweetnacl";
 
 /**
  * Hash a passphrase using SHA-256
