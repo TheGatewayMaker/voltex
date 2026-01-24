@@ -26,17 +26,18 @@ export default defineConfig(({ mode }) => ({
 }));
 
 function expressPlugin(): Plugin {
+  let expressApp: any;
+  let expressWss: any;
+
   return {
     name: "express-plugin",
     apply: "serve", // Only apply during development (serve mode)
-    configureServer(server) {
-      const { app, wss } = createServer();
+    async configureServer(server) {
+      const { app, wss } = await createServer();
+      expressApp = app;
+      expressWss = wss;
 
-      // Add Express app as middleware to Vite dev server
-      server.middlewares.use(app);
-
-      // Handle WebSocket upgrades
-      // This return function is called after the HTTP server is initialized
+      // Return a middleware function that Express app will handle
       return () => {
         const httpServer = server.httpServer;
 
@@ -64,6 +65,16 @@ function expressPlugin(): Plugin {
           console.log("WebSocket upgrade handler attached");
         }
       };
+    },
+    configResolved() {
+      // This hook is called after config is resolved
+    },
+    transformIndexHtml: {
+      // Add Express middleware handling here
+      order: "pre",
+      handler(html) {
+        return html;
+      },
     },
   };
 }
