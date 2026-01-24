@@ -520,7 +520,7 @@ export const handleGetEncryptedKeypair: RequestHandler = async (req, res) => {
  * POST /api/auth/logout
  * Invalidate a session
  */
-export const handleLogout: RequestHandler = (req, res) => {
+export const handleLogout: RequestHandler = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const sessionToken =
@@ -532,7 +532,17 @@ export const handleLogout: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "No session token provided" });
     }
 
+    // Delete from in-memory cache
     sessions.delete(sessionToken);
+
+    // Also delete from R2
+    try {
+      await deleteSessionData(sessionToken);
+      console.log(`Session ${sessionToken} deleted from R2`);
+    } catch (error) {
+      console.error("Failed to delete session from R2:", error);
+      // Continue anyway - session is removed from memory
+    }
 
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
