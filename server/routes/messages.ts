@@ -130,14 +130,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // Generate unique message ID
     const messageId = uuidv4();
 
-    // Store in conversation history (in-memory for current session)
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    if (!conversationHistory.has(conversationKey)) {
-      conversationHistory.set(conversationKey, []);
-    }
-
-    const messages = conversationHistory.get(conversationKey)!;
-    messages.push(message);
+    // Store in shared conversation history (in-memory for current session)
+    // This ensures both WebSocket and HTTP routes access the same data
+    storeMessage(session.userId, recipientId, message);
 
     // Also store in R2 for persistence
     let r2StorageSuccess = false;
@@ -153,11 +148,6 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     } catch (r2Error) {
       console.error("Failed to store message in R2:", r2Error);
       // Continue anyway, message is in memory, but flag for client
-    }
-
-    // Keep only last 1000 messages per conversation
-    if (messages.length > 1000) {
-      messages.shift();
     }
 
     // Attempt to deliver message to recipient in real-time (if connected)
