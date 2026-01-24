@@ -183,6 +183,7 @@ export default function Recover() {
     setStep("userId");
     setPassphraseInput("");
     setError("");
+    setEncryptionData(null);
   };
 
   // Step 1: Enter User ID
