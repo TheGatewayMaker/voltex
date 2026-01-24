@@ -425,6 +425,8 @@ export function storeKeyPair(keyPair: CryptoKeyPair): void {
   const stored = {
     publicKey: keyPair.publicKeyBase64,
     privateKey: keyPair.privateKeyBase64,
+    signPublicKeyBase64: keyPair.signPublicKeyBase64,
+    signPrivateKeyBase64: keyPair.signPrivateKeyBase64,
     createdAt: Date.now(),
   };
   localStorage.setItem("crypto_keypair", JSON.stringify(stored));
@@ -444,6 +446,8 @@ export function getStoredKeyPair(): CryptoKeyPair | null {
       privateKey: base64ToBytes(parsed.privateKey),
       publicKeyBase64: parsed.publicKey,
       privateKeyBase64: parsed.privateKey,
+      signPublicKeyBase64: parsed.signPublicKeyBase64,
+      signPrivateKeyBase64: parsed.signPrivateKeyBase64,
     };
   } catch {
     return null;

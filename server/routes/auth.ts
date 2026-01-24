@@ -597,17 +597,3 @@ export async function getSessionFromToken(
     return null;
   }
 }
-
-/**
- * Utility: Get all users (admin only - for demo)
- */
-export function getAllUsers(): UserAccount[] {
-  return Array.from(users.values());
-}
-
-/**
- * Utility: Get user by ID
- */
-export function getUserById(userId: string): UserAccount | undefined {
-  return users.get(userId);
-}
