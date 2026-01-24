@@ -116,12 +116,15 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
 
     if (!isSignatureValid) {
       console.warn(
-        `Invalid message signature from ${session.userId} to ${recipientId}`,
+        `Invalid message signature from ${session.userId} to ${recipientId}. ` +
+        `Signature: ${signature.substring(0, 20)}...`
       );
       return res.status(403).json({
         error: "Invalid message signature - authenticity verification failed",
       });
     }
+
+    console.log(`Message signature verified successfully for user ${session.userId}`);
 
     // Generate unique message ID
     const messageId = uuidv4();
