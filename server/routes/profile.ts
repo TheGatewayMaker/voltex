@@ -18,7 +18,7 @@ export const handleGetProfile: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "No session token provided" });
     }
 
-    const session = getSessionFromToken(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid or expired session" });
     }
@@ -59,7 +59,7 @@ export const handleUpdateProfile: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "No session token provided" });
     }
 
-    const session = getSessionFromToken(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid or expired session" });
     }
@@ -157,7 +157,7 @@ export const handleUploadAvatar: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "No session token provided" });
     }
 
-    const session = getSessionFromToken(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid or expired session" });
     }
@@ -210,7 +210,7 @@ export const handleUpdateSettings: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "No session token provided" });
     }
 
-    const session = getSessionFromToken(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid or expired session" });
     }
