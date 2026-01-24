@@ -275,7 +275,9 @@ export async function createServer(): Promise<{
                   messageId: clientMessageId,
                 }),
               );
-              console.warn(`[WS] No sign public key available for user ${userId}`);
+              console.warn(
+                `[WS] No sign public key available for user ${userId}`,
+              );
               return;
             }
 

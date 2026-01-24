@@ -74,7 +74,9 @@ export function deliverMessage(message: EncryptedMessage): boolean {
   console.log(
     `[DELIVERY] Recipient connection status: found=${!!userWs}, connected=${isConnected}`,
   );
-  console.log(`[DELIVERY] Current connected users: ${getConnectedUserIds().join(", ") || "(none)"}`);
+  console.log(
+    `[DELIVERY] Current connected users: ${getConnectedUserIds().join(", ") || "(none)"}`,
+  );
 
   if (isConnected) {
     // WebSocket.OPEN

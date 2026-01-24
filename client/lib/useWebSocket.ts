@@ -44,7 +44,10 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${protocol}//${window.location.host}/ws?token=${sessionToken}`;
 
-        console.log("[WS-CLIENT] Attempting WebSocket connection to:", wsUrl.replace(sessionToken, "TOKEN"));
+        console.log(
+          "[WS-CLIENT] Attempting WebSocket connection to:",
+          wsUrl.replace(sessionToken, "TOKEN"),
+        );
         console.log("[WS-CLIENT] Session token present:", !!sessionToken);
         console.log("[WS-CLIENT] User ID:", userId);
 
@@ -52,7 +55,10 @@ export function useWebSocket(options?: UseWebSocketOptions) {
 
         ws.onopen = () => {
           console.log("[WS-CLIENT] WebSocket connected successfully");
-          console.log("[WS-CLIENT] Session token:", sessionToken.substring(0, 20) + "...");
+          console.log(
+            "[WS-CLIENT] Session token:",
+            sessionToken.substring(0, 20) + "...",
+          );
           console.log("[WS-CLIENT] User ID:", userId);
           setIsConnecting(false);
           setIsConnected(true);
