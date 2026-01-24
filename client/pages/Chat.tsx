@@ -305,50 +305,86 @@ export default function Chat() {
         timestamp: encrypted.timestamp,
       };
 
-      // Try to send via WebSocket if connected (real-time delivery)
-      let sent = false;
-      if (isConnected) {
-        sent = sendViaWebSocket(fullMessage);
-        if (sent) {
-          console.log("Message sent via WebSocket");
-        }
-      }
+      // Create local message ID for tracking delivery
+      const localMessageId = `${encrypted.timestamp}-${currentUserId}`;
 
-      // If WebSocket not connected or failed, fall back to HTTP
-      if (!sent) {
-        const sendRes = await fetch("/api/messages/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionToken}`,
-          },
-          body: JSON.stringify({
-            recipientId,
-            nonce: encrypted.nonce,
-            ciphertext: encrypted.ciphertext,
-            signature: encrypted.signature,
-            timestamp: encrypted.timestamp,
-          }),
-        });
-
-        if (!sendRes.ok) {
-          throw new Error("Failed to send message");
-        }
-        console.log("Message sent via HTTP (fallback)");
-      }
-
-      // Add message to local state optimistically
+      // Add message to local state optimistically with "sent" status
       const newMessage: ChatMessage = {
         senderId: currentUserId,
         recipientId: recipientId || "",
         content: messageInput,
         timestamp: encrypted.timestamp,
-        id: `${encrypted.timestamp}-${currentUserId}`,
+        id: localMessageId,
         isOwn: true,
+        status: "sent",
       };
 
       setMessages((prev) => [...prev, newMessage]);
       setMessageInput("");
+
+      // Try to send via WebSocket if connected (real-time delivery)
+      let sent = false;
+      if (isConnected) {
+        // Generate a temporary message ID for this WebSocket transmission
+        const wsMessageId = `${encrypted.timestamp}-ws`;
+        sentMessagesRef.current.set(wsMessageId, localMessageId);
+
+        sent = sendViaWebSocket(fullMessage, wsMessageId);
+        if (sent) {
+          console.log("Message sent via WebSocket");
+        } else {
+          sentMessagesRef.current.delete(wsMessageId);
+        }
+      }
+
+      // If WebSocket not connected or failed, fall back to HTTP
+      if (!sent) {
+        try {
+          const sendRes = await fetch("/api/messages/send", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              recipientId,
+              nonce: encrypted.nonce,
+              ciphertext: encrypted.ciphertext,
+              signature: encrypted.signature,
+              timestamp: encrypted.timestamp,
+            }),
+          });
+
+          if (!sendRes.ok) {
+            const error = await sendRes.json();
+            throw new Error(error.error || "Failed to send message");
+          }
+
+          const response = await sendRes.json();
+
+          // Update message status to delivered
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === localMessageId
+                ? { ...msg, status: "delivered" }
+                : msg
+            )
+          );
+
+          console.log("Message sent via HTTP (fallback)");
+        } catch (error) {
+          console.error("Failed to send message:", error);
+          // Update message status to failed
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === localMessageId
+                ? { ...msg, status: "failed" }
+                : msg
+            )
+          );
+          throw error;
+        }
+      }
     } catch (error) {
       console.error("Send message error:", error);
       toast.error("Failed to send message");
