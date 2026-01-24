@@ -17,6 +17,8 @@ import {
   checkUsernameAvailability,
   reserveUsername,
   getUserIdByUsername,
+  saveEncryptedKeypair,
+  getEncryptedKeypair,
 } from "../lib/r2-storage";
 import {
   UserAccount,
