@@ -77,6 +77,11 @@ export default function SignIn() {
       localStorage.setItem("current_user_id", authData.userId);
       localStorage.setItem("current_public_key", keyPair.publicKeyBase64);
 
+      // Store signing public key if available
+      if (keyPair.signPublicKeyBase64) {
+        localStorage.setItem("current_sign_public_key", keyPair.signPublicKeyBase64);
+      }
+
       setAuthenticatedUserId(authData.userId);
       setStep("success");
 
