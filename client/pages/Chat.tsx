@@ -254,8 +254,67 @@ export default function Chat() {
     },
     onConnected: () => {
       console.log("WebSocket connected for chat");
+      // Retry any pending messages that failed to send
+      retryPendingMessages();
     },
   });
+
+  // Retry pending messages (queued for offline delivery)
+  const retryPendingMessages = async () => {
+    if (pendingMessagesRef.current.length === 0) return;
+
+    console.log(
+      `Retrying ${pendingMessagesRef.current.length} pending messages`
+    );
+
+    const pendingToRetry = [...pendingMessagesRef.current];
+    pendingMessagesRef.current = []; // Clear the queue
+
+    for (const message of pendingToRetry) {
+      try {
+        const sessionToken = localStorage.getItem("session_token");
+        if (!sessionToken) continue;
+
+        // Build the encrypted message from the stored message data
+        // We need to re-construct from content (this is a limitation of our current design)
+        // For now, we'll use HTTP since we don't have the raw encryption data
+        const sendRes = await fetch("/api/messages/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify({
+            recipientId,
+            nonce: (message as any).nonce,
+            ciphertext: (message as any).ciphertext,
+            signature: (message as any).signature,
+            timestamp: message.timestamp,
+          }),
+        });
+
+        if (sendRes.ok) {
+          // Update message status to delivered
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === message.id
+                ? { ...msg, status: "delivered" }
+                : msg
+            )
+          );
+          console.log(`Retried message ${message.id} successfully`);
+        } else {
+          // Re-queue if still failed
+          pendingMessagesRef.current.push(message);
+          console.warn(`Failed to retry message ${message.id}`);
+        }
+      } catch (error) {
+        // Re-queue if error occurred
+        pendingMessagesRef.current.push(message);
+        console.error(`Error retrying message ${message.id}:`, error);
+      }
+    }
+  };
 
   // Send message
   const handleSendMessage = async (e: React.FormEvent) => {
