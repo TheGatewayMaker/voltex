@@ -2,7 +2,8 @@ import { RequestHandler } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { EncryptedMessage } from "@shared/crypto";
 import { getSessionFromToken } from "./auth";
-import { saveMessageWithMetadata, getConversationMessages } from "../lib/r2-storage";
+import { saveMessageWithMetadata, getConversationMessages, getUserAccount } from "../lib/r2-storage";
+import { verifyMessageSignature } from "../lib/crypto";
 
 // In-memory message storage (messages are also stored in R2 for persistence)
 // Structure: { "senderId:recipientId": [messages] }
