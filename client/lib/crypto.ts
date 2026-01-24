@@ -256,17 +256,35 @@ function signMessage(
 
 /**
  * Encrypt a message for a recipient
- * Uses recipient's public key for encryption
- * Signs the encrypted message with sender's private key
- * Returns encrypted message with nonce and signature
+ * Uses recipient's public key for encryption (Curve25519)
+ * Signs the encrypted message with sender's signing key (Ed25519)
  */
 export function encryptMessage(
   message: string,
   recipientPublicKeyBase64: string,
   senderPrivateKeyBase64: string,
+  senderSignPrivateKeyBase64?: string,
 ): EncryptedMessage {
   const recipientPublicKey = base64ToBytes(recipientPublicKeyBase64);
   const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
+
+  // Validate key sizes before encryption
+  if (recipientPublicKey.length !== 32) {
+    throw new Error(
+      `Invalid recipient public key size: ${recipientPublicKey.length} bytes (expected 32). Make sure you have the correct public key for the recipient.`,
+    );
+  }
+
+  if (senderPrivateKey.length !== 32) {
+    // This likely means the keypair was corrupted during storage
+    console.error("Invalid sender private key size - keypair corrupted", {
+      actualSize: senderPrivateKey.length,
+      base64Length: senderPrivateKeyBase64.length,
+    });
+    throw new Error(
+      `Your encryption keys appear to be corrupted (${senderPrivateKey.length} bytes instead of 32). Please sign out and sign back in to restore your keys.`,
+    );
+  }
 
   const messageBytes = utf8Encode(message);
   const nonce = nacl.randomBytes(nacl.box.nonceLength);
@@ -278,8 +296,23 @@ export function encryptMessage(
     senderPrivateKey,
   );
 
-  // Sign the encrypted payload for authenticity
-  const signature = signMessage(nonce, ciphertext, senderPrivateKeyBase64);
+  // Ensure we have a proper signing key (64 bytes for Ed25519)
+  let signKeyToUse: string;
+
+  if (senderSignPrivateKeyBase64) {
+    // Use provided signing key
+    signKeyToUse = senderSignPrivateKeyBase64;
+  } else {
+    // Derive signing key from encryption private key (same way as generateKeyPair)
+    // This is a fallback for keypairs that don't have signPrivateKeyBase64 stored
+    const encryptionKeyBytes = base64ToBytes(senderPrivateKeyBase64);
+    const derivedSignKeypair = nacl.sign.keyPair.fromSeed(
+      encryptionKeyBytes.slice(0, 32),
+    );
+    signKeyToUse = bytesToBase64(derivedSignKeypair.secretKey);
+  }
+
+  const signature = signMessage(nonce, ciphertext, signKeyToUse);
 
   // Note: You'll need to add senderId and recipientId in the calling code
   return {
