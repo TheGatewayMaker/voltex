@@ -49,8 +49,9 @@ export default function Conversations() {
     setCurrentUserId(userId);
     setIsAuthenticated(true);
 
-    // Fetch user profile
+    // Fetch user profile and conversation list
     fetchUserProfile(sessionToken);
+    loadConversations(sessionToken);
   }, [navigate]);
 
   const fetchUserProfile = async (sessionToken: string) => {
