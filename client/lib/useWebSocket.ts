@@ -44,10 +44,22 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${protocol}//${window.location.host}/ws?token=${sessionToken}`;
 
+        console.log(
+          "[WS-CLIENT] Attempting WebSocket connection to:",
+          wsUrl.replace(sessionToken, "TOKEN"),
+        );
+        console.log("[WS-CLIENT] Session token present:", !!sessionToken);
+        console.log("[WS-CLIENT] User ID:", userId);
+
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
-          console.log("WebSocket connected");
+          console.log("[WS-CLIENT] WebSocket connected successfully");
+          console.log(
+            "[WS-CLIENT] Session token:",
+            sessionToken.substring(0, 20) + "...",
+          );
+          console.log("[WS-CLIENT] User ID:", userId);
           setIsConnecting(false);
           setIsConnected(true);
           reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
@@ -78,14 +90,20 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         };
 
         ws.onerror = (error) => {
-          console.warn("WebSocket connection error:", error);
+          console.warn("[WS-CLIENT] WebSocket connection error:", error);
           setIsConnecting(false);
           // Attempt to reconnect
           scheduleReconnect();
         };
 
         ws.onclose = () => {
-          console.log("WebSocket disconnected");
+          console.log(
+            "[WS-CLIENT] WebSocket disconnected (code:",
+            (ws as any).code,
+            "reason:",
+            (ws as any).reason,
+            ")",
+          );
           setIsConnected(false);
           setIsConnecting(false);
           wsRef.current = null;

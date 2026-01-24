@@ -44,6 +44,7 @@ import {
   unregisterUserConnection,
   deliverMessage,
   getQueuedMessages,
+  queueMessage,
 } from "./lib/messaging";
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
@@ -163,7 +164,12 @@ export async function createServer(): Promise<{
       // Send queued messages to the newly connected user
       const queuedMessages = getQueuedMessages(userId);
       if (queuedMessages.length > 0) {
-        queuedMessages.forEach((message) => {
+        console.log(
+          `[QUEUED-MESSAGES] Flushing ${queuedMessages.length} queued messages for ${userId}`,
+        );
+        const failedMessages: typeof queuedMessages = [];
+
+        for (const message of queuedMessages) {
           try {
             ws.send(
               JSON.stringify({
@@ -171,10 +177,27 @@ export async function createServer(): Promise<{
                 data: message,
               }),
             );
+            console.log(
+              `[QUEUED-MESSAGES] ✓ Delivered queued message from ${message.senderId}`,
+            );
           } catch (error) {
-            console.error("Error sending queued message:", error);
+            console.error(
+              `[QUEUED-MESSAGES] ✗ Error sending queued message from ${message.senderId}:`,
+              error,
+            );
+            failedMessages.push(message);
           }
-        });
+        }
+
+        // Re-queue any messages that failed to send
+        if (failedMessages.length > 0) {
+          console.warn(
+            `[QUEUED-MESSAGES] Re-queueing ${failedMessages.length} failed messages for retry`,
+          );
+          failedMessages.forEach((msg) => {
+            queueMessage(msg);
+          });
+        }
       }
 
       // Handle incoming messages
@@ -185,12 +208,19 @@ export async function createServer(): Promise<{
           if (message.type === "message") {
             // Relay encrypted message
             const encryptedMessage = message.data;
+            const clientMessageId = message.id; // Track the original client message ID for ACK
+
+            console.log(
+              `[WS] Received message from ${userId} to ${encryptedMessage.recipientId}, client ID: ${clientMessageId}`,
+            );
 
             if (!validateEncryptedMessage(encryptedMessage)) {
+              console.warn(`[WS] Invalid message format from ${userId}`);
               ws.send(
                 JSON.stringify({
                   type: "error",
                   error: "Invalid message format",
+                  messageId: clientMessageId,
                 }),
               );
               return;
@@ -204,10 +234,11 @@ export async function createServer(): Promise<{
                   type: "error",
                   error:
                     "Sender ID does not match authenticated user - spoofing attempt blocked",
+                  messageId: clientMessageId,
                 }),
               );
               console.warn(
-                `Spoofing attempt: user ${userId} tried to send as ${encryptedMessage.senderId}`,
+                `[WS] Spoofing attempt: user ${userId} tried to send as ${encryptedMessage.senderId}`,
               );
               return;
             }
@@ -222,10 +253,13 @@ export async function createServer(): Promise<{
                 const userAccount = await getUserAccount(userId);
                 if (userAccount && userAccount.signPublicKey) {
                   signPublicKeyToUse = userAccount.signPublicKey;
+                  console.log(
+                    `[WS] Fetched sign public key from R2 for user ${userId}`,
+                  );
                 }
               } catch (error) {
                 console.error(
-                  "Failed to fetch user account for signPublicKey:",
+                  `[WS] Failed to fetch user account for ${userId}:`,
                   error,
                 );
               }
@@ -238,9 +272,12 @@ export async function createServer(): Promise<{
                   type: "error",
                   error:
                     "User account is missing signing key - please re-register",
+                  messageId: clientMessageId,
                 }),
               );
-              console.warn(`No sign public key available for user ${userId}`);
+              console.warn(
+                `[WS] No sign public key available for user ${userId}`,
+              );
               return;
             }
 
@@ -249,16 +286,23 @@ export async function createServer(): Promise<{
               signPublicKeyToUse,
             );
             if (!isSignatureValid) {
+              console.warn(
+                `[WS] Invalid message signature from user ${userId} - signature verification failed`,
+              );
               ws.send(
                 JSON.stringify({
                   type: "error",
                   error:
                     "Invalid message signature - authenticity verification failed",
+                  messageId: clientMessageId,
                 }),
               );
-              console.warn(`Invalid message signature from user ${userId}`);
               return;
             }
+
+            console.log(
+              `[WS] Message signature verified for ${userId} -> ${encryptedMessage.recipientId}`,
+            );
 
             // Verify recipient is specified
             if (!encryptedMessage.recipientId) {
@@ -266,6 +310,7 @@ export async function createServer(): Promise<{
                 JSON.stringify({
                   type: "error",
                   error: "Recipient ID is required",
+                  messageId: clientMessageId,
                 }),
               );
               return;
@@ -277,6 +322,9 @@ export async function createServer(): Promise<{
               userId,
               encryptedMessage.recipientId,
               encryptedMessage,
+            );
+            console.log(
+              `[WS] Message stored in memory for conversation ${userId}:${encryptedMessage.recipientId}`,
             );
 
             // Generate unique message ID
@@ -298,11 +346,11 @@ export async function createServer(): Promise<{
                   },
                 );
                 console.log(
-                  `Message ${messageId} stored in PostgreSQL (via WebSocket)`,
+                  `[WS] Message ${messageId} stored in PostgreSQL for ${userId} -> ${encryptedMessage.recipientId}`,
                 );
               } catch (dbError) {
                 console.error(
-                  "Failed to store message in PostgreSQL:",
+                  `[WS] Failed to store message ${messageId} in PostgreSQL:`,
                   dbError,
                 );
               }
@@ -322,26 +370,39 @@ export async function createServer(): Promise<{
                   timestamp: encryptedMessage.timestamp,
                 },
               );
-              console.log(`Message ${messageId} stored in R2 (via WebSocket)`);
+              console.log(
+                `[WS] Message ${messageId} stored in R2 for ${userId} -> ${encryptedMessage.recipientId}`,
+              );
               r2StorageSuccess = true;
             } catch (r2Error) {
-              console.error("Failed to store message in R2:", r2Error);
+              console.error(
+                `[WS] Failed to store message ${messageId} in R2:`,
+                r2Error,
+              );
               // Continue anyway, message is in memory and possibly in DB
             }
 
             // Deliver message to recipient
             const delivered = deliverMessage(encryptedMessage);
+            console.log(
+              `[WS] Message delivery attempt: recipient=${encryptedMessage.recipientId}, delivered=${delivered}`,
+            );
 
+            // Send ACK back to sender with original client message ID
             ws.send(
               JSON.stringify({
                 type: "message-ack",
-                messageId: message.id,
+                messageId: clientMessageId,
                 delivered,
+                serverMessageId: messageId,
               }),
+            );
+            console.log(
+              `[WS] Sent ACK to ${userId}: messageId=${clientMessageId}, delivered=${delivered}`,
             );
           }
         } catch (error) {
-          console.error("WebSocket message handling error:", error);
+          console.error(`[WS] WebSocket message handling error:`, error);
         }
       });
 
