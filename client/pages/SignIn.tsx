@@ -30,43 +30,17 @@ export default function SignIn() {
     iv: string;
   } | null>(null);
 
-  const handleCheckUserId = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!userIdInput.trim()) {
-      setError("User ID is required");
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-
+  const authenticateWithKeyPair = async (
+    userId: string,
+    keyPair: any,
+  ) => {
     try {
-      // Get stored key pair
-      const keyPair = getStoredKeyPair();
-      if (!keyPair) {
-        throw new Error(
-          "No account found on this device. Please create a new account or restore from recovery phrase.",
-        );
-      }
-
-      // Verify that the stored key pair matches the provided user ID
-      const derivedUserId = await deriveUserIdFromPublicKey(
-        keyPair.publicKeyBase64,
-      );
-
-      if (userIdInput !== derivedUserId) {
-        throw new Error(
-          "User ID does not match your stored account on this device",
-        );
-      }
-
       // Request challenge from server
       const challengeResponse = await fetch("/api/auth/challenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: derivedUserId,
+          userId,
           publicKey: keyPair.publicKeyBase64,
         }),
       });
@@ -87,7 +61,7 @@ export default function SignIn() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: derivedUserId,
+          userId,
           challenge,
           signature,
           publicKey: keyPair.publicKeyBase64,
@@ -108,13 +82,126 @@ export default function SignIn() {
 
       setAuthenticatedUserId(authData.userId);
       setStep("success");
-      setIsLoading(false);
 
       // Redirect after a short delay
       setTimeout(() => navigate("/"), 1500);
     } catch (err) {
-      setIsLoading(false);
+      throw err;
+    }
+  };
+
+  const handleCheckUserId = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!userIdInput.trim()) {
+      setError("User ID is required");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Check if keypair exists locally
+      const storedKeyPair = getStoredKeyPair();
+
+      if (storedKeyPair) {
+        // Verify that the stored key pair matches the provided user ID
+        const derivedUserId = await deriveUserIdFromPublicKey(
+          storedKeyPair.publicKeyBase64,
+        );
+
+        if (userIdInput !== derivedUserId) {
+          throw new Error(
+            "User ID does not match your stored account on this device",
+          );
+        }
+
+        // Same-device signin: proceed with challenge-response
+        await authenticateWithKeyPair(derivedUserId, storedKeyPair);
+      } else {
+        // Cross-device signin: fetch encrypted keypair from R2 and ask for passphrase
+        const encryptedKeypairResponse = await fetch(
+          `/api/auth/encrypted-keypair/${userIdInput}`,
+        );
+
+        if (!encryptedKeypairResponse.ok) {
+          if (encryptedKeypairResponse.status === 404) {
+            throw new Error("User not found");
+          }
+          throw new Error("Failed to fetch account");
+        }
+
+        const encryptedKeypairData =
+          await encryptedKeypairResponse.json();
+
+        setEncryptionData({
+          userId: userIdInput,
+          encryptedData: encryptedKeypairData.encryptedData,
+          salt: encryptedKeypairData.salt,
+          iv: encryptedKeypairData.iv,
+        });
+
+        setStep("passphrase");
+      }
+    } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePassphraseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!passphraseInput.trim()) {
+      setError("Passphrase is required");
+      return;
+    }
+
+    if (!encryptionData) {
+      setError("Session expired. Please start over.");
+      setStep("userId");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Derive decryption key from passphrase
+      const normalizedPassphrase = normalizePassphrase(passphraseInput);
+      const decryptionKey = await deriveEncryptionKey(
+        normalizedPassphrase,
+        encryptionData.salt,
+      );
+
+      // Decrypt keypair
+      const decryptedKeypair = await decryptKeypair(
+        encryptionData.encryptedData,
+        encryptionData.iv,
+        decryptionKey,
+      );
+
+      if (!decryptedKeypair) {
+        throw new Error("Failed to decrypt keypair. Invalid passphrase?");
+      }
+
+      // Verify the decrypted keypair matches the user ID
+      const derivedUserId = await deriveUserIdFromPublicKey(
+        decryptedKeypair.publicKeyBase64,
+      );
+
+      if (encryptionData.userId !== derivedUserId) {
+        throw new Error("Decrypted keypair does not match user ID");
+      }
+
+      // Now authenticate with the decrypted keypair
+      await authenticateWithKeyPair(encryptionData.userId, decryptedKeypair);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
