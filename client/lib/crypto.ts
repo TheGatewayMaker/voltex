@@ -273,13 +273,22 @@ export function encryptMessage(
   // Validate key sizes before encryption
   if (recipientPublicKey.length !== 32) {
     throw new Error(
-      `Invalid recipient public key size: ${recipientPublicKey.length} bytes (expected 32)`,
+      `Invalid recipient public key size: ${recipientPublicKey.length} bytes (expected 32). Make sure you have the correct public key for the recipient.`,
     );
   }
 
   if (senderPrivateKey.length !== 32) {
+    // This likely means the wrong key was passed (maybe the signing key instead of box key)
+    console.error(
+      "DEBUG: senderPrivateKey size issue",
+      {
+        actualSize: senderPrivateKey.length,
+        base64Length: senderPrivateKeyBase64.length,
+        base64Sample: senderPrivateKeyBase64.substring(0, 20),
+      },
+    );
     throw new Error(
-      `Invalid sender private key size: ${senderPrivateKey.length} bytes (expected 32)`,
+      `Invalid sender private key size: ${senderPrivateKey.length} bytes (expected 32). The keypair may be corrupted. Try logging out and back in.`,
     );
   }
 
