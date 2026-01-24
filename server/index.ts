@@ -247,8 +247,37 @@ export async function createServer() {
               encryptedMessage,
             );
 
-            // Store message in R2 for persistence
+            // Generate unique message ID
             const messageId = uuidv4();
+
+            // Try to store in PostgreSQL first (if available)
+            let dbStorageSuccess = false;
+            if (isDatabaseConnected()) {
+              try {
+                dbStorageSuccess = await storeMessageInDB(
+                  messageId,
+                  userId,
+                  encryptedMessage.recipientId,
+                  {
+                    nonce: encryptedMessage.nonce,
+                    ciphertext: encryptedMessage.ciphertext,
+                    signature: encryptedMessage.signature,
+                    timestamp: encryptedMessage.timestamp,
+                  },
+                );
+                console.log(
+                  `Message ${messageId} stored in PostgreSQL (via WebSocket)`,
+                );
+              } catch (dbError) {
+                console.error(
+                  "Failed to store message in PostgreSQL:",
+                  dbError,
+                );
+              }
+            }
+
+            // Store message in R2 for persistence (fallback if no DB or for redundancy)
+            let r2StorageSuccess = false;
             try {
               await saveMessageWithMetadata(
                 messageId,
@@ -262,9 +291,10 @@ export async function createServer() {
                 },
               );
               console.log(`Message ${messageId} stored in R2 (via WebSocket)`);
+              r2StorageSuccess = true;
             } catch (r2Error) {
               console.error("Failed to store message in R2:", r2Error);
-              // Continue anyway, message is in memory
+              // Continue anyway, message is in memory and possibly in DB
             }
 
             // Deliver message to recipient
