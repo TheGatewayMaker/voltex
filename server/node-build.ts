@@ -1,9 +1,20 @@
 import path from "path";
 import { createServer } from "./index";
 import * as express from "express";
+import { createServer as createHttpServer } from "http";
 
-const app = createServer();
+const { app, wss } = createServer();
 const port = process.env.PORT || 3000;
+
+// Create HTTP server
+const httpServer = createHttpServer(app);
+
+// Attach WebSocket server to HTTP server
+httpServer.on("upgrade", (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit("connection", ws, request);
+  });
+});
 
 // In production, serve the built SPA files
 const __dirname = import.meta.dirname;
@@ -22,10 +33,11 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`🚀 Fusion Starter server running on port ${port}`);
   console.log(`📱 Frontend: http://localhost:${port}`);
   console.log(`🔧 API: http://localhost:${port}/api`);
+  console.log(`🔌 WebSocket: ws://localhost:${port}`);
 });
 
 // Graceful shutdown
