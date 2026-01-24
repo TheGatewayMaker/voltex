@@ -132,3 +132,32 @@ export function isValidSignature(signatureBase64: string): boolean {
     return false;
   }
 }
+
+/**
+ * Verify an encrypted message signature
+ * Ensures message authenticity using sender's public key
+ */
+export function verifyMessageSignature(
+  message: EncryptedMessage,
+  senderPublicKeyBase64: string,
+): boolean {
+  try {
+    // The message signature is over the concatenation of:
+    // nonce || ciphertext || timestamp
+    // This ensures the entire message is authenticated
+    const messageToVerify = message.nonce + message.ciphertext + message.timestamp.toString();
+    const messageBytes = utf8Encode(messageToVerify);
+
+    const publicKeyBytes = base64ToBytes(senderPublicKeyBase64);
+    const signatureBytes = base64ToBytes(message.signature);
+
+    return nacl.sign.detached.verify(
+      messageBytes,
+      signatureBytes,
+      publicKeyBytes,
+    );
+  } catch (error) {
+    console.error("Message signature verification error:", error);
+    return false;
+  }
+}
