@@ -154,6 +154,7 @@ export default function SignUp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           publicKey: keyPair.publicKeyBase64,
+          signPublicKey: keyPair.signPublicKeyBase64,
           passphraseHash: passphraseHashHex,
           username: username.toLowerCase(),
         }),
