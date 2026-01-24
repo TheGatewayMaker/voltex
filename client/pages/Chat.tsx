@@ -706,7 +706,7 @@ export default function Chat() {
             </button>
           </form>
           <p className="text-xs text-muted-foreground mt-2">
-            🔒 End-to-end encrypted • Only you and {recipientName} can read this
+            Private conversation • Only you and {recipientName} can see this
           </p>
         </div>
       </div>
