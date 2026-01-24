@@ -19,7 +19,12 @@ export default function Recover() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [recoveredUserId, setRecoveredUserId] = useState("");
-  const [recoveredPublicKey, setRecoveredPublicKey] = useState("");
+  const [encryptionData, setEncryptionData] = useState<{
+    userId: string;
+    encryptedData: string;
+    salt: string;
+    iv: string;
+  } | null>(null);
 
   const handleCheckUserId = (e: React.FormEvent) => {
     e.preventDefault();
