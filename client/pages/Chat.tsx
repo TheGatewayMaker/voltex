@@ -259,6 +259,19 @@ export default function Chat() {
     try {
       setIsSending(true);
 
+      // Validate session before sending
+      const sessionToken = localStorage.getItem("session_token");
+      if (!sessionToken) {
+        throw new Error("No active session");
+      }
+
+      const isSessionValid = await validateSession(sessionToken);
+      if (!isSessionValid) {
+        throw new Error(
+          "Session expired - please sign in again and try again",
+        );
+      }
+
       const keyPair = getStoredKeyPair();
       if (!keyPair) {
         throw new Error("No keys found on this device");
