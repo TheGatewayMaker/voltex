@@ -161,11 +161,21 @@ export default function Chat() {
         const keyPair = getStoredKeyPair();
         if (!keyPair) return;
 
-        // Determine sender's public key for verification
-        const senderPublicKey =
-          encryptedMessage.senderId === currentUserId
-            ? localStorage.getItem("current_public_key") || recipientPublicKey
-            : recipientPublicKey;
+        // Verify sender matches authenticated user (sender authentication)
+        if (encryptedMessage.senderId === currentUserId) {
+          // Our own message - should not come from WebSocket in normal flow
+          console.warn("Received own message from WebSocket");
+          return;
+        }
+
+        // Get sender's public key for decryption
+        // For messages from other user, use their public key
+        const senderPublicKey = recipientPublicKey;
+
+        if (!senderPublicKey) {
+          console.error("No sender public key available for decryption");
+          return;
+        }
 
         const decrypted = decryptMessage(
           encryptedMessage,
@@ -177,7 +187,7 @@ export default function Chat() {
           const newMessage: ChatMessage = {
             ...decrypted,
             id: `${encryptedMessage.timestamp}-${encryptedMessage.senderId}`,
-            isOwn: encryptedMessage.senderId === currentUserId,
+            isOwn: false, // Always false since we filtered out own messages
           };
 
           setMessages((prev) => {
@@ -187,6 +197,10 @@ export default function Chat() {
             }
             return [...prev, newMessage];
           });
+        } else {
+          console.error(
+            `Failed to decrypt WebSocket message from ${encryptedMessage.senderId}`,
+          );
         }
       } catch (error) {
         console.error("WebSocket message processing error:", error);
