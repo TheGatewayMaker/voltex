@@ -127,6 +127,13 @@ export async function createServer() {
   app.post("/api/users/search", handleSearchUsers);
   app.get("/api/users/by-username/:username", handleGetUserByUsername);
 
+  // Admin routes (for monitoring and testing)
+  app.get("/api/admin/health", handleHealthCheck);
+  app.get("/api/admin/archival-status", handleArchivalStatus);
+  app.get("/api/admin/database-stats", handleDatabaseStats);
+  app.get("/api/admin/archival-config", handleArchivalConfig);
+  app.post("/api/admin/run-archival", handleRunArchival);
+
   // Create WebSocket server if not already created
   if (!wssInstance) {
     wssInstance = new WebSocketServer({ noServer: true });
