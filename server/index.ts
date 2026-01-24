@@ -56,7 +56,10 @@ import { startArchivalJob } from "./lib/archival-job";
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
 
-export async function createServer(): Promise<{ app: any; wss: WebSocketServer }> {
+export async function createServer(): Promise<{
+  app: any;
+  wss: WebSocketServer;
+}> {
   const app = express();
 
   // Initialize database

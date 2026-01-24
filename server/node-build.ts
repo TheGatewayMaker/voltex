@@ -5,8 +5,13 @@ import { createServer as createHttpServer } from "http";
 
 async function main() {
   // Verify createServer is available
-  if (!serverModule.createServer || typeof serverModule.createServer !== "function") {
-    throw new Error("Failed to import createServer function from server module");
+  if (
+    !serverModule.createServer ||
+    typeof serverModule.createServer !== "function"
+  ) {
+    throw new Error(
+      "Failed to import createServer function from server module",
+    );
   }
 
   const result = await serverModule.createServer();
