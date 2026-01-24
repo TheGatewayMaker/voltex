@@ -18,8 +18,8 @@ export interface CryptoKeyPair {
 
 export interface UserAccount {
   userId: string; // Derived from public key hash
-  publicKey: string; // base64-encoded (box public key)
-  signPublicKey?: string; // base64-encoded (sign public key for message authentication)
+  publicKey: string; // base64-encoded (signing public key for authentication)
+  encryptionPublicKey?: string; // base64-encoded (box public key for encryption)
   username?: string; // Optional username for user lookup
   createdAt: number;
 }
