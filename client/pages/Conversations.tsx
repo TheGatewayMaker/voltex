@@ -112,18 +112,25 @@ export default function Conversations() {
     navigate(`/chat/${user.userId}`);
   };
 
+  // WebSocket callbacks - memoized to prevent reconnection loops
+  const handleWebSocketMessage = useCallback(() => {
+    console.log("New message received");
+    toast.success("New message received");
+  }, []);
+
+  const handleWebSocketConnected = useCallback(() => {
+    console.log("WebSocket connected");
+  }, []);
+
+  const handleWebSocketDisconnected = useCallback(() => {
+    console.log("WebSocket disconnected");
+  }, []);
+
   // Set up WebSocket connection (optional feature)
   const { isConnected } = useWebSocket({
-    onMessage: (message) => {
-      console.log("Received message:", message);
-      toast.success("New message received");
-    },
-    onConnected: () => {
-      console.log("WebSocket connected");
-    },
-    onDisconnected: () => {
-      console.log("WebSocket disconnected");
-    },
+    onMessage: handleWebSocketMessage,
+    onConnected: handleWebSocketConnected,
+    onDisconnected: handleWebSocketDisconnected,
   });
 
   if (!isAuthenticated) {
