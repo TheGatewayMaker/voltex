@@ -224,6 +224,18 @@ export default function Conversations() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefreshConversations}
+              disabled={isRefreshing}
+              className="p-2 hover:bg-secondary rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh conversations"
+            >
+              <RefreshCw
+                className={`w-5 h-5 text-muted-foreground ${
+                  isRefreshing ? "animate-spin" : ""
+                }`}
+              />
+            </button>
             <div
               className={`w-2 h-2 rounded-full ${
                 isConnected ? "bg-green-500" : "bg-gray-500"
