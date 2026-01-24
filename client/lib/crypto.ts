@@ -222,9 +222,33 @@ export function verifyChallenge(
 }
 
 /**
+ * Sign a message for authenticity verification
+ * Uses sender's private key to create a detached signature
+ * The signature covers: nonce + ciphertext (the encrypted payload)
+ */
+function signMessage(
+  nonce: Uint8Array,
+  ciphertext: Uint8Array,
+  senderPrivateKeyBase64: string,
+): string {
+  const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
+
+  // Create a deterministic message to sign: nonce + ciphertext
+  // This ensures we're signing the actual encrypted data
+  const messageToSign = new Uint8Array(nonce.length + ciphertext.length);
+  messageToSign.set(nonce);
+  messageToSign.set(ciphertext, nonce.length);
+
+  // Sign using NaCl sign.detached (not box - we use sign keys for authenticity)
+  const signature = nacl.sign.detached(messageToSign, senderPrivateKey);
+  return bytesToBase64(signature);
+}
+
+/**
  * Encrypt a message for a recipient
  * Uses recipient's public key for encryption
- * Returns encrypted message with nonce
+ * Signs the encrypted message with sender's private key
+ * Returns encrypted message with nonce and signature
  */
 export function encryptMessage(
   message: string,
@@ -244,10 +268,14 @@ export function encryptMessage(
     senderPrivateKey,
   );
 
+  // Sign the encrypted payload for authenticity
+  const signature = signMessage(nonce, ciphertext, senderPrivateKeyBase64);
+
   // Note: You'll need to add senderId and recipientId in the calling code
   return {
     nonce: bytesToBase64(nonce),
     ciphertext: bytesToBase64(ciphertext),
+    signature,
     senderId: "",
     recipientId: "",
     timestamp: Date.now(),
