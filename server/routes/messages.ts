@@ -269,8 +269,21 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // Get all conversations for this user from shared history
-    const userConversations = getUserConversations(session.userId);
+    // Get all conversations for this user from shared history (in-memory)
+    let userConversations = getUserConversations(session.userId);
+
+    // If in-memory cache is empty, try to load from R2 persistence
+    if (userConversations.size === 0) {
+      try {
+        userConversations = await getUserConversationsFromR2(session.userId);
+        console.log(
+          `Loaded ${userConversations.size} conversations from R2 for user ${session.userId}`,
+        );
+      } catch (r2Error) {
+        console.error("Error loading conversations from R2:", r2Error);
+        // Continue with empty conversations (user just hasn't chatted yet)
+      }
+    }
 
     // Convert to API response format
     const conversations = Array.from(userConversations.entries()).map(
