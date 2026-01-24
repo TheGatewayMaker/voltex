@@ -48,8 +48,16 @@ import { initializeDatabase } from "./lib/db";
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
 
-export function createServer() {
+export async function createServer() {
   const app = express();
+
+  // Initialize database
+  try {
+    await initializeDatabase();
+  } catch (error) {
+    console.warn("Database initialization failed:", error);
+    console.log("Falling back to in-memory storage");
+  }
 
   // Middleware
   app.use(cors());
