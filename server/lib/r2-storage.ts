@@ -688,3 +688,32 @@ export async function deleteSessionData(sessionToken: string): Promise<void> {
 
   await deleteFromR2(bucketName, key);
 }
+
+/**
+ * Save a batch of messages to R2 archive
+ * Messages are grouped by conversation
+ */
+export async function saveMessageArchiveToR2(
+  archiveKey: string,
+  messages: any[],
+): Promise<void> {
+  const bucketName = "voltex-messages";
+  const data = JSON.stringify({
+    messages,
+    archivedAt: Date.now(),
+    messageCount: messages.length,
+  });
+
+  await uploadToR2(bucketName, archiveKey, data, "application/json");
+}
+
+/**
+ * Delete archived messages from R2
+ * This is called after messages have been deleted from PostgreSQL
+ */
+export async function deleteArchivedMessagesFromR2(
+  archiveKey: string,
+): Promise<void> {
+  const bucketName = "voltex-messages";
+  await deleteFromR2(bucketName, archiveKey);
+}
