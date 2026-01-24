@@ -149,25 +149,51 @@ export async function decryptKeypair(
     const keypairJson = decoder.decode(decrypted);
     const parsed = JSON.parse(keypairJson);
 
-    // For backward compatibility: derive signing keys from private key if they're missing
+    let boxPublicKeyBase64 = parsed.publicKeyBase64;
+    let boxPrivateKeyBase64 = parsed.privateKeyBase64;
     let signPublicKeyBase64 = parsed.signPublicKeyBase64;
     let signPrivateKeyBase64 = parsed.signPrivateKeyBase64;
 
-    if (!signPublicKeyBase64 || !signPrivateKeyBase64) {
-      // Derive signing keys from the private key if they're missing
-      const privateKeyBytes = base64ToBytes(parsed.privateKeyBase64);
+    // Check if this is an old keypair format (only has signing keys)
+    // Old keypairs had 64-byte private keys (Ed25519), new ones have 32-byte (Curve25519)
+    const privateKeyBytes = base64ToBytes(boxPrivateKeyBase64);
+
+    if (privateKeyBytes.length === 64) {
+      // This is an old signing-only keypair format
+      // The "publicKey" and "privateKey" are actually signing keys
+      const oldSignPrivateKey = privateKeyBytes;
+      const oldSignPublicKeyBytes = base64ToBytes(boxPublicKeyBase64);
+
+      // Derive new box keypair from the signing secret key
+      const boxKeypair = nacl.box.keyPair.fromSecretKey(
+        oldSignPrivateKey.slice(0, 32),
+      );
+
+      boxPublicKeyBase64 = bytesToBase64(boxKeypair.publicKey);
+      boxPrivateKeyBase64 = bytesToBase64(boxKeypair.secretKey);
+      signPublicKeyBase64 = bytesToBase64(oldSignPublicKeyBytes);
+      signPrivateKeyBase64 = parsed.privateKeyBase64; // Keep original signing key
+
+      console.log(
+        "Migrated old keypair format (signing-only) to new format (box + sign)",
+      );
+    } else if (!signPublicKeyBase64 || !signPrivateKeyBase64) {
+      // New format but missing signing keys - derive them
+      const encryptionKeyBytes = base64ToBytes(boxPrivateKeyBase64);
       const signKeypair = nacl.sign.keyPair.fromSeed(
-        privateKeyBytes.slice(0, 32),
+        encryptionKeyBytes.slice(0, 32),
       );
       signPublicKeyBase64 = bytesToBase64(signKeypair.publicKey);
       signPrivateKeyBase64 = bytesToBase64(signKeypair.secretKey);
+
+      console.log("Derived missing signing keys from box private key");
     }
 
     return {
-      publicKey: base64ToBytes(parsed.publicKeyBase64),
-      privateKey: base64ToBytes(parsed.privateKeyBase64),
-      publicKeyBase64: parsed.publicKeyBase64,
-      privateKeyBase64: parsed.privateKeyBase64,
+      publicKey: base64ToBytes(boxPublicKeyBase64),
+      privateKey: base64ToBytes(boxPrivateKeyBase64),
+      publicKeyBase64: boxPublicKeyBase64,
+      privateKeyBase64: boxPrivateKeyBase64,
       signPublicKeyBase64,
       signPrivateKeyBase64,
     };
