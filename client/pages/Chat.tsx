@@ -22,6 +22,7 @@ export default function Chat() {
   const { id: recipientId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pendingMessagesRef = useRef<ChatMessage[]>([]); // Queue for offline messages
 
   // State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
