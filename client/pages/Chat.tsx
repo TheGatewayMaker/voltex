@@ -279,11 +279,19 @@ export default function Chat() {
     for (const message of pendingToRetry) {
       try {
         const sessionToken = localStorage.getItem("session_token");
-        if (!sessionToken) continue;
+        if (!sessionToken) {
+          // Re-queue if no session
+          pendingMessagesRef.current.push(message);
+          continue;
+        }
 
-        // Build the encrypted message from the stored message data
-        // We need to re-construct from content (this is a limitation of our current design)
-        // For now, we'll use HTTP since we don't have the raw encryption data
+        // Validate we have encrypted data
+        if (!message.nonce || !message.ciphertext || !message.signature) {
+          console.warn(`Message ${message.id} missing encrypted data, skipping`);
+          continue;
+        }
+
+        // Retry sending the message with stored encrypted data
         const sendRes = await fetch("/api/messages/send", {
           method: "POST",
           headers: {
@@ -292,9 +300,9 @@ export default function Chat() {
           },
           body: JSON.stringify({
             recipientId,
-            nonce: (message as any).nonce,
-            ciphertext: (message as any).ciphertext,
-            signature: (message as any).signature,
+            nonce: message.nonce,
+            ciphertext: message.ciphertext,
+            signature: message.signature,
             timestamp: message.timestamp,
           }),
         });
