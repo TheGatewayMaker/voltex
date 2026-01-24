@@ -108,7 +108,8 @@ export default function Chat() {
       );
 
       if (!historyRes.ok) {
-        throw new Error("Failed to load conversation history");
+        const error = await historyRes.json();
+        throw new Error(error.error || "Failed to load conversation history");
       }
 
       const historyData = await historyRes.json();
