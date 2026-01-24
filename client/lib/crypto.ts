@@ -278,17 +278,16 @@ export function encryptMessage(
   }
 
   if (senderPrivateKey.length !== 32) {
-    // This likely means the wrong key was passed (maybe the signing key instead of box key)
+    // This likely means the keypair was corrupted during storage
     console.error(
-      "DEBUG: senderPrivateKey size issue",
+      "Invalid sender private key size - keypair corrupted",
       {
         actualSize: senderPrivateKey.length,
         base64Length: senderPrivateKeyBase64.length,
-        base64Sample: senderPrivateKeyBase64.substring(0, 20),
       },
     );
     throw new Error(
-      `Invalid sender private key size: ${senderPrivateKey.length} bytes (expected 32). The keypair may be corrupted. Try logging out and back in.`,
+      `Your encryption keys appear to be corrupted (${senderPrivateKey.length} bytes instead of 32). Please sign out and sign back in to restore your keys.`,
     );
   }
 
