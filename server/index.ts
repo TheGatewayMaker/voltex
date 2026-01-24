@@ -93,6 +93,7 @@ export function createServer() {
     "/api/messages/conversation/:recipientId",
     handleDeleteConversation,
   );
+  app.delete("/api/messages/message", handleDeleteMessage);
 
   // Profile routes
   app.get("/api/profile/me", handleGetProfile);
