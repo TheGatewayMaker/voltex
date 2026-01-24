@@ -13,6 +13,7 @@ export async function sendEncryptedMessage(
   recipientId: string,
   nonce: string,
   ciphertext: string,
+  signature: string,
   timestamp: number,
   sessionToken: string,
 ): Promise<{ success: boolean; messageId: string; timestamp: number }> {
@@ -26,6 +27,7 @@ export async function sendEncryptedMessage(
       recipientId,
       nonce,
       ciphertext,
+      signature,
       timestamp,
     }),
   });
