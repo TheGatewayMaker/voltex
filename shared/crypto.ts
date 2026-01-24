@@ -12,6 +12,8 @@ export interface CryptoKeyPair {
   privateKey: Uint8Array;
   publicKeyBase64: string;
   privateKeyBase64: string;
+  signPublicKeyBase64?: string; // For message signing/verification
+  signPrivateKeyBase64?: string; // For message signing
 }
 
 export interface UserAccount {
