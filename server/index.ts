@@ -12,6 +12,8 @@ import {
   handleLogout,
   handleRecoverAccount,
   handleCheckUsernameAvailability,
+  handleSaveEncryptedKeypair,
+  handleGetEncryptedKeypair,
   getSessionFromToken,
 } from "./routes/auth";
 import {
