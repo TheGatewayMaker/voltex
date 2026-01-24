@@ -4,17 +4,12 @@ import express from "express";
 import { createServer as createHttpServer } from "http";
 
 async function main() {
-  // Explicitly handle the import to ensure proper resolution
-  const createServerFn =
-    typeof serverModule.createServer === "function"
-      ? serverModule.createServer
-      : serverModule.default?.createServer;
-
-  if (!createServerFn || typeof createServerFn !== "function") {
-    throw new Error("Failed to import createServer function");
+  // Verify createServer is available
+  if (!serverModule.createServer || typeof serverModule.createServer !== "function") {
+    throw new Error("Failed to import createServer function from server module");
   }
 
-  const result = await createServerFn();
+  const result = await serverModule.createServer();
 
   if (!result || typeof result !== "object") {
     throw new Error("createServer did not return a valid object");
