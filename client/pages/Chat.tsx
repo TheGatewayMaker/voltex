@@ -92,14 +92,19 @@ export default function Chat() {
     try {
       setIsLoading(true);
 
-      // Get recipient's public key
+      // Get recipient's encryption public key
       const pubKeyRes = await fetch(`/api/auth/public-key/${recipientId}`);
       if (!pubKeyRes.ok) {
         const error = await pubKeyRes.json();
         throw new Error(error.error || "Failed to load recipient's public key");
       }
       const pubKeyData = await pubKeyRes.json();
-      setRecipientPublicKey(pubKeyData.publicKey);
+      // Use the encryption public key if available (new format), otherwise fall back to publicKey (old format)
+      const encryptionPublicKey = pubKeyData.encryptionPublicKey || pubKeyData.publicKey;
+      if (!encryptionPublicKey) {
+        throw new Error(`Recipient's encryption key is not available. They may be using an older version. Please ask them to sign in again.`);
+      }
+      setRecipientPublicKey(encryptionPublicKey);
 
       // Get recipient's display name and username
       try {
