@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Send } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -100,7 +100,19 @@ export default function Chat() {
       }
       const pubKeyData = await pubKeyRes.json();
       setRecipientPublicKey(pubKeyData.publicKey);
-      setRecipientName(recipientId.substring(0, 8));
+
+      // Get recipient's display name and username
+      try {
+        const profileRes = await fetch(`/api/profile/${recipientId}`);
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setRecipientName(profileData.displayName || "User");
+        } else {
+          setRecipientName("User");
+        }
+      } catch {
+        setRecipientName("User");
+      }
 
       // Get conversation history
       const historyRes = await fetch(
@@ -181,9 +193,9 @@ export default function Chat() {
     }
   };
 
-  // Set up WebSocket for real-time messages
-  const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
-    onMessage: async (encryptedMessage) => {
+  // WebSocket callbacks - memoized to prevent reconnection loops
+  const handleWebSocketMessage = useCallback(
+    async (encryptedMessage: EncryptedMessage) => {
       // Only process messages from this conversation
       if (
         encryptedMessage.senderId !== recipientId &&
@@ -241,7 +253,11 @@ export default function Chat() {
         console.error("WebSocket message processing error:", error);
       }
     },
-    onAck: (messageId, delivered) => {
+    [recipientId, currentUserId, recipientPublicKey],
+  );
+
+  const handleWebSocketAck = useCallback(
+    (messageId: string, delivered: boolean) => {
       // Update message delivery status based on ACK
       const localMessageId = sentMessagesRef.current.get(messageId);
       if (localMessageId) {
@@ -254,15 +270,26 @@ export default function Chat() {
         );
       }
     },
-    onError: (error) => {
-      console.error("WebSocket error:", error);
-      toast.error("Connection error: " + error);
-    },
-    onConnected: () => {
-      console.log("WebSocket connected for chat");
-      // Retry any pending messages that failed to send
-      retryPendingMessages();
-    },
+    [],
+  );
+
+  const handleWebSocketError = useCallback((error: string) => {
+    console.error("WebSocket error:", error);
+    toast.error("Connection error: " + error);
+  }, []);
+
+  const handleWebSocketConnected = useCallback(() => {
+    console.log("WebSocket connected for chat");
+    // Retry any pending messages that failed to send
+    retryPendingMessages();
+  }, []);
+
+  // Set up WebSocket for real-time messages
+  const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
+    onMessage: handleWebSocketMessage,
+    onAck: handleWebSocketAck,
+    onError: handleWebSocketError,
+    onConnected: handleWebSocketConnected,
   });
 
   // Retry pending messages (queued for offline delivery)
@@ -694,7 +721,7 @@ export default function Chat() {
             </button>
           </form>
           <p className="text-xs text-muted-foreground mt-2">
-            🔒 End-to-end encrypted • Only you and {recipientName} can read this
+            Private conversation • Only you and {recipientName} can see this
           </p>
         </div>
       </div>

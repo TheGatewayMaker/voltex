@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Lock, Search, X } from "lucide-react";
@@ -112,18 +112,25 @@ export default function Conversations() {
     navigate(`/chat/${user.userId}`);
   };
 
+  // WebSocket callbacks - memoized to prevent reconnection loops
+  const handleWebSocketMessage = useCallback(() => {
+    console.log("New message received");
+    toast.success("New message received");
+  }, []);
+
+  const handleWebSocketConnected = useCallback(() => {
+    console.log("WebSocket connected");
+  }, []);
+
+  const handleWebSocketDisconnected = useCallback(() => {
+    console.log("WebSocket disconnected");
+  }, []);
+
   // Set up WebSocket connection (optional feature)
   const { isConnected } = useWebSocket({
-    onMessage: (message) => {
-      console.log("Received message:", message);
-      toast.success("New message received");
-    },
-    onConnected: () => {
-      console.log("WebSocket connected");
-    },
-    onDisconnected: () => {
-      console.log("WebSocket disconnected");
-    },
+    onMessage: handleWebSocketMessage,
+    onConnected: handleWebSocketConnected,
+    onDisconnected: handleWebSocketDisconnected,
   });
 
   if (!isAuthenticated) {
@@ -310,7 +317,10 @@ export default function Conversations() {
 
                 {isSearching && (
                   <div className="flex items-center justify-center h-32">
-                    <svg className="animate-spin h-6 w-6 text-primary" viewBox="0 0 50 50">
+                    <svg
+                      className="animate-spin h-6 w-6 text-primary"
+                      viewBox="0 0 50 50"
+                    >
                       <circle
                         className="opacity-30"
                         cx="25"
@@ -351,7 +361,8 @@ export default function Conversations() {
                     {/* Avatar */}
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {user.avatar || user.displayName.charAt(0).toUpperCase()}
+                        {user.avatar ||
+                          user.displayName.charAt(0).toUpperCase()}
                       </div>
                     </div>
 

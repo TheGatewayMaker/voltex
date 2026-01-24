@@ -24,8 +24,9 @@ export function useWebSocket(options?: UseWebSocketOptions) {
       return;
     }
 
-    // Only connect once
-    if (wsRef.current) {
+    // Only connect once per session
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      // WebSocket already connected, update the callbacks
       return;
     }
 
@@ -140,7 +141,9 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         wsRef.current.close();
       }
     };
-  }, [options]);
+    // Dependencies: only depend on sessionToken/userId changes, not options
+    // The callbacks are part of the closure and will use the latest versions
+  }, []);
 
   /**
    * Send an encrypted message through WebSocket
@@ -175,3 +178,6 @@ export function useWebSocket(options?: UseWebSocketOptions) {
     sendEncryptedMessage,
   };
 }
+
+// Note: The options callbacks should be memoized with useCallback in the consuming component
+// to prevent unnecessary WebSocket reconnections

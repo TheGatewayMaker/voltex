@@ -143,17 +143,22 @@ export function verifyMessageSignature(
 ): boolean {
   try {
     // The message signature is over the concatenation of:
-    // nonce || ciphertext || timestamp
-    // This ensures the entire message is authenticated
-    const messageToVerify =
-      message.nonce + message.ciphertext + message.timestamp.toString();
-    const messageBytes = utf8Encode(messageToVerify);
+    // nonce (as raw bytes) || ciphertext (as raw bytes)
+    // This matches the client-side signing in signMessage()
+    const nonceBytes = base64ToBytes(message.nonce);
+    const ciphertextBytes = base64ToBytes(message.ciphertext);
+
+    const messageToVerify = new Uint8Array(
+      nonceBytes.length + ciphertextBytes.length,
+    );
+    messageToVerify.set(nonceBytes);
+    messageToVerify.set(ciphertextBytes, nonceBytes.length);
 
     const publicKeyBytes = base64ToBytes(senderPublicKeyBase64);
     const signatureBytes = base64ToBytes(message.signature);
 
     return nacl.sign.detached.verify(
-      messageBytes,
+      messageToVerify,
       signatureBytes,
       publicKeyBytes,
     );
