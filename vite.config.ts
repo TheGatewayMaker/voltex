@@ -41,7 +41,9 @@ function expressPlugin(): Plugin {
         const httpServer = server.httpServer;
 
         if (!httpServer) {
-          console.error("HTTP server not available for WebSocket upgrade handler");
+          console.error(
+            "HTTP server not available for WebSocket upgrade handler",
+          );
           return;
         }
 

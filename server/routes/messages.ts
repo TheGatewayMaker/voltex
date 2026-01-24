@@ -167,9 +167,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // Attempt to deliver message to recipient in real-time (if connected)
     const delivered = deliverMessage(message);
     if (delivered) {
-      console.log(
-        `Message delivered in real-time to ${recipientId}`,
-      );
+      console.log(`Message delivered in real-time to ${recipientId}`);
     } else {
       console.log(
         `Message queued for ${recipientId} (not currently connected)`,
