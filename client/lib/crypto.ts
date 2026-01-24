@@ -425,6 +425,8 @@ export function storeKeyPair(keyPair: CryptoKeyPair): void {
   const stored = {
     publicKey: keyPair.publicKeyBase64,
     privateKey: keyPair.privateKeyBase64,
+    signPublicKeyBase64: keyPair.signPublicKeyBase64,
+    signPrivateKeyBase64: keyPair.signPrivateKeyBase64,
     createdAt: Date.now(),
   };
   localStorage.setItem("crypto_keypair", JSON.stringify(stored));
