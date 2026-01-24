@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Lock, Search, X } from "lucide-react";
+import { Lock, Search, X, RefreshCw } from "lucide-react";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { toast } from "sonner";
 
@@ -25,6 +25,7 @@ interface SearchResult {
 
 export default function Conversations() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
@@ -34,6 +35,7 @@ export default function Conversations() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check authentication status and fetch user profile
   useEffect(() => {
@@ -53,6 +55,16 @@ export default function Conversations() {
     fetchUserProfile(sessionToken);
     loadConversations(sessionToken);
   }, [navigate]);
+
+  // Refresh conversations when navigating back to this page
+  useEffect(() => {
+    if (location.pathname === "/") {
+      const sessionToken = localStorage.getItem("session_token");
+      if (sessionToken) {
+        loadConversations(sessionToken);
+      }
+    }
+  }, [location]);
 
   const fetchUserProfile = async (sessionToken: string) => {
     try {
@@ -156,9 +168,27 @@ export default function Conversations() {
     navigate(`/chat/${user.userId}`);
   };
 
+  const handleRefreshConversations = async () => {
+    const sessionToken = localStorage.getItem("session_token");
+    if (sessionToken) {
+      setIsRefreshing(true);
+      try {
+        await loadConversations(sessionToken);
+        toast.success("Conversations refreshed");
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+  };
+
   // WebSocket callbacks - memoized to prevent reconnection loops
   const handleWebSocketMessage = useCallback(() => {
     console.log("New message received");
+    // Refresh conversations list when a new message arrives
+    const sessionToken = localStorage.getItem("session_token");
+    if (sessionToken) {
+      loadConversations(sessionToken);
+    }
     toast.success("New message received");
   }, []);
 
@@ -199,6 +229,18 @@ export default function Conversations() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefreshConversations}
+              disabled={isRefreshing}
+              className="p-2 hover:bg-secondary rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh conversations"
+            >
+              <RefreshCw
+                className={`w-5 h-5 text-muted-foreground ${
+                  isRefreshing ? "animate-spin" : ""
+                }`}
+              />
+            </button>
             <div
               className={`w-2 h-2 rounded-full ${
                 isConnected ? "bg-green-500" : "bg-gray-500"

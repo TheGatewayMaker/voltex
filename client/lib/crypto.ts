@@ -361,19 +361,26 @@ function verifyMessageSignature(
 
 /**
  * Decrypt a message encrypted for you
- * Uses sender's public key and your private key
+ * Uses sender's box public key and your private key for decryption
+ * Uses sender's sign public key for signature verification
  * Also verifies the message signature for authenticity
  */
 export function decryptMessage(
   encrypted: EncryptedMessage,
-  senderPublicKeyBase64: string,
+  senderBoxPublicKeyBase64: string,
   recipientPrivateKeyBase64: string,
+  senderSignPublicKeyBase64?: string,
 ): DecryptedMessage | null {
   try {
-    const senderPublicKey = base64ToBytes(senderPublicKeyBase64);
+    const senderBoxPublicKey = base64ToBytes(senderBoxPublicKeyBase64);
     const recipientPrivateKey = base64ToBytes(recipientPrivateKeyBase64);
     const nonce = base64ToBytes(encrypted.nonce);
     const ciphertext = base64ToBytes(encrypted.ciphertext);
+
+    // Use sign public key for signature verification
+    // If not provided, fall back to box public key (for backwards compatibility)
+    const keyForVerification =
+      senderSignPublicKeyBase64 || senderBoxPublicKeyBase64;
 
     // First, verify the signature to ensure message authenticity
     if (
@@ -381,7 +388,7 @@ export function decryptMessage(
         nonce,
         ciphertext,
         encrypted.signature,
-        senderPublicKeyBase64,
+        keyForVerification,
       )
     ) {
       console.error(
@@ -394,7 +401,7 @@ export function decryptMessage(
     const messageBytes = nacl.box.open(
       ciphertext,
       nonce,
-      senderPublicKey,
+      senderBoxPublicKey,
       recipientPrivateKey,
     );
 

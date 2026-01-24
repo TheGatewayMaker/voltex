@@ -356,6 +356,66 @@ export function getAllMessages(): Map<string, EncryptedMessage[]> {
 }
 
 /**
+ * DELETE /api/messages/message/:messageId
+ * Delete a specific message from conversation
+ */
+export const handleDeleteMessage: RequestHandler = async (req, res) => {
+  try {
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!sessionToken) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const session = await getSessionFromToken(sessionToken);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const { messageId, recipientId } = req.body;
+
+    if (!messageId || !recipientId) {
+      return res
+        .status(400)
+        .json({ error: "messageId and recipientId are required" });
+    }
+
+    // Remove from in-memory conversation history
+    const conversationKey = getConversationKey(session.userId, recipientId);
+    const messages = conversationHistory.get(conversationKey);
+
+    if (messages) {
+      const initialLength = messages.length;
+      const filtered = messages.filter(
+        (m) => `${m.timestamp}-${m.senderId}` !== messageId,
+      );
+
+      if (filtered.length < initialLength) {
+        conversationHistory.set(conversationKey, filtered);
+      }
+    }
+
+    // Delete from R2 persistence
+    try {
+      const sortedIds = [session.userId, recipientId].sort();
+      const conversationKeyR2 = `${sortedIds[0]}:${sortedIds[1]}`;
+      const r2Key = `conversations/${conversationKeyR2}/${messageId}.json`;
+
+      await import("../lib/r2-storage").then((module) =>
+        module.deleteFromR2("voltex-messages", r2Key),
+      );
+    } catch (r2Error) {
+      console.error("Failed to delete message from R2:", r2Error);
+      // Continue anyway, message is already removed from memory
+    }
+
+    return res.status(200).json({ success: true, deleted: true });
+  } catch (error) {
+    console.error("Delete message error:", error);
+    return res.status(500).json({ error: "Failed to delete message" });
+  }
+};
+
+/**
  * Utility: Clear all messages (testing)
  */
 export function clearAllMessages(): void {

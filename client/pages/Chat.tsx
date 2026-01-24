@@ -39,6 +39,12 @@ export default function Chat() {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [recipientName, setRecipientName] = useState<string>("");
   const sentMessagesRef = useRef<Map<string, string>>(new Map()); // Map messageId -> localMessageId
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null,
+  );
+  const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(
+    null,
+  );
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -151,22 +157,27 @@ export default function Chat() {
       const decryptedMessages: ChatMessage[] = [];
       for (const encMsg of historyData.messages) {
         try {
-          // Determine sender's public key for decryption
-          // NaCl box.open requires: the SENDER's public key and our PRIVATE key
-          let senderPublicKey: string;
+          // Determine public keys for decryption and signature verification
+          // For NaCl box.open: we use the OTHER person's box public key + our PRIVATE key
+          // This works for both our messages (we encrypted with their public key)
+          // and their messages (they encrypted with our public key, but we use their public key to decrypt)
+          let senderBoxPublicKey = pubKeyData.publicKey;
+          let senderSignPublicKey: string | undefined;
 
           if (encMsg.senderId === userId) {
-            // This is our message - use our own public key
-            senderPublicKey = currentUserPublicKey;
+            // This is OUR message - use our own sign public key for signature verification
+            senderSignPublicKey =
+              localStorage.getItem("current_sign_public_key") || undefined;
           } else {
-            // This is from the other user - use recipient's public key
-            senderPublicKey = pubKeyData.publicKey;
+            // This is from the other user - use their sign public key
+            senderSignPublicKey = pubKeyData.signPublicKey;
           }
 
           const decrypted = decryptMessage(
             encMsg,
-            senderPublicKey,
+            senderBoxPublicKey,
             keyPair.privateKeyBase64,
+            senderSignPublicKey,
           );
 
           if (decrypted) {
@@ -220,19 +231,28 @@ export default function Chat() {
           return;
         }
 
-        // Get sender's public key for decryption
-        // For messages from other user, use their public key
-        const senderPublicKey = recipientPublicKey;
+        // Get sender's public keys for decryption
+        // For messages from other user, use their box and sign public keys
+        const senderBoxPublicKey = recipientPublicKey;
+        const senderSignPublicKey = recipientSignPublicKey;
 
-        if (!senderPublicKey) {
-          console.error("No sender public key available for decryption");
+        if (!senderBoxPublicKey) {
+          console.error("No sender box public key available for decryption");
+          return;
+        }
+
+        if (!senderSignPublicKey) {
+          console.error(
+            "No sender sign public key available for signature verification",
+          );
           return;
         }
 
         const decrypted = decryptMessage(
           encryptedMessage,
-          senderPublicKey,
+          senderBoxPublicKey,
           keyPair.privateKeyBase64,
+          senderSignPublicKey,
         );
 
         if (decrypted) {
@@ -539,6 +559,48 @@ export default function Chat() {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  // Delete message handler
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      setIsDeletingMessageId(messageId);
+      const sessionToken = localStorage.getItem("session_token");
+
+      if (!sessionToken) {
+        toast.error("Session expired");
+        return;
+      }
+
+      const deleteRes = await fetch("/api/messages/message", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          messageId,
+          recipientId,
+        }),
+      });
+
+      if (!deleteRes.ok) {
+        const errorData = await deleteRes.json();
+        throw new Error(errorData.error || "Failed to delete message");
+      }
+
+      // Remove from local state
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setSelectedMessageId(null);
+      toast.success("Message deleted");
+    } catch (error) {
+      console.error("Delete message error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to delete message: ${errorMessage}`);
+    } finally {
+      setIsDeletingMessageId(null);
+    }
+  };
+
   return (
     <Layout
       showBack={true}
@@ -636,7 +698,7 @@ export default function Chat() {
                 key={message.id}
                 className={`flex gap-3 ${
                   message.isOwn ? "flex-row-reverse" : ""
-                }`}
+                } group relative`}
               >
                 {/* Avatar */}
                 <div className="flex-shrink-0">
@@ -653,21 +715,96 @@ export default function Chat() {
                   </div>
                 </div>
 
-                {/* Message Bubble */}
+                {/* Message Bubble with Options */}
                 <div
                   className={`max-w-xs md:max-w-md flex flex-col ${
                     message.isOwn ? "items-end" : "items-start"
-                  }`}
+                  } relative`}
                 >
                   <div
-                    className={`px-4 py-2 rounded-lg ${
+                    className={`px-4 py-2 rounded-lg cursor-pointer transition-all ${
                       message.isOwn
-                        ? "bg-primary text-white rounded-br-none"
-                        : "bg-secondary text-foreground rounded-bl-none"
-                    }`}
+                        ? "bg-primary text-white rounded-br-none hover:bg-primary/80"
+                        : "bg-secondary text-foreground rounded-bl-none hover:bg-secondary/80"
+                    } ${selectedMessageId === message.id ? "ring-2 ring-yellow-500" : ""}`}
+                    onClick={() =>
+                      setSelectedMessageId(
+                        selectedMessageId === message.id ? null : message.id,
+                      )
+                    }
                   >
                     <p className="break-words text-sm">{message.content}</p>
                   </div>
+
+                  {/* Message Options Menu */}
+                  {selectedMessageId === message.id && (
+                    <div
+                      className={`absolute ${
+                        message.isOwn ? "right-0" : "left-0"
+                      } top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-50 min-w-max`}
+                    >
+                      {message.isOwn && (
+                        <button
+                          onClick={() => handleDeleteMessage(message.id)}
+                          disabled={isDeletingMessageId === message.id}
+                          className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10 transition-colors first:rounded-t-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {isDeletingMessageId === message.id ? (
+                            <>
+                              <svg
+                                className="animate-spin h-4 w-4"
+                                viewBox="0 0 50 50"
+                              >
+                                <circle
+                                  className="opacity-30"
+                                  cx="25"
+                                  cy="25"
+                                  r="20"
+                                  stroke="currentColor"
+                                  strokeWidth="5"
+                                  fill="none"
+                                />
+                                <circle
+                                  cx="25"
+                                  cy="25"
+                                  r="20"
+                                  stroke="currentColor"
+                                  strokeWidth="5"
+                                  fill="none"
+                                  strokeDasharray="100"
+                                  strokeDashoffset="75"
+                                />
+                              </svg>
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                              Delete permanently
+                            </>
+                          )}
+                        </button>
+                      )}
+                      {!message.isOwn && (
+                        <div className="px-4 py-2 text-xs text-muted-foreground">
+                          Only sender can delete
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-xs text-muted-foreground">
                       {formatTime(message.timestamp)}
