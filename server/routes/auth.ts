@@ -137,6 +137,7 @@ export const handleRegister: RequestHandler = async (req, res) => {
     const userAccount: UserAccount = {
       userId,
       publicKey,
+      encryptionPublicKey: encryptionPublicKey || undefined, // Box public key for encryption
       username: username ? username.toLowerCase() : undefined,
       createdAt: Date.now(),
     };
