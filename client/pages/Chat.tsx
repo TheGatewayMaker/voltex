@@ -334,16 +334,6 @@ export default function Chat() {
 
       setMessages((prev) => [...prev, newMessage]);
       setMessageInput("");
-
-      // Try to send via WebSocket if connected
-      if (isConnected) {
-        const wsMessage: EncryptedMessage = {
-          ...encrypted,
-          senderId: currentUserId,
-          recipientId: recipientId || "",
-        };
-        // The useWebSocket hook will send this
-      }
     } catch (error) {
       console.error("Send message error:", error);
       toast.error("Failed to send message");
