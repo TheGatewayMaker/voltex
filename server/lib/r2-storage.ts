@@ -539,3 +539,45 @@ export async function getEncryptedKeypair(
     iv: parsed.iv,
   };
 }
+
+/**
+ * Save session to R2 for persistence across server restarts
+ */
+export async function saveSession(
+  sessionToken: string,
+  sessionData: any,
+): Promise<void> {
+  const bucketName = "voltex-users";
+  const key = `sessions/${sessionToken}.json`;
+  const data = JSON.stringify({
+    ...sessionData,
+    createdAt: Date.now(),
+  });
+
+  await uploadToR2(bucketName, key, data, "application/json");
+}
+
+/**
+ * Get session from R2
+ */
+export async function getSessionData(
+  sessionToken: string,
+): Promise<any | null> {
+  const bucketName = "voltex-users";
+  const key = `sessions/${sessionToken}.json`;
+
+  const data = await downloadFromR2(bucketName, key);
+  if (!data) return null;
+
+  return JSON.parse(data);
+}
+
+/**
+ * Delete session from R2
+ */
+export async function deleteSessionData(sessionToken: string): Promise<void> {
+  const bucketName = "voltex-users";
+  const key = `sessions/${sessionToken}.json`;
+
+  await deleteFromR2(bucketName, key);
+}

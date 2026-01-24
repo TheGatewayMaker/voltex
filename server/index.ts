@@ -93,7 +93,7 @@ export function createServer() {
   if (!wssInstance) {
     wssInstance = new WebSocketServer({ noServer: true });
 
-    wssInstance.on("connection", (ws, req) => {
+    wssInstance.on("connection", async (ws, req) => {
       const token = req.url?.split("?token=")[1];
 
       if (!token) {
@@ -101,7 +101,7 @@ export function createServer() {
         return;
       }
 
-      const session = getSessionFromToken(token);
+      const session = await getSessionFromToken(token);
       if (!session) {
         ws.close();
         return;

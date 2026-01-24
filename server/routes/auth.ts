@@ -19,6 +19,9 @@ import {
   getUserIdByUsername,
   saveEncryptedKeypair,
   getEncryptedKeypair,
+  saveSession,
+  getSessionData,
+  deleteSessionData,
 } from "../lib/r2-storage";
 import {
   UserAccount,
@@ -295,7 +298,17 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
       expiresAt,
     };
 
+    // Save to in-memory cache
     sessions.set(sessionToken, sessionData);
+
+    // Also save to R2 for persistence across server restarts
+    try {
+      await saveSession(sessionToken, sessionData);
+      console.log(`Session ${sessionToken} saved to R2`);
+    } catch (r2Error) {
+      console.error("Failed to save session to R2:", r2Error);
+      // Continue anyway - session is in memory, but won't survive server restart
+    }
 
     return res.status(200).json({
       sessionToken,
@@ -313,7 +326,7 @@ export const handleVerifyChallenge: RequestHandler = async (req, res) => {
  * GET /api/auth/verify-session
  * Verify a session token
  */
-export const handleVerifySession: RequestHandler = (req, res) => {
+export const handleVerifySession: RequestHandler = async (req, res) => {
   try {
     const sessionToken = req.headers.authorization?.replace("Bearer ", "");
 
@@ -321,14 +334,9 @@ export const handleVerifySession: RequestHandler = (req, res) => {
       return res.status(401).json({ error: "No session token provided" });
     }
 
-    const session = sessions.get(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid session" });
-    }
-
-    if (session.expiresAt < Date.now()) {
-      sessions.delete(sessionToken);
-      return res.status(401).json({ error: "Session expired" });
     }
 
     return res.status(200).json({
@@ -512,7 +520,7 @@ export const handleGetEncryptedKeypair: RequestHandler = async (req, res) => {
  * POST /api/auth/logout
  * Invalidate a session
  */
-export const handleLogout: RequestHandler = (req, res) => {
+export const handleLogout: RequestHandler = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const sessionToken =
@@ -524,7 +532,17 @@ export const handleLogout: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "No session token provided" });
     }
 
+    // Delete from in-memory cache
     sessions.delete(sessionToken);
+
+    // Also delete from R2
+    try {
+      await deleteSessionData(sessionToken);
+      console.log(`Session ${sessionToken} deleted from R2`);
+    } catch (error) {
+      console.error("Failed to delete session from R2:", error);
+      // Continue anyway - session is removed from memory
+    }
 
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
@@ -536,18 +554,45 @@ export const handleLogout: RequestHandler = (req, res) => {
 /**
  * Utility: Get session from token
  * Used by other routes to verify authentication
+ * Checks in-memory first, then falls back to R2 for persistence
  */
-export function getSessionFromToken(sessionToken: string): SessionData | null {
-  const session = sessions.get(sessionToken);
-
-  if (!session) return null;
-
-  if (session.expiresAt < Date.now()) {
-    sessions.delete(sessionToken);
-    return null;
+export async function getSessionFromToken(
+  sessionToken: string,
+): Promise<SessionData | null> {
+  // First check in-memory cache
+  const cachedSession = sessions.get(sessionToken);
+  if (cachedSession) {
+    // Check if expired
+    if (cachedSession.expiresAt < Date.now()) {
+      sessions.delete(sessionToken);
+      return null;
+    }
+    return cachedSession;
   }
 
-  return session;
+  // If not in memory, try R2 (for persistence across server restarts)
+  try {
+    const sessionData = await getSessionData(sessionToken);
+    if (!sessionData) return null;
+
+    // Check if expired
+    if (sessionData.expiresAt < Date.now()) {
+      // Clean up expired session from R2
+      try {
+        await deleteSessionData(sessionToken);
+      } catch (error) {
+        console.error("Failed to delete expired session from R2:", error);
+      }
+      return null;
+    }
+
+    // Restore to in-memory cache for faster subsequent lookups
+    sessions.set(sessionToken, sessionData);
+    return sessionData;
+  } catch (error) {
+    console.error("Error retrieving session from R2:", error);
+    return null;
+  }
 }
 
 /**
