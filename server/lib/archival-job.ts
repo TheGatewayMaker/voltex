@@ -5,7 +5,7 @@ import {
   deleteArchivedMessages,
   isDatabaseConnected,
 } from "./db-messages";
-import { saveMessageArchiveToR2, deleteArchivedMessagesFromR2 } from "./r2-storage";
+import { saveMessageArchiveToR2, deleteArchivedMessagesFromR2, deleteFromR2 } from "./r2-storage";
 
 /**
  * Configuration for archival job
