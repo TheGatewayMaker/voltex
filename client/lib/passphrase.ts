@@ -149,37 +149,44 @@ export async function decryptKeypair(
     const keypairJson = decoder.decode(decrypted);
     const parsed = JSON.parse(keypairJson);
 
-    let boxPublicKeyBase64 = parsed.publicKeyBase64;
-    let boxPrivateKeyBase64 = parsed.privateKeyBase64;
-    let signPublicKeyBase64 = parsed.signPublicKeyBase64;
-    let signPrivateKeyBase64 = parsed.signPrivateKeyBase64;
+    const privateKeyBytes = base64ToBytes(parsed.privateKeyBase64);
 
     // Check if this is an old keypair format (only has signing keys)
     // Old keypairs had 64-byte private keys (Ed25519), new ones have 32-byte (Curve25519)
-    const privateKeyBytes = base64ToBytes(boxPrivateKeyBase64);
-
     if (privateKeyBytes.length === 64) {
       // This is an old signing-only keypair format
-      // The "publicKey" and "privateKey" are actually signing keys
-      const oldSignPrivateKey = privateKeyBytes;
-      const oldSignPublicKeyBytes = base64ToBytes(boxPublicKeyBase64);
+      // Keep the original signing keys as-is since they're what was stored on the server
+      // For encryption operations, derive box keys from the signing key seed
+      const signPrivateKeyBytes = privateKeyBytes;
+      const signPublicKeyBytes = base64ToBytes(parsed.publicKeyBase64);
 
-      // Derive new box keypair from the signing secret key
+      // Derive box keypair from the first 32 bytes of the signing key (the seed)
       const boxKeypair = nacl.box.keyPair.fromSecretKey(
-        oldSignPrivateKey.slice(0, 32),
+        signPrivateKeyBytes.slice(0, 32),
       );
-
-      boxPublicKeyBase64 = bytesToBase64(boxKeypair.publicKey);
-      boxPrivateKeyBase64 = bytesToBase64(boxKeypair.secretKey);
-      signPublicKeyBase64 = bytesToBase64(oldSignPublicKeyBytes);
-      signPrivateKeyBase64 = parsed.privateKeyBase64; // Keep original signing key
 
       console.log(
-        "Migrated old keypair format (signing-only) to new format (box + sign)",
+        "Loaded old keypair format (signing-only) - derived box keys for encryption",
       );
-    } else if (!signPublicKeyBase64 || !signPrivateKeyBase64) {
+
+      return {
+        publicKey: base64ToBytes(parsed.publicKeyBase64), // Keep original signing public key
+        privateKey: signPrivateKeyBytes, // Keep original signing private key
+        publicKeyBase64: parsed.publicKeyBase64, // For user ID derivation
+        privateKeyBase64: parsed.privateKeyBase64, // This is actually the signing key
+        // But also provide box keys for encryption
+        signPublicKeyBase64: bytesToBase64(signPublicKeyBytes),
+        signPrivateKeyBase64: bytesToBase64(signPrivateKeyBytes),
+      };
+    }
+
+    // New format: we have separate box and sign keys
+    let signPublicKeyBase64 = parsed.signPublicKeyBase64;
+    let signPrivateKeyBase64 = parsed.signPrivateKeyBase64;
+
+    if (!signPublicKeyBase64 || !signPrivateKeyBase64) {
       // New format but missing signing keys - derive them
-      const encryptionKeyBytes = base64ToBytes(boxPrivateKeyBase64);
+      const encryptionKeyBytes = base64ToBytes(parsed.privateKeyBase64);
       const signKeypair = nacl.sign.keyPair.fromSeed(
         encryptionKeyBytes.slice(0, 32),
       );
@@ -190,10 +197,10 @@ export async function decryptKeypair(
     }
 
     return {
-      publicKey: base64ToBytes(boxPublicKeyBase64),
-      privateKey: base64ToBytes(boxPrivateKeyBase64),
-      publicKeyBase64: boxPublicKeyBase64,
-      privateKeyBase64: boxPrivateKeyBase64,
+      publicKey: base64ToBytes(parsed.publicKeyBase64),
+      privateKey: base64ToBytes(parsed.privateKeyBase64),
+      publicKeyBase64: parsed.publicKeyBase64,
+      privateKeyBase64: parsed.privateKeyBase64,
       signPublicKeyBase64,
       signPrivateKeyBase64,
     };
