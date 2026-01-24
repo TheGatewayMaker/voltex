@@ -168,6 +168,19 @@ export default function Conversations() {
     navigate(`/chat/${user.userId}`);
   };
 
+  const handleRefreshConversations = async () => {
+    const sessionToken = localStorage.getItem("session_token");
+    if (sessionToken) {
+      setIsRefreshing(true);
+      try {
+        await loadConversations(sessionToken);
+        toast.success("Conversations refreshed");
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+  };
+
   // WebSocket callbacks - memoized to prevent reconnection loops
   const handleWebSocketMessage = useCallback(() => {
     console.log("New message received");
