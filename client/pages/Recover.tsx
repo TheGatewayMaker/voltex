@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
-import { signChallenge, deriveUserIdFromPublicKey } from "@/lib/crypto";
+import { signChallenge, deriveUserIdFromPublicKey, storeKeyPair } from "@/lib/crypto";
 import {
   normalizePassphrase,
   deriveEncryptionKey,
