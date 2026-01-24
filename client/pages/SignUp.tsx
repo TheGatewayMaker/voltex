@@ -138,10 +138,12 @@ export default function SignUp() {
     setError("");
 
     try {
-      // Derive user ID from public key
-      const derivedUserId = await deriveUserIdFromPublicKey(
-        keyPair.publicKeyBase64,
-      );
+      // Use signing keys for authentication
+      const signPublicKey = keyPair.signPublicKeyBase64 || keyPair.publicKeyBase64;
+      const signPrivateKey = keyPair.signPrivateKeyBase64 || keyPair.privateKeyBase64;
+
+      // Derive user ID from signing public key
+      const derivedUserId = await deriveUserIdFromPublicKey(signPublicKey);
 
       // Hash the mnemonic passphrase for recovery
       // Normalize first to ensure consistency with recovery flow
@@ -153,7 +155,7 @@ export default function SignUp() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          publicKey: keyPair.publicKeyBase64,
+          publicKey: signPublicKey,
           passphraseHash: passphraseHashHex,
           username: username.toLowerCase(),
         }),
@@ -170,7 +172,7 @@ export default function SignUp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: derivedUserId,
-          publicKey: keyPair.publicKeyBase64,
+          publicKey: signPublicKey,
         }),
       });
 
@@ -181,8 +183,8 @@ export default function SignUp() {
 
       const { challenge } = await challengeResponse.json();
 
-      // Sign challenge with private key
-      const signature = signChallenge(challenge, keyPair.privateKeyBase64);
+      // Sign challenge with signing private key
+      const signature = signChallenge(challenge, signPrivateKey);
 
       // Verify challenge and get session token
       const verifyResponse = await fetch("/api/auth/verify", {
@@ -192,7 +194,7 @@ export default function SignUp() {
           userId: derivedUserId,
           challenge,
           signature,
-          publicKey: keyPair.publicKeyBase64,
+          publicKey: signPublicKey,
         }),
       });
 
