@@ -54,8 +54,17 @@ export function unregisterUserConnection(userId: string): void {
 export function deliverMessage(message: EncryptedMessage): boolean {
   const recipientId = message.recipientId;
   const userWs = userConnections.get(recipientId);
+  const isConnected = userWs && userWs.readyState === 1;
 
-  if (userWs && userWs.readyState === 1) {
+  console.log(
+    `[DELIVERY] Attempting to deliver message from ${message.senderId} to ${recipientId}`,
+  );
+  console.log(
+    `[DELIVERY] Recipient connection status: found=${!!userWs}, connected=${isConnected}`,
+  );
+  console.log(`[DELIVERY] Current connected users: ${getConnectedUserIds().join(", ") || "(none)"}`);
+
+  if (isConnected) {
     // WebSocket.OPEN
     try {
       userWs.send(
@@ -64,14 +73,23 @@ export function deliverMessage(message: EncryptedMessage): boolean {
           data: message,
         }),
       );
+      console.log(
+        `[DELIVERY] ✓ Message delivered in real-time to ${recipientId}`,
+      );
       return true;
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error(
+        `[DELIVERY] ✗ Error sending message to ${recipientId}:`,
+        error,
+      );
       queueMessage(message);
       return false;
     }
   } else {
     // User not connected, queue message
+    console.log(
+      `[DELIVERY] ℹ User ${recipientId} not connected, queuing message`,
+    );
     queueMessage(message);
     return false;
   }
