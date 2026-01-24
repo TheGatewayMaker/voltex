@@ -231,9 +231,37 @@ export default function Recover() {
 
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6"
             >
-              Continue
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 50 50">
+                    <circle
+                      className="opacity-30"
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                    />
+                    <circle
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="5"
+                      fill="none"
+                      strokeDasharray="100"
+                      strokeDashoffset="75"
+                    />
+                  </svg>
+                  Fetching Account...
+                </span>
+              ) : (
+                "Continue"
+              )}
             </button>
           </form>
 
