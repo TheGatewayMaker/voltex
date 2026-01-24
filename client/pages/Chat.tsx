@@ -155,22 +155,35 @@ export default function Chat() {
 
       // Decrypt messages
       const decryptedMessages: ChatMessage[] = [];
+      const currentSignPublicKey = localStorage.getItem("current_sign_public_key");
+
       for (const encMsg of historyData.messages) {
         try {
           // Determine public keys for decryption and signature verification
           // For NaCl box.open: we use the OTHER person's box public key + our PRIVATE key
           // This works for both our messages (we encrypted with their public key)
           // and their messages (they encrypted with our public key, but we use their public key to decrypt)
-          let senderBoxPublicKey = pubKeyData.publicKey;
+          const senderBoxPublicKey = pubKeyData.publicKey;
           let senderSignPublicKey: string | undefined;
 
           if (encMsg.senderId === userId) {
             // This is OUR message - use our own sign public key for signature verification
-            senderSignPublicKey =
-              localStorage.getItem("current_sign_public_key") || undefined;
+            senderSignPublicKey = currentSignPublicKey;
+            if (!senderSignPublicKey) {
+              console.warn(
+                `Cannot decrypt own message - current_sign_public_key not found in localStorage`,
+              );
+              continue; // Skip this message
+            }
           } else {
             // This is from the other user - use their sign public key
             senderSignPublicKey = pubKeyData.signPublicKey;
+            if (!senderSignPublicKey) {
+              console.warn(
+                `Cannot decrypt message from ${encMsg.senderId} - recipient sign public key not available`,
+              );
+              continue; // Skip this message
+            }
           }
 
           const decrypted = decryptMessage(
@@ -188,7 +201,7 @@ export default function Chat() {
             });
           } else {
             console.error(
-              `Failed to decrypt message from ${encMsg.senderId}: wrong key or corrupted message`,
+              `Failed to decrypt message from ${encMsg.senderId}: signature verification or decryption failed`,
             );
             toast.error(
               `Could not decrypt message from ${encMsg.senderId.substring(0, 8)}`,
