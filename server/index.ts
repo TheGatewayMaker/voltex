@@ -55,6 +55,20 @@ export async function createServer() {
   // Initialize database
   try {
     await initializeDatabase();
+
+    // Start archival job if database is connected
+    if (isDatabaseConnected()) {
+      const archivalConfig = {
+        intervalMs: parseInt(process.env.ARCHIVAL_INTERVAL_MS || "7200000"), // 2 hours
+        messageAgeMs: parseInt(process.env.MESSAGE_AGE_MS || "7200000"), // 2 hours old
+        batchSize: parseInt(process.env.ARCHIVAL_BATCH_SIZE || "1000"),
+        deleteAfterArchival: process.env.DELETE_AFTER_ARCHIVAL !== "false",
+        deleteGraceMs: parseInt(process.env.DELETE_GRACE_MS || "0"),
+      };
+
+      startArchivalJob(archivalConfig);
+      console.log("Message archival job started");
+    }
   } catch (error) {
     console.warn("Database initialization failed:", error);
     console.log("Falling back to in-memory storage");
