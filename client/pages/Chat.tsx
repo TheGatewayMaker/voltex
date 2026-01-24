@@ -31,6 +31,7 @@ export default function Chat() {
   const [recipientPublicKey, setRecipientPublicKey] = useState<string>("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [recipientName, setRecipientName] = useState<string>("");
+  const sentMessagesRef = useRef<Map<string, string>>(new Map()); // Map messageId -> localMessageId
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
