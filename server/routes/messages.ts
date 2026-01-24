@@ -143,7 +143,28 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // This ensures both WebSocket and HTTP routes access the same data
     storeMessage(session.userId, recipientId, message);
 
-    // Also store in R2 for persistence
+    // Try to store in PostgreSQL first (if available)
+    let dbStorageSuccess = false;
+    if (isDatabaseConnected()) {
+      try {
+        dbStorageSuccess = await storeMessageInDB(
+          messageId,
+          session.userId,
+          recipientId,
+          {
+            nonce,
+            ciphertext,
+            signature,
+            timestamp,
+          },
+        );
+        console.log(`Message ${messageId} stored in PostgreSQL`);
+      } catch (dbError) {
+        console.error("Failed to store message in PostgreSQL:", dbError);
+      }
+    }
+
+    // Also store in R2 for persistence (fallback if no DB or for redundancy)
     let r2StorageSuccess = false;
     try {
       await saveMessageWithMetadata(messageId, session.userId, recipientId, {
@@ -156,7 +177,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       r2StorageSuccess = true;
     } catch (r2Error) {
       console.error("Failed to store message in R2:", r2Error);
-      // Continue anyway, message is in memory, but flag for client
+      // Continue anyway, message is in memory and possibly in DB
     }
 
     // Attempt to deliver message to recipient in real-time (if connected)
@@ -173,7 +194,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       success: true,
       messageId: `${timestamp}-${session.userId}`,
       timestamp,
-      persisted: r2StorageSuccess,
+      persisted: dbStorageSuccess || r2StorageSuccess,
+      persistedInDB: dbStorageSuccess,
+      persistedInR2: r2StorageSuccess,
       delivered,
     });
   } catch (error) {
