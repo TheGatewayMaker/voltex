@@ -281,8 +281,22 @@ export function encryptMessage(
   );
 
   // Sign the encrypted payload for authenticity
-  // Use the sign private key if provided, otherwise fall back to private key
-  const signKeyToUse = senderSignPrivateKeyBase64 || senderPrivateKeyBase64;
+  // Ensure we have a proper signing key (64 bytes for Ed25519)
+  let signKeyToUse: string;
+
+  if (senderSignPrivateKeyBase64) {
+    // Use provided signing key
+    signKeyToUse = senderSignPrivateKeyBase64;
+  } else {
+    // Derive signing key from encryption private key (same way as generateKeyPair)
+    // This is a fallback for keypairs that don't have signPrivateKeyBase64 stored
+    const encryptionKeyBytes = base64ToBytes(senderPrivateKeyBase64);
+    const derivedSignKeypair = nacl.sign.keyPair.fromSeed(
+      encryptionKeyBytes.slice(0, 32),
+    );
+    signKeyToUse = bytesToBase64(derivedSignKeypair.secretKey);
+  }
+
   const signature = signMessage(nonce, ciphertext, signKeyToUse);
 
   // Note: You'll need to add senderId and recipientId in the calling code
@@ -441,15 +455,34 @@ export function getStoredKeyPair(): CryptoKeyPair | null {
 
   try {
     const parsed = JSON.parse(stored);
+
+    // If signPrivateKeyBase64 is missing, derive it from the encryption private key
+    // This handles keypairs created before signing keys were properly stored
+    let signPrivateKeyBase64 = parsed.signPrivateKeyBase64;
+    let signPublicKeyBase64 = parsed.signPublicKeyBase64;
+
+    if (!signPrivateKeyBase64 && parsed.privateKey) {
+      // Derive signing keys the same way generateKeyPair does
+      const encryptionKeyBytes = base64ToBytes(parsed.privateKey);
+      const derivedSignKeypair = nacl.sign.keyPair.fromSeed(
+        encryptionKeyBytes.slice(0, 32),
+      );
+      signPrivateKeyBase64 = bytesToBase64(derivedSignKeypair.secretKey);
+      signPublicKeyBase64 = bytesToBase64(derivedSignKeypair.publicKey);
+
+      console.log("Derived missing signing keys from encryption key");
+    }
+
     return {
       publicKey: base64ToBytes(parsed.publicKey),
       privateKey: base64ToBytes(parsed.privateKey),
       publicKeyBase64: parsed.publicKey,
       privateKeyBase64: parsed.privateKey,
-      signPublicKeyBase64: parsed.signPublicKeyBase64,
-      signPrivateKeyBase64: parsed.signPrivateKeyBase64,
+      signPublicKeyBase64: signPublicKeyBase64,
+      signPrivateKeyBase64: signPrivateKeyBase64,
     };
-  } catch {
+  } catch (error) {
+    console.error("Error parsing stored keypair:", error);
     return null;
   }
 }

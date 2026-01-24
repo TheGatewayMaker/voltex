@@ -34,12 +34,19 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
         : undefined;
 
     if (!sessionToken) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: "Unauthorized - no session token" });
     }
 
-    const session = await getSessionFromToken(sessionToken);
+    let session;
+    try {
+      session = await getSessionFromToken(sessionToken);
+    } catch (sessionError) {
+      console.error("Session validation error:", sessionError);
+      return res.status(401).json({ error: "Invalid session token" });
+    }
+
     if (!session) {
-      return res.status(401).json({ error: "Invalid session" });
+      return res.status(401).json({ error: "Session not found or expired" });
     }
 
     const { recipientId, nonce, ciphertext, signature, timestamp } = req.body;
@@ -80,29 +87,48 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
         }
       } catch (error) {
         console.error("Failed to fetch user account for signPublicKey:", error);
+        return res.status(500).json({
+          error: `Failed to fetch user account: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
       }
     }
 
     // If we still don't have a signPublicKey, we cannot verify the signature
     if (!signPublicKeyToUse) {
-      console.warn(`No sign public key available for user ${session.userId}`);
+      console.warn(
+        `No sign public key available for user ${session.userId}. ` +
+          `Session has signPublicKey: ${!!session.signPublicKey}, ` +
+          `User account found: ${!!userAccount}`,
+      );
       return res.status(403).json({
-        error: "User account is missing signing key - please re-register",
+        error:
+          "User account is missing signing key. Please sign out and sign in again, or create a new account",
       });
     }
 
-    const isSignatureValid = verifyMessageSignature(
-      message,
-      signPublicKeyToUse,
-    );
+    let isSignatureValid;
+    try {
+      isSignatureValid = verifyMessageSignature(message, signPublicKeyToUse);
+    } catch (verifyError) {
+      console.error("Signature verification error:", verifyError);
+      return res.status(500).json({
+        error: `Signature verification failed: ${verifyError instanceof Error ? verifyError.message : "Unknown error"}`,
+      });
+    }
+
     if (!isSignatureValid) {
       console.warn(
-        `Invalid message signature from ${session.userId} to ${recipientId}`,
+        `Invalid message signature from ${session.userId} to ${recipientId}. ` +
+          `Signature: ${signature.substring(0, 20)}...`,
       );
       return res.status(403).json({
         error: "Invalid message signature - authenticity verification failed",
       });
     }
+
+    console.log(
+      `Message signature verified successfully for user ${session.userId}`,
+    );
 
     // Generate unique message ID
     const messageId = uuidv4();
@@ -144,8 +170,13 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       persisted: r2StorageSuccess,
     });
   } catch (error) {
-    console.error("Send message error:", error);
-    return res.status(500).json({ error: "Failed to send message" });
+    console.error("Unexpected error in send message handler:", error);
+    // Return the actual error message to help with debugging
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return res
+      .status(500)
+      .json({ error: `Failed to send message: ${errorMessage}` });
   }
 };
 

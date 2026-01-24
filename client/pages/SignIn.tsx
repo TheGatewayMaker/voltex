@@ -5,6 +5,7 @@ import {
   getStoredKeyPair,
   signChallenge,
   deriveUserIdFromPublicKey,
+  storeKeyPair,
 } from "@/lib/crypto";
 import {
   normalizePassphrase,
@@ -71,6 +72,9 @@ export default function SignIn() {
       }
 
       const authData = await verifyResponse.json();
+
+      // Store the keypair so it's available for message encryption
+      storeKeyPair(keyPair);
 
       // Store session token and user ID
       localStorage.setItem("session_token", authData.sessionToken);
