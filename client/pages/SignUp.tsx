@@ -216,7 +216,7 @@ export default function SignUp() {
           encryptionKey,
         );
 
-        await fetch("/api/auth/save-encrypted-keypair", {
+        const saveResponse = await fetch("/api/auth/save-encrypted-keypair", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -226,9 +226,24 @@ export default function SignUp() {
             iv,
           }),
         });
+
+        if (!saveResponse.ok) {
+          const errorData = await saveResponse.json();
+          console.error(
+            "Failed to save encrypted keypair:",
+            errorData.error || "Unknown error",
+          );
+          // Continue even if R2 save fails, as keys are stored locally
+          toast.warning(
+            "Note: Cross-device account recovery may not be available",
+          );
+        }
       } catch (err) {
         console.error("Failed to save encrypted keypair to R2:", err);
         // Continue even if R2 save fails, as keys are stored locally
+        toast.warning(
+          "Note: Cross-device account recovery may not be available",
+        );
       }
 
       // Store keys and session locally
