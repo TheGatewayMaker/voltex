@@ -238,6 +238,42 @@ export function createServer() {
               return;
             }
 
+            // Store message in conversation history (in-memory)
+            const conversationKey = getConversationKey(
+              userId,
+              encryptedMessage.recipientId,
+            );
+            if (!conversationHistory.has(conversationKey)) {
+              conversationHistory.set(conversationKey, []);
+            }
+            conversationHistory.get(conversationKey)!.push(encryptedMessage);
+
+            // Keep only last 1000 messages per conversation
+            const messages = conversationHistory.get(conversationKey)!;
+            if (messages.length > 1000) {
+              messages.shift();
+            }
+
+            // Store message in R2 for persistence
+            const messageId = uuidv4();
+            try {
+              await saveMessageWithMetadata(
+                messageId,
+                userId,
+                encryptedMessage.recipientId,
+                {
+                  nonce: encryptedMessage.nonce,
+                  ciphertext: encryptedMessage.ciphertext,
+                  signature: encryptedMessage.signature,
+                  timestamp: encryptedMessage.timestamp,
+                },
+              );
+              console.log(`Message ${messageId} stored in R2 (via WebSocket)`);
+            } catch (r2Error) {
+              console.error("Failed to store message in R2:", r2Error);
+              // Continue anyway, message is in memory
+            }
+
             // Deliver message to recipient
             const delivered = deliverMessage(encryptedMessage);
 
