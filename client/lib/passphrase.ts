@@ -106,6 +106,8 @@ export async function encryptKeypair(
   const keypairJson = JSON.stringify({
     publicKeyBase64: keypair.publicKeyBase64,
     privateKeyBase64: keypair.privateKeyBase64,
+    signPublicKeyBase64: keypair.signPublicKeyBase64,
+    signPrivateKeyBase64: keypair.signPrivateKeyBase64,
   });
 
   const encoder = new TextEncoder();
