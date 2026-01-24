@@ -79,10 +79,9 @@ export function deleteConversation(userId1: string, userId2: string): void {
 /**
  * Get all conversations for a user (returns map of userId -> lastMessage)
  */
-export function getUserConversations(userId: string): Map<
-  string,
-  { lastMessage: EncryptedMessage; timestamp: number }
-> {
+export function getUserConversations(
+  userId: string,
+): Map<string, { lastMessage: EncryptedMessage; timestamp: number }> {
   const conversations = new Map<
     string,
     { lastMessage: EncryptedMessage; timestamp: number }

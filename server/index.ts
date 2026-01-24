@@ -41,10 +41,7 @@ import {
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
 import { EncryptedMessage } from "@shared/crypto";
-import {
-  getConversationKey,
-  storeMessage,
-} from "./lib/conversation-history";
+import { getConversationKey, storeMessage } from "./lib/conversation-history";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
@@ -234,7 +231,11 @@ export function createServer() {
 
             // Store message in shared conversation history (in-memory)
             // This ensures both WebSocket and HTTP routes access the same data
-            storeMessage(userId, encryptedMessage.recipientId, encryptedMessage);
+            storeMessage(
+              userId,
+              encryptedMessage.recipientId,
+              encryptedMessage,
+            );
 
             // Store message in R2 for persistence
             const messageId = uuidv4();

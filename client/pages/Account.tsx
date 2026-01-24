@@ -145,7 +145,12 @@ export default function Account() {
 
   if (isLoading) {
     return (
-      <Layout showProfileMenu={false} showBack={true} onBackClick={() => navigate("/")} title="Account">
+      <Layout
+        showProfileMenu={false}
+        showBack={true}
+        onBackClick={() => navigate("/")}
+        title="Account"
+      >
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <svg
@@ -181,7 +186,12 @@ export default function Account() {
 
   if (!profile) {
     return (
-      <Layout showProfileMenu={false} showBack={true} onBackClick={() => navigate("/")} title="Account">
+      <Layout
+        showProfileMenu={false}
+        showBack={true}
+        onBackClick={() => navigate("/")}
+        title="Account"
+      >
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <p className="text-destructive">Failed to load profile</p>
@@ -384,7 +394,9 @@ export default function Account() {
                   End-to-End Encrypted
                 </p>
                 <p className="text-xs text-blue-600/90">
-                  Your messages are encrypted on your device before being sent. Only the recipient can decrypt them. We never have access to your message content.
+                  Your messages are encrypted on your device before being sent.
+                  Only the recipient can decrypt them. We never have access to
+                  your message content.
                 </p>
               </div>
             </div>
