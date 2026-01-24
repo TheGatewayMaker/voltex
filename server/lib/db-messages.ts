@@ -68,7 +68,7 @@ export async function getConversationMessagesFromDB(
   limit: number = 50,
   offset: number = 0,
 ): Promise<StoredMessage[]> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return [];
   }
 
@@ -275,7 +275,7 @@ export async function getMessagesForArchival(
   ageMs: number,
   limit: number = 1000,
 ): Promise<StoredMessage[]> {
-  if (!isDatabaseConnected()) {
+  if (!checkDatabaseConnected()) {
     return [];
   }
 
