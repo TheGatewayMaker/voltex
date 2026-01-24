@@ -556,7 +556,9 @@ export const handleLogout: RequestHandler = async (req, res) => {
  * Used by other routes to verify authentication
  * Checks in-memory first, then falls back to R2 for persistence
  */
-export async function getSessionFromToken(sessionToken: string): Promise<SessionData | null> {
+export async function getSessionFromToken(
+  sessionToken: string,
+): Promise<SessionData | null> {
   // First check in-memory cache
   const cachedSession = sessions.get(sessionToken);
   if (cachedSession) {
