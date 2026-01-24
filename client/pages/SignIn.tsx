@@ -73,6 +73,9 @@ export default function SignIn() {
 
       const authData = await verifyResponse.json();
 
+      // Store the keypair so it's available for message encryption
+      storeKeyPair(keyPair);
+
       // Store session token and user ID
       localStorage.setItem("session_token", authData.sessionToken);
       localStorage.setItem("current_user_id", authData.userId);
