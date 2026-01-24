@@ -91,7 +91,8 @@ export default function Chat() {
       // Get recipient's public key
       const pubKeyRes = await fetch(`/api/auth/public-key/${recipientId}`);
       if (!pubKeyRes.ok) {
-        throw new Error("Failed to load recipient's public key");
+        const error = await pubKeyRes.json();
+        throw new Error(error.error || "Failed to load recipient's public key");
       }
       const pubKeyData = await pubKeyRes.json();
       setRecipientPublicKey(pubKeyData.publicKey);
