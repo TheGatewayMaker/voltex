@@ -317,7 +317,10 @@ export default function Conversations() {
 
                 {isSearching && (
                   <div className="flex items-center justify-center h-32">
-                    <svg className="animate-spin h-6 w-6 text-primary" viewBox="0 0 50 50">
+                    <svg
+                      className="animate-spin h-6 w-6 text-primary"
+                      viewBox="0 0 50 50"
+                    >
                       <circle
                         className="opacity-30"
                         cx="25"
@@ -358,7 +361,8 @@ export default function Conversations() {
                     {/* Avatar */}
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {user.avatar || user.displayName.charAt(0).toUpperCase()}
+                        {user.avatar ||
+                          user.displayName.charAt(0).toUpperCase()}
                       </div>
                     </div>
 
