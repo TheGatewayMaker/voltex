@@ -135,7 +135,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const session = getSessionFromToken(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid session" });
     }
