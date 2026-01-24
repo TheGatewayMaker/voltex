@@ -26,7 +26,7 @@ export default function Recover() {
     iv: string;
   } | null>(null);
 
-  const handleCheckUserId = (e: React.FormEvent) => {
+  const handleCheckUserId = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!userIdInput.trim()) {
@@ -35,7 +35,37 @@ export default function Recover() {
     }
 
     setError("");
-    setStep("passphrase");
+    setIsLoading(true);
+
+    try {
+      // Fetch encrypted keypair from R2
+      const encryptedKeypairResponse = await fetch(
+        `/api/auth/encrypted-keypair/${userIdInput}`,
+      );
+
+      if (!encryptedKeypairResponse.ok) {
+        if (encryptedKeypairResponse.status === 404) {
+          throw new Error("User not found");
+        }
+        throw new Error("Failed to fetch account");
+      }
+
+      const encryptedKeypairData =
+        await encryptedKeypairResponse.json();
+
+      setEncryptionData({
+        userId: userIdInput,
+        encryptedData: encryptedKeypairData.encryptedData,
+        salt: encryptedKeypairData.salt,
+        iv: encryptedKeypairData.iv,
+      });
+
+      setStep("passphrase");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch account");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRecoverAccount = async (e: React.FormEvent) => {
