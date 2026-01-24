@@ -9,18 +9,14 @@ import {
 } from "../lib/r2-storage";
 import { verifyMessageSignature } from "../lib/crypto";
 import { deliverMessage } from "../lib/messaging";
-
-// In-memory message storage (messages are also stored in R2 for persistence)
-// Structure: { "senderId:recipientId": [messages] }
-const conversationHistory = new Map<string, EncryptedMessage[]>();
-
-/**
- * Helper: Get conversation key (ordered to support bidirectional chats)
- */
-function getConversationKey(userId1: string, userId2: string): string {
-  const sorted = [userId1, userId2].sort();
-  return `${sorted[0]}:${sorted[1]}`;
-}
+import {
+  getConversationKey,
+  storeMessage,
+  getConversationMessages as getStoredMessages,
+  deleteMessage as deleteStoredMessage,
+  deleteConversation as deleteStoredConversation,
+  getUserConversations,
+} from "../lib/conversation-history";
 
 /**
  * POST /api/messages/send
