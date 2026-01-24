@@ -26,8 +26,6 @@ export default defineConfig(({ mode }) => ({
 }));
 
 function expressPlugin(): Plugin {
-  let httpServer: any;
-
   return {
     name: "express-plugin",
     apply: "serve", // Only apply during development (serve mode)
@@ -37,12 +35,25 @@ function expressPlugin(): Plugin {
       // Add Express app as middleware to Vite dev server
       server.middlewares.use(app);
 
-      // Store the HTTP server reference
+      // Handle WebSocket upgrades
+      // This return function is called after the HTTP server is initialized
       return () => {
-        httpServer = server.httpServer;
+        const httpServer = server.httpServer;
 
-        // Handle WebSocket upgrades
-        if (httpServer) {
+        if (!httpServer) {
+          console.error(
+            "HTTP server not available for WebSocket upgrade handler",
+          );
+          return;
+        }
+
+        // Check if upgrade listener is already attached to avoid duplicates
+        const listeners = httpServer.listeners("upgrade");
+        const hasWsHandler = listeners.some((listener: any) => {
+          return listener.toString().includes("wss.handleUpgrade");
+        });
+
+        if (!hasWsHandler) {
           httpServer.on("upgrade", (req: any, socket: any, head: any) => {
             if (req.url?.startsWith("/ws")) {
               wss.handleUpgrade(req, socket, head, (ws: any) => {
@@ -50,6 +61,7 @@ function expressPlugin(): Plugin {
               });
             }
           });
+          console.log("WebSocket upgrade handler attached");
         }
       };
     },
