@@ -5,6 +5,7 @@ import {
   getStoredKeyPair,
   signChallenge,
   deriveUserIdFromPublicKey,
+  storeKeyPair,
 } from "@/lib/crypto";
 import {
   normalizePassphrase,
