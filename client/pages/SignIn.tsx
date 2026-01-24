@@ -79,7 +79,10 @@ export default function SignIn() {
 
       // Store signing public key if available
       if (keyPair.signPublicKeyBase64) {
-        localStorage.setItem("current_sign_public_key", keyPair.signPublicKeyBase64);
+        localStorage.setItem(
+          "current_sign_public_key",
+          keyPair.signPublicKeyBase64,
+        );
       }
 
       setAuthenticatedUserId(authData.userId);
