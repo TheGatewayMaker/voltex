@@ -164,11 +164,24 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       messages.shift();
     }
 
+    // Attempt to deliver message to recipient in real-time (if connected)
+    const delivered = deliverMessage(message);
+    if (delivered) {
+      console.log(
+        `Message delivered in real-time to ${recipientId}`,
+      );
+    } else {
+      console.log(
+        `Message queued for ${recipientId} (not currently connected)`,
+      );
+    }
+
     return res.status(200).json({
       success: true,
       messageId: `${timestamp}-${session.userId}`,
       timestamp,
       persisted: r2StorageSuccess,
+      delivered,
     });
   } catch (error) {
     console.error("Unexpected error in send message handler:", error);
