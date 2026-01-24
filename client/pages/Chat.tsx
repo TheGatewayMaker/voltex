@@ -100,9 +100,12 @@ export default function Chat() {
       }
       const pubKeyData = await pubKeyRes.json();
       // Use the encryption public key if available (new format), otherwise fall back to publicKey (old format)
-      const encryptionPublicKey = pubKeyData.encryptionPublicKey || pubKeyData.publicKey;
+      const encryptionPublicKey =
+        pubKeyData.encryptionPublicKey || pubKeyData.publicKey;
       if (!encryptionPublicKey) {
-        throw new Error(`Recipient's encryption key is not available. They may be using an older version. Please ask them to sign in again.`);
+        throw new Error(
+          `Recipient's encryption key is not available. They may be using an older version. Please ask them to sign in again.`,
+        );
       }
       setRecipientPublicKey(encryptionPublicKey);
 

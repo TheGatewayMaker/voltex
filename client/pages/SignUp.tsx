@@ -139,8 +139,10 @@ export default function SignUp() {
 
     try {
       // Use signing keys for authentication
-      const signPublicKey = keyPair.signPublicKeyBase64 || keyPair.publicKeyBase64;
-      const signPrivateKey = keyPair.signPrivateKeyBase64 || keyPair.privateKeyBase64;
+      const signPublicKey =
+        keyPair.signPublicKeyBase64 || keyPair.publicKeyBase64;
+      const signPrivateKey =
+        keyPair.signPrivateKeyBase64 || keyPair.privateKeyBase64;
 
       // Derive user ID from signing public key
       const derivedUserId = await deriveUserIdFromPublicKey(signPublicKey);

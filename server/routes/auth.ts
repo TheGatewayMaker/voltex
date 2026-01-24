@@ -83,7 +83,8 @@ export const handleCheckUsernameAvailability: RequestHandler = async (
  */
 export const handleRegister: RequestHandler = async (req, res) => {
   try {
-    const { publicKey, encryptionPublicKey, passphraseHash, username } = req.body;
+    const { publicKey, encryptionPublicKey, passphraseHash, username } =
+      req.body;
 
     if (!publicKey || typeof publicKey !== "string") {
       return res.status(400).json({ error: "Public key is required" });
@@ -373,7 +374,8 @@ export const handleGetPublicKey: RequestHandler = async (req, res) => {
     return res.status(200).json({
       userId,
       publicKey: userAccount.publicKey,
-      encryptionPublicKey: userAccount.encryptionPublicKey || userAccount.publicKey,
+      encryptionPublicKey:
+        userAccount.encryptionPublicKey || userAccount.publicKey,
     });
   } catch (error) {
     console.error("Get public key error:", error);
