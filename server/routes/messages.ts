@@ -4,7 +4,7 @@ import { EncryptedMessage } from "@shared/crypto";
 import { getSessionFromToken } from "./auth";
 import {
   saveMessageWithMetadata,
-  getConversationMessages,
+  getConversationMessages as getConversationMessagesFromR2,
   getUserAccount,
   getUserConversationsFromR2,
 } from "../lib/r2-storage";
@@ -18,6 +18,14 @@ import {
   deleteConversation as deleteStoredConversation,
   getUserConversations,
 } from "../lib/conversation-history";
+import {
+  storeMessageInDB,
+  getConversationMessagesFromDB,
+  getUserConversationsFromDB,
+  deleteMessageFromDB,
+  deleteConversationFromDB,
+  isDatabaseConnected,
+} from "../lib/db-messages";
 
 /**
  * POST /api/messages/send
