@@ -213,7 +213,7 @@ export default function SignIn() {
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">Voltex</h1>
             <p className="text-muted-foreground text-center">
-              Secure messaging, end-to-end encrypted
+              Private messaging platform
             </p>
           </div>
 
@@ -241,7 +241,7 @@ export default function SignIn() {
                 className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono"
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Your user ID is derived from your cryptographic public key
+                Your unique account identifier
               </p>
             </div>
 
@@ -316,9 +316,8 @@ export default function SignIn() {
                     How It Works
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Enter your user ID to begin. Your private key on this device
-                    will sign a cryptographic challenge to authenticate you
-                    securely.
+                    Enter your user ID to sign in securely. Your account access
+                    is protected by secure authentication.
                   </p>
                 </div>
               </div>
@@ -441,9 +440,8 @@ export default function SignIn() {
                   Cross-Device Sign In
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Your encrypted keys are stored securely in cloud storage. Only
-                  you can decrypt them with your passphrase. Enter your 24-word
-                  recovery passphrase to proceed.
+                  You can securely restore your account from any device using
+                  your 24-word recovery passphrase.
                 </p>
               </div>
             </div>
