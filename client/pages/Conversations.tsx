@@ -25,6 +25,7 @@ interface SearchResult {
 
 export default function Conversations() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
@@ -34,6 +35,7 @@ export default function Conversations() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check authentication status and fetch user profile
   useEffect(() => {
