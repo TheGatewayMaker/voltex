@@ -379,7 +379,8 @@ export function decryptMessage(
 
     // Use sign public key for signature verification
     // If not provided, fall back to box public key (for backwards compatibility)
-    const keyForVerification = senderSignPublicKeyBase64 || senderBoxPublicKeyBase64;
+    const keyForVerification =
+      senderSignPublicKeyBase64 || senderBoxPublicKeyBase64;
 
     // First, verify the signature to ensure message authenticity
     if (

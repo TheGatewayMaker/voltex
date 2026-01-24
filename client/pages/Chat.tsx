@@ -39,8 +39,12 @@ export default function Chat() {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [recipientName, setRecipientName] = useState<string>("");
   const sentMessagesRef = useRef<Map<string, string>>(new Map()); // Map messageId -> localMessageId
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null,
+  );
+  const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(
+    null,
+  );
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -162,7 +166,8 @@ export default function Chat() {
 
           if (encMsg.senderId === userId) {
             // This is OUR message - use our own sign public key for signature verification
-            senderSignPublicKey = localStorage.getItem("current_sign_public_key") || undefined;
+            senderSignPublicKey =
+              localStorage.getItem("current_sign_public_key") || undefined;
           } else {
             // This is from the other user - use their sign public key
             senderSignPublicKey = pubKeyData.signPublicKey;
@@ -237,7 +242,9 @@ export default function Chat() {
         }
 
         if (!senderSignPublicKey) {
-          console.error("No sender sign public key available for signature verification");
+          console.error(
+            "No sender sign public key available for signature verification",
+          );
           return;
         }
 
