@@ -155,7 +155,9 @@ export default function Chat() {
 
       // Decrypt messages
       const decryptedMessages: ChatMessage[] = [];
-      const currentSignPublicKey = localStorage.getItem("current_sign_public_key");
+      const currentSignPublicKey = localStorage.getItem(
+        "current_sign_public_key",
+      );
 
       for (const encMsg of historyData.messages) {
         try {
