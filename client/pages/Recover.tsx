@@ -135,10 +135,10 @@ export default function Recover() {
       const challengeData = await challengeResponse.json();
       const challenge = challengeData.challenge;
 
-      // Sign the challenge with decrypted private key
+      // Sign the challenge with decrypted signing private key
       const signature = signChallenge(
         challenge,
-        decryptedKeypair.privateKeyBase64,
+        decryptedKeypair.signPrivateKeyBase64,
       );
 
       // Verify signed challenge with server
