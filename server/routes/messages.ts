@@ -252,14 +252,14 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
  * DELETE /api/messages/conversation/:recipientId
  * Delete conversation history
  */
-export const handleDeleteConversation: RequestHandler = (req, res) => {
+export const handleDeleteConversation: RequestHandler = async (req, res) => {
   try {
     const sessionToken = req.headers.authorization?.replace("Bearer ", "");
     if (!sessionToken) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const session = getSessionFromToken(sessionToken);
+    const session = await getSessionFromToken(sessionToken);
     if (!session) {
       return res.status(401).json({ error: "Invalid session" });
     }
