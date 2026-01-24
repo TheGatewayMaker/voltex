@@ -84,14 +84,20 @@ export function useWebSocket(options?: UseWebSocketOptions) {
         };
 
         ws.onerror = (error) => {
-          console.warn("WebSocket connection error:", error);
+          console.warn("[WS-CLIENT] WebSocket connection error:", error);
           setIsConnecting(false);
           // Attempt to reconnect
           scheduleReconnect();
         };
 
         ws.onclose = () => {
-          console.log("WebSocket disconnected");
+          console.log(
+            "[WS-CLIENT] WebSocket disconnected (code:",
+            (ws as any).code,
+            "reason:",
+            (ws as any).reason,
+            ")",
+          );
           setIsConnected(false);
           setIsConnecting(false);
           wsRef.current = null;
