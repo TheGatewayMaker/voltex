@@ -467,8 +467,8 @@ export default function Chat() {
           });
 
           if (!sendRes.ok) {
-            const error = await sendRes.json();
-            throw new Error(error.error || "Failed to send message");
+            const errorData = await sendRes.json();
+            throw new Error(errorData.error || "Failed to send message");
           }
 
           const response = await sendRes.json();
@@ -490,7 +490,8 @@ export default function Chat() {
 
           console.log("Message sent via HTTP (fallback)");
         } catch (error) {
-          console.error("Failed to send message:", error);
+          const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+          console.error("Failed to send message:", errorMessage);
           // Update message status to failed
           setMessages((prev) =>
             prev.map((msg) =>
@@ -502,14 +503,15 @@ export default function Chat() {
           if (failedMessage) {
             pendingMessagesRef.current.push(failedMessage);
             toast.error(
-              "Message queued - will retry when connection is restored",
+              `Message queued for retry: ${errorMessage}`,
             );
           }
         }
       }
     } catch (error) {
       console.error("Send message error:", error);
-      toast.error("Failed to send message");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      toast.error(errorMessage);
     } finally {
       setIsSending(false);
     }
