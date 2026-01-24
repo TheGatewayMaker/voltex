@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { WebSocketServer } from "ws";
+import { v4 as uuidv4 } from "uuid";
 import { handleDemo } from "./routes/demo";
 import {
   handleRegister,
@@ -37,6 +38,8 @@ import {
   getQueuedMessages,
 } from "./lib/messaging";
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
+import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
+import { EncryptedMessage } from "@shared/crypto";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
