@@ -9,18 +9,14 @@ import {
 } from "../lib/r2-storage";
 import { verifyMessageSignature } from "../lib/crypto";
 import { deliverMessage } from "../lib/messaging";
-
-// In-memory message storage (messages are also stored in R2 for persistence)
-// Structure: { "senderId:recipientId": [messages] }
-const conversationHistory = new Map<string, EncryptedMessage[]>();
-
-/**
- * Helper: Get conversation key (ordered to support bidirectional chats)
- */
-function getConversationKey(userId1: string, userId2: string): string {
-  const sorted = [userId1, userId2].sort();
-  return `${sorted[0]}:${sorted[1]}`;
-}
+import {
+  getConversationKey,
+  storeMessage,
+  getConversationMessages as getStoredMessages,
+  deleteMessage as deleteStoredMessage,
+  deleteConversation as deleteStoredConversation,
+  getUserConversations,
+} from "../lib/conversation-history";
 
 /**
  * POST /api/messages/send
@@ -134,14 +130,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // Generate unique message ID
     const messageId = uuidv4();
 
-    // Store in conversation history (in-memory for current session)
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    if (!conversationHistory.has(conversationKey)) {
-      conversationHistory.set(conversationKey, []);
-    }
-
-    const messages = conversationHistory.get(conversationKey)!;
-    messages.push(message);
+    // Store in shared conversation history (in-memory for current session)
+    // This ensures both WebSocket and HTTP routes access the same data
+    storeMessage(session.userId, recipientId, message);
 
     // Also store in R2 for persistence
     let r2StorageSuccess = false;
@@ -157,11 +148,6 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     } catch (r2Error) {
       console.error("Failed to store message in R2:", r2Error);
       // Continue anyway, message is in memory, but flag for client
-    }
-
-    // Keep only last 1000 messages per conversation
-    if (messages.length > 1000) {
-      messages.shift();
     }
 
     // Attempt to deliver message to recipient in real-time (if connected)
@@ -216,9 +202,8 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Get conversation history from memory
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    let allMessages = conversationHistory.get(conversationKey) || [];
+    // Get conversation history from shared memory
+    let allMessages = getStoredMessages(session.userId, recipientId);
 
     // If in-memory is empty, try to load from R2 persistence
     if (allMessages.length === 0) {
@@ -232,10 +217,12 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
 
         if (persistedMessages.length > 0) {
           // Load persisted messages into memory cache
-          conversationHistory.set(conversationKey, persistedMessages);
+          for (const msg of persistedMessages) {
+            storeMessage(session.userId, recipientId, msg);
+          }
           allMessages = persistedMessages;
           console.log(
-            `Loaded ${persistedMessages.length} messages from R2 for conversation ${conversationKey}`,
+            `Loaded ${persistedMessages.length} messages from R2 for conversation ${session.userId}:${recipientId}`,
           );
         }
       } catch (r2Error) {
@@ -281,34 +268,24 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // Get all conversations for this user
-    const conversations = new Map<
-      string,
-      { userId: string; lastMessage: string; timestamp: number }
-    >();
+    // Get all conversations for this user from shared history
+    const userConversations = getUserConversations(session.userId);
 
-    for (const [conversationKey, messages] of conversationHistory.entries()) {
-      const [user1, user2] = conversationKey.split(":");
-      const otherUserId = user1 === session.userId ? user2 : user1;
-
-      if (messages.length > 0) {
-        const lastMessage = messages[messages.length - 1];
-        conversations.set(otherUserId, {
-          userId: otherUserId,
-          lastMessage: lastMessage.ciphertext.substring(0, 50),
-          timestamp: lastMessage.timestamp,
-        });
-      }
-    }
-
-    // Sort by timestamp (newest first)
-    const sorted = Array.from(conversations.values()).sort(
-      (a, b) => b.timestamp - a.timestamp,
+    // Convert to API response format
+    const conversations = Array.from(userConversations.entries()).map(
+      ([userId, data]) => ({
+        userId,
+        lastMessage: data.lastMessage.ciphertext.substring(0, 50),
+        timestamp: data.timestamp,
+      }),
     );
 
+    // Sort by timestamp (newest first)
+    conversations.sort((a, b) => b.timestamp - a.timestamp);
+
     return res.status(200).json({
-      conversations: sorted,
-      count: sorted.length,
+      conversations,
+      count: conversations.length,
     });
   } catch (error) {
     console.error("Get conversations error:", error);
@@ -338,8 +315,8 @@ export const handleDeleteConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    conversationHistory.delete(conversationKey);
+    // Delete from shared conversation history
+    deleteStoredConversation(session.userId, recipientId);
 
     return res.status(200).json({ success: true, deleted: true });
   } catch (error) {
@@ -347,13 +324,6 @@ export const handleDeleteConversation: RequestHandler = async (req, res) => {
     return res.status(500).json({ error: "Failed to delete conversation" });
   }
 };
-
-/**
- * Utility: Get all messages (admin/testing)
- */
-export function getAllMessages(): Map<string, EncryptedMessage[]> {
-  return conversationHistory;
-}
 
 /**
  * DELETE /api/messages/message/:messageId
@@ -379,20 +349,8 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
         .json({ error: "messageId and recipientId are required" });
     }
 
-    // Remove from in-memory conversation history
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    const messages = conversationHistory.get(conversationKey);
-
-    if (messages) {
-      const initialLength = messages.length;
-      const filtered = messages.filter(
-        (m) => `${m.timestamp}-${m.senderId}` !== messageId,
-      );
-
-      if (filtered.length < initialLength) {
-        conversationHistory.set(conversationKey, filtered);
-      }
-    }
+    // Remove from shared conversation history
+    deleteStoredMessage(session.userId, recipientId, messageId);
 
     // Delete from R2 persistence
     try {
@@ -414,10 +372,3 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
     return res.status(500).json({ error: "Failed to delete message" });
   }
 };
-
-/**
- * Utility: Clear all messages (testing)
- */
-export function clearAllMessages(): void {
-  conversationHistory.clear();
-}

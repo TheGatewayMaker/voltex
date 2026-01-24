@@ -41,21 +41,10 @@ import {
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
 import { EncryptedMessage } from "@shared/crypto";
+import { getConversationKey, storeMessage } from "./lib/conversation-history";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
-
-// In-memory message storage (messages are also stored in R2 for persistence)
-// Structure: { "senderId:recipientId": [messages] }
-const conversationHistory = new Map<string, EncryptedMessage[]>();
-
-/**
- * Helper: Get conversation key (ordered to support bidirectional chats)
- */
-function getConversationKey(userId1: string, userId2: string): string {
-  const sorted = [userId1, userId2].sort();
-  return `${sorted[0]}:${sorted[1]}`;
-}
 
 export function createServer() {
   const app = express();
@@ -240,21 +229,13 @@ export function createServer() {
               return;
             }
 
-            // Store message in conversation history (in-memory)
-            const conversationKey = getConversationKey(
+            // Store message in shared conversation history (in-memory)
+            // This ensures both WebSocket and HTTP routes access the same data
+            storeMessage(
               userId,
               encryptedMessage.recipientId,
+              encryptedMessage,
             );
-            if (!conversationHistory.has(conversationKey)) {
-              conversationHistory.set(conversationKey, []);
-            }
-            conversationHistory.get(conversationKey)!.push(encryptedMessage);
-
-            // Keep only last 1000 messages per conversation
-            const messages = conversationHistory.get(conversationKey)!;
-            if (messages.length > 1000) {
-              messages.shift();
-            }
 
             // Store message in R2 for persistence
             const messageId = uuidv4();
