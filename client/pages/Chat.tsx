@@ -243,7 +243,7 @@ export default function Chat() {
         keyPair.privateKeyBase64,
       );
 
-      // Send to server
+      // Send to server with signature for authenticity
       const sessionToken = localStorage.getItem("session_token");
       const sendRes = await fetch("/api/messages/send", {
         method: "POST",
@@ -255,6 +255,7 @@ export default function Chat() {
           recipientId,
           nonce: encrypted.nonce,
           ciphertext: encrypted.ciphertext,
+          signature: encrypted.signature,
           timestamp: encrypted.timestamp,
         }),
       });
