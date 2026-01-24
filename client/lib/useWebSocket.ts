@@ -6,6 +6,7 @@ interface UseWebSocketOptions {
   onError?: (error: string) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
+  onAck?: (messageId: string, delivered: boolean) => void; // Track delivery ACKs
 }
 
 export function useWebSocket(options?: UseWebSocketOptions) {
