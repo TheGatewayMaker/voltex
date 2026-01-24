@@ -315,8 +315,8 @@ export const handleDeleteConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    const conversationKey = getConversationKey(session.userId, recipientId);
-    conversationHistory.delete(conversationKey);
+    // Delete from shared conversation history
+    deleteStoredConversation(session.userId, recipientId);
 
     return res.status(200).json({ success: true, deleted: true });
   } catch (error) {
