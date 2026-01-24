@@ -40,6 +40,24 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
+  // Verify session token is still valid
+  const validateSession = async (
+    sessionToken: string,
+  ): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/auth/verify-session", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("Session validation error:", error);
+      return false;
+    }
+  };
+
   // Verify authentication and get user info
   useEffect(() => {
     const userId = localStorage.getItem("current_user_id");
@@ -50,8 +68,18 @@ export default function Chat() {
       return;
     }
 
-    setCurrentUserId(userId);
-    loadConversation(userId, sessionToken);
+    // Validate session is still active
+    validateSession(sessionToken).then((isValid) => {
+      if (!isValid) {
+        toast.error("Session expired - please sign in again");
+        localStorage.clear();
+        navigate("/signin");
+        return;
+      }
+
+      setCurrentUserId(userId);
+      loadConversation(userId, sessionToken);
+    });
   }, [recipientId, navigate]);
 
   // Load conversation history
