@@ -542,9 +542,18 @@ export default function Chat() {
                   >
                     <p className="break-words text-sm">{message.content}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    {formatTime(message.timestamp)}
-                  </span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {formatTime(message.timestamp)}
+                    </span>
+                    {message.isOwn && message.status && (
+                      <span className="text-xs text-muted-foreground">
+                        {message.status === "sent" && "✓"}
+                        {message.status === "delivered" && "✓✓"}
+                        {message.status === "failed" && "✗"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
