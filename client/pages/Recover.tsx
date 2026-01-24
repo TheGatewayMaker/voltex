@@ -160,6 +160,9 @@ export default function Recover() {
 
       const authData = await verifyResponse.json();
 
+      // Store the decrypted keypair locally
+      storeKeyPair(decryptedKeypair);
+
       // Store session token and user ID
       localStorage.setItem("session_token", authData.sessionToken);
       localStorage.setItem("current_user_id", authData.userId);
