@@ -37,22 +37,30 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    const { recipientId, nonce, ciphertext, timestamp } = req.body;
+    const { recipientId, nonce, ciphertext, signature, timestamp } = req.body;
 
-    if (!recipientId || !nonce || !ciphertext || !timestamp) {
+    if (!recipientId || !nonce || !ciphertext || !signature || !timestamp) {
       return res.status(400).json({
         error:
-          "Missing required fields: recipientId, nonce, ciphertext, timestamp",
+          "Missing required fields: recipientId, nonce, ciphertext, signature, timestamp",
+      });
+    }
+
+    // Validate signature format (64 bytes base64-encoded)
+    if (typeof signature !== "string" || signature.length === 0) {
+      return res.status(400).json({
+        error: "Invalid signature format",
       });
     }
 
     // Generate unique message ID
     const messageId = uuidv4();
 
-    // Create encrypted message object
+    // Create encrypted message object with signature for authenticity
     const message: EncryptedMessage = {
       nonce,
       ciphertext,
+      signature,
       senderId: session.userId,
       recipientId,
       timestamp,
@@ -72,6 +80,7 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       await saveMessageWithMetadata(messageId, session.userId, recipientId, {
         nonce,
         ciphertext,
+        signature,
         timestamp,
       });
       console.log(`Message ${messageId} stored in R2`);

@@ -12,6 +12,8 @@ import {
   handleLogout,
   handleRecoverAccount,
   handleCheckUsernameAvailability,
+  handleSaveEncryptedKeypair,
+  handleGetEncryptedKeypair,
   getSessionFromToken,
 } from "./routes/auth";
 import {
@@ -27,10 +29,7 @@ import {
   handleUploadAvatar,
   handleUpdateSettings,
 } from "./routes/profile";
-import {
-  handleSearchUsers,
-  handleGetUserByUsername,
-} from "./routes/users";
+import { handleSearchUsers, handleGetUserByUsername } from "./routes/users";
 import {
   registerUserConnection,
   unregisterUserConnection,
@@ -67,6 +66,8 @@ export function createServer() {
   app.post("/api/auth/recover", handleRecoverAccount);
   app.post("/api/auth/logout", handleLogout);
   app.post("/api/auth/username-availability", handleCheckUsernameAvailability);
+  app.post("/api/auth/save-encrypted-keypair", handleSaveEncryptedKeypair);
+  app.get("/api/auth/encrypted-keypair/:userId", handleGetEncryptedKeypair);
 
   // Message routes
   app.post("/api/messages/send", handleSendMessage);
@@ -147,12 +148,28 @@ export function createServer() {
               return;
             }
 
-            // Verify sender matches authenticated user
+            // CRITICAL: Verify sender matches authenticated user
+            // This prevents a user from spoofing another user's ID
             if (encryptedMessage.senderId !== userId) {
               ws.send(
                 JSON.stringify({
                   type: "error",
-                  error: "Sender ID does not match authenticated user",
+                  error:
+                    "Sender ID does not match authenticated user - spoofing attempt blocked",
+                }),
+              );
+              console.warn(
+                `Spoofing attempt: user ${userId} tried to send as ${encryptedMessage.senderId}`,
+              );
+              return;
+            }
+
+            // Verify recipient is specified
+            if (!encryptedMessage.recipientId) {
+              ws.send(
+                JSON.stringify({
+                  type: "error",
+                  error: "Recipient ID is required",
                 }),
               );
               return;

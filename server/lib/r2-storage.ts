@@ -434,3 +434,47 @@ export async function getConversationMessages(
     return [];
   }
 }
+
+/**
+ * Save encrypted keypair to R2 for cross-device recovery
+ * Server stores ciphertext only (client encrypts/decrypts)
+ */
+export async function saveEncryptedKeypair(
+  userId: string,
+  encryptedData: string,
+  salt: string,
+  iv: string,
+): Promise<void> {
+  const bucketName = "voltex-recovery";
+  const key = `${userId}/keypair.json`;
+  const data = JSON.stringify({
+    userId,
+    encryptedData,
+    salt,
+    iv,
+    createdAt: Date.now(),
+  });
+
+  await uploadToR2(bucketName, key, data, "application/json");
+}
+
+/**
+ * Get encrypted keypair from R2
+ * Server returns ciphertext only (client decrypts locally)
+ */
+export async function getEncryptedKeypair(
+  userId: string,
+): Promise<{ encryptedData: string; salt: string; iv: string } | null> {
+  const bucketName = "voltex-recovery";
+  const key = `${userId}/keypair.json`;
+
+  const data = await downloadFromR2(bucketName, key);
+  if (!data) return null;
+
+  const parsed = JSON.parse(data);
+  return {
+    encryptedData: parsed.encryptedData,
+    salt: parsed.salt,
+    iv: parsed.iv,
+  };
+}

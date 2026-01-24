@@ -222,9 +222,33 @@ export function verifyChallenge(
 }
 
 /**
+ * Sign a message for authenticity verification
+ * Uses sender's private key to create a detached signature
+ * The signature covers: nonce + ciphertext (the encrypted payload)
+ */
+function signMessage(
+  nonce: Uint8Array,
+  ciphertext: Uint8Array,
+  senderPrivateKeyBase64: string,
+): string {
+  const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
+
+  // Create a deterministic message to sign: nonce + ciphertext
+  // This ensures we're signing the actual encrypted data
+  const messageToSign = new Uint8Array(nonce.length + ciphertext.length);
+  messageToSign.set(nonce);
+  messageToSign.set(ciphertext, nonce.length);
+
+  // Sign using NaCl sign.detached (not box - we use sign keys for authenticity)
+  const signature = nacl.sign.detached(messageToSign, senderPrivateKey);
+  return bytesToBase64(signature);
+}
+
+/**
  * Encrypt a message for a recipient
  * Uses recipient's public key for encryption
- * Returns encrypted message with nonce
+ * Signs the encrypted message with sender's private key
+ * Returns encrypted message with nonce and signature
  */
 export function encryptMessage(
   message: string,
@@ -244,10 +268,14 @@ export function encryptMessage(
     senderPrivateKey,
   );
 
+  // Sign the encrypted payload for authenticity
+  const signature = signMessage(nonce, ciphertext, senderPrivateKeyBase64);
+
   // Note: You'll need to add senderId and recipientId in the calling code
   return {
     nonce: bytesToBase64(nonce),
     ciphertext: bytesToBase64(ciphertext),
+    signature,
     senderId: "",
     recipientId: "",
     timestamp: Date.now(),
@@ -255,8 +283,40 @@ export function encryptMessage(
 }
 
 /**
+ * Verify message signature for authenticity
+ * Uses sender's public key to verify the signature covers the encrypted payload
+ */
+function verifyMessageSignature(
+  nonce: Uint8Array,
+  ciphertext: Uint8Array,
+  signature: string,
+  senderPublicKeyBase64: string,
+): boolean {
+  try {
+    const senderPublicKey = base64ToBytes(senderPublicKeyBase64);
+    const signatureBytes = base64ToBytes(signature);
+
+    // Reconstruct the message that was signed: nonce + ciphertext
+    const messageToVerify = new Uint8Array(nonce.length + ciphertext.length);
+    messageToVerify.set(nonce);
+    messageToVerify.set(ciphertext, nonce.length);
+
+    // Verify the signature
+    return nacl.sign.detached.verify(
+      messageToVerify,
+      signatureBytes,
+      senderPublicKey,
+    );
+  } catch (error) {
+    console.error("Signature verification error:", error);
+    return false;
+  }
+}
+
+/**
  * Decrypt a message encrypted for you
  * Uses sender's public key and your private key
+ * Also verifies the message signature for authenticity
  */
 export function decryptMessage(
   encrypted: EncryptedMessage,
@@ -269,6 +329,22 @@ export function decryptMessage(
     const nonce = base64ToBytes(encrypted.nonce);
     const ciphertext = base64ToBytes(encrypted.ciphertext);
 
+    // First, verify the signature to ensure message authenticity
+    if (
+      !verifyMessageSignature(
+        nonce,
+        ciphertext,
+        encrypted.signature,
+        senderPublicKeyBase64,
+      )
+    ) {
+      console.error(
+        "Message signature verification failed - message may be forged or corrupted",
+      );
+      return null;
+    }
+
+    // Signature verified - now decrypt the message
     const messageBytes = nacl.box.open(
       ciphertext,
       nonce,
@@ -277,7 +353,7 @@ export function decryptMessage(
     );
 
     if (!messageBytes) {
-      console.error("Failed to decrypt message");
+      console.error("Failed to decrypt message - wrong decryption key");
       return null;
     }
 

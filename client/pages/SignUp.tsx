@@ -9,7 +9,13 @@ import {
   storeMnemonic,
   signChallenge,
 } from "@/lib/crypto";
-import { hashPassphrase, normalizePassphrase } from "@/lib/passphrase";
+import {
+  hashPassphrase,
+  normalizePassphrase,
+  generateSalt,
+  deriveEncryptionKey,
+  encryptKeypair,
+} from "@/lib/passphrase";
 import { toast } from "sonner";
 
 type SignUpStep = "form" | "username" | "passphrase" | "completed";
@@ -196,6 +202,33 @@ export default function SignUp() {
       }
 
       const { sessionToken: token } = await verifyResponse.json();
+
+      // Encrypt keypair and save to R2 for cross-device recovery
+      try {
+        const salt = generateSalt();
+        const encryptionKey = await deriveEncryptionKey(
+          normalizedPassphrase,
+          salt,
+        );
+        const { encryptedData, iv } = await encryptKeypair(
+          keyPair,
+          encryptionKey,
+        );
+
+        await fetch("/api/auth/save-encrypted-keypair", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: derivedUserId,
+            encryptedData,
+            salt,
+            iv,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to save encrypted keypair to R2:", err);
+        // Continue even if R2 save fails, as keys are stored locally
+      }
 
       // Store keys and session locally
       storeKeyPair(keyPair);
