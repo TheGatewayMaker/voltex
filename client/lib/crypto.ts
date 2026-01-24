@@ -281,8 +281,22 @@ export function encryptMessage(
   );
 
   // Sign the encrypted payload for authenticity
-  // Use the sign private key if provided, otherwise fall back to private key
-  const signKeyToUse = senderSignPrivateKeyBase64 || senderPrivateKeyBase64;
+  // Ensure we have a proper signing key (64 bytes for Ed25519)
+  let signKeyToUse: string;
+
+  if (senderSignPrivateKeyBase64) {
+    // Use provided signing key
+    signKeyToUse = senderSignPrivateKeyBase64;
+  } else {
+    // Derive signing key from encryption private key (same way as generateKeyPair)
+    // This is a fallback for keypairs that don't have signPrivateKeyBase64 stored
+    const encryptionKeyBytes = base64ToBytes(senderPrivateKeyBase64);
+    const derivedSignKeypair = nacl.sign.keyPair.fromSeed(
+      encryptionKeyBytes.slice(0, 32),
+    );
+    signKeyToUse = bytesToBase64(derivedSignKeypair.secretKey);
+  }
+
   const signature = signMessage(nonce, ciphertext, signKeyToUse);
 
   // Note: You'll need to add senderId and recipientId in the calling code
