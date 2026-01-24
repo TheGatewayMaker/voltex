@@ -1,5 +1,9 @@
 import { EncryptedMessage } from "@shared/crypto";
-import { query, queryOne, isDatabaseConnected as checkDatabaseConnected } from "./db";
+import {
+  query,
+  queryOne,
+  isDatabaseConnected as checkDatabaseConnected,
+} from "./db";
 
 // Re-export for convenience
 export const isDatabaseConnected = checkDatabaseConnected;
