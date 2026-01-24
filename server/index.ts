@@ -36,7 +36,7 @@ import {
   deliverMessage,
   getQueuedMessages,
 } from "./lib/messaging";
-import { validateEncryptedMessage } from "./lib/crypto";
+import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
