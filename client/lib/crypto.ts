@@ -279,13 +279,10 @@ export function encryptMessage(
 
   if (senderPrivateKey.length !== 32) {
     // This likely means the keypair was corrupted during storage
-    console.error(
-      "Invalid sender private key size - keypair corrupted",
-      {
-        actualSize: senderPrivateKey.length,
-        base64Length: senderPrivateKeyBase64.length,
-      },
-    );
+    console.error("Invalid sender private key size - keypair corrupted", {
+      actualSize: senderPrivateKey.length,
+      base64Length: senderPrivateKeyBase64.length,
+    });
     throw new Error(
       `Your encryption keys appear to be corrupted (${senderPrivateKey.length} bytes instead of 32). Please sign out and sign back in to restore your keys.`,
     );
