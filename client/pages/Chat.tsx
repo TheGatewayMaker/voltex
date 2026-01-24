@@ -100,7 +100,19 @@ export default function Chat() {
       }
       const pubKeyData = await pubKeyRes.json();
       setRecipientPublicKey(pubKeyData.publicKey);
-      setRecipientName(recipientId.substring(0, 8));
+
+      // Get recipient's display name and username
+      try {
+        const profileRes = await fetch(`/api/profile/${recipientId}`);
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setRecipientName(profileData.displayName || "User");
+        } else {
+          setRecipientName("User");
+        }
+      } catch {
+        setRecipientName("User");
+      }
 
       // Get conversation history
       const historyRes = await fetch(
