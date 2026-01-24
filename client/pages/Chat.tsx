@@ -34,6 +34,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [recipientPublicKey, setRecipientPublicKey] = useState<string>("");
+  const [recipientSignPublicKey, setRecipientSignPublicKey] = useState<string>("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [recipientName, setRecipientName] = useState<string>("");
   const sentMessagesRef = useRef<Map<string, string>>(new Map()); // Map messageId -> localMessageId
