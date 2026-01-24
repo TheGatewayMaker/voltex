@@ -9,7 +9,13 @@ import {
   storeMnemonic,
   signChallenge,
 } from "@/lib/crypto";
-import { hashPassphrase, normalizePassphrase } from "@/lib/passphrase";
+import {
+  hashPassphrase,
+  normalizePassphrase,
+  generateSalt,
+  deriveEncryptionKey,
+  encryptKeypair,
+} from "@/lib/passphrase";
 import { toast } from "sonner";
 
 type SignUpStep = "form" | "username" | "passphrase" | "completed";
