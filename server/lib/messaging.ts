@@ -110,7 +110,7 @@ export function deliverMessage(message: EncryptedMessage): boolean {
 /**
  * Queue a message for later delivery
  */
-function queueMessage(message: EncryptedMessage): void {
+export function queueMessage(message: EncryptedMessage): void {
   const recipientId = message.recipientId;
   if (!messageQueues.has(recipientId)) {
     messageQueues.set(recipientId, []);
