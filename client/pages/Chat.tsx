@@ -160,12 +160,13 @@ export default function Chat() {
           let senderSignPublicKey: string | undefined;
 
           if (encMsg.senderId === userId) {
-            // This is our message - use our own public keys
-            senderBoxPublicKey = currentUserPublicKey;
-            // Get our own sign public key from localStorage
+            // This is OUR message - we encrypted it with recipient's public key
+            // To decrypt it, we use the RECIPIENT's (other person's) public key + our private key
+            senderBoxPublicKey = pubKeyData.publicKey;
+            // Get our own sign public key from localStorage for signature verification
             senderSignPublicKey = localStorage.getItem("current_sign_public_key") || undefined;
           } else {
-            // This is from the other user - use recipient's public keys
+            // This is from the other user - use their public keys
             senderBoxPublicKey = pubKeyData.publicKey;
             senderSignPublicKey = pubKeyData.signPublicKey;
           }
