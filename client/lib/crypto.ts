@@ -142,7 +142,9 @@ export function generateKeyPair(): CryptoKeyPair {
 
   // For signing, we use the box secret key to seed a sign key pair
   // This ensures we have proper keys for both encryption and signing
-  const signKeypair = nacl.sign.keyPair.fromSeed(boxKeypair.secretKey.slice(0, 32));
+  const signKeypair = nacl.sign.keyPair.fromSeed(
+    boxKeypair.secretKey.slice(0, 32),
+  );
 
   return {
     publicKey: boxKeypair.publicKey,
