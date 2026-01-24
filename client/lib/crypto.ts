@@ -330,7 +330,14 @@ export function decryptMessage(
     const ciphertext = base64ToBytes(encrypted.ciphertext);
 
     // First, verify the signature to ensure message authenticity
-    if (!verifyMessageSignature(nonce, ciphertext, encrypted.signature, senderPublicKeyBase64)) {
+    if (
+      !verifyMessageSignature(
+        nonce,
+        ciphertext,
+        encrypted.signature,
+        senderPublicKeyBase64,
+      )
+    ) {
       console.error(
         "Message signature verification failed - message may be forged or corrupted",
       );

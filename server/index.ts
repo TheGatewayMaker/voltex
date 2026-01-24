@@ -29,10 +29,7 @@ import {
   handleUploadAvatar,
   handleUpdateSettings,
 } from "./routes/profile";
-import {
-  handleSearchUsers,
-  handleGetUserByUsername,
-} from "./routes/users";
+import { handleSearchUsers, handleGetUserByUsername } from "./routes/users";
 import {
   registerUserConnection,
   unregisterUserConnection,
@@ -157,7 +154,8 @@ export function createServer() {
               ws.send(
                 JSON.stringify({
                   type: "error",
-                  error: "Sender ID does not match authenticated user - spoofing attempt blocked",
+                  error:
+                    "Sender ID does not match authenticated user - spoofing attempt blocked",
                 }),
               );
               console.warn(

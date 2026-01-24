@@ -41,9 +41,7 @@ export default function Chat() {
   }, [messages]);
 
   // Verify session token is still valid
-  const validateSession = async (
-    sessionToken: string,
-  ): Promise<boolean> => {
+  const validateSession = async (sessionToken: string): Promise<boolean> => {
     try {
       const response = await fetch("/api/auth/verify-session", {
         method: "GET",
@@ -267,9 +265,7 @@ export default function Chat() {
 
       const isSessionValid = await validateSession(sessionToken);
       if (!isSessionValid) {
-        throw new Error(
-          "Session expired - please sign in again and try again",
-        );
+        throw new Error("Session expired - please sign in again and try again");
       }
 
       const keyPair = getStoredKeyPair();

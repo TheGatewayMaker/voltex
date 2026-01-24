@@ -30,10 +30,7 @@ export default function SignIn() {
     iv: string;
   } | null>(null);
 
-  const authenticateWithKeyPair = async (
-    userId: string,
-    keyPair: any,
-  ) => {
+  const authenticateWithKeyPair = async (userId: string, keyPair: any) => {
     try {
       // Request challenge from server
       const challengeResponse = await fetch("/api/auth/challenge", {
@@ -132,8 +129,7 @@ export default function SignIn() {
           throw new Error("Failed to fetch account");
         }
 
-        const encryptedKeypairData =
-          await encryptedKeypairResponse.json();
+        const encryptedKeypairData = await encryptedKeypairResponse.json();
 
         setEncryptionData({
           userId: userIdInput,

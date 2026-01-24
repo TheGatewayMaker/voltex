@@ -50,8 +50,7 @@ export default function Recover() {
         throw new Error("Failed to fetch account");
       }
 
-      const encryptedKeypairData =
-        await encryptedKeypairResponse.json();
+      const encryptedKeypairData = await encryptedKeypairResponse.json();
 
       setEncryptionData({
         userId: userIdInput,
@@ -137,7 +136,10 @@ export default function Recover() {
       const challenge = challengeData.challenge;
 
       // Sign the challenge with decrypted private key
-      const signature = signChallenge(challenge, decryptedKeypair.privateKeyBase64);
+      const signature = signChallenge(
+        challenge,
+        decryptedKeypair.privateKeyBase64,
+      );
 
       // Verify signed challenge with server
       const verifyResponse = await fetch("/api/auth/verify", {
@@ -161,7 +163,10 @@ export default function Recover() {
       // Store session token and user ID
       localStorage.setItem("session_token", authData.sessionToken);
       localStorage.setItem("current_user_id", authData.userId);
-      localStorage.setItem("current_public_key", decryptedKeypair.publicKeyBase64);
+      localStorage.setItem(
+        "current_public_key",
+        decryptedKeypair.publicKeyBase64,
+      );
 
       setStep("success");
 

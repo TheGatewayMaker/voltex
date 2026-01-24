@@ -426,10 +426,7 @@ export const handleRecoverAccount: RequestHandler = async (req, res) => {
  * Save encrypted keypair to R2 for cross-device recovery
  * Client encrypts the keypair before sending, server stores ciphertext only
  */
-export const handleSaveEncryptedKeypair: RequestHandler = async (
-  req,
-  res,
-) => {
+export const handleSaveEncryptedKeypair: RequestHandler = async (req, res) => {
   try {
     const { userId, encryptedData, salt, iv } = req.body;
 

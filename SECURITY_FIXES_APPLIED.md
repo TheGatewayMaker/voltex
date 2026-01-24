@@ -1,7 +1,9 @@
 # Security Audit Fixes Applied
 
 ## Executive Summary
+
 Applied **6 critical security fixes** to the messaging encryption and session management system. All fixes address the core vulnerabilities identified in the audit:
+
 1. **Encryption key usage** - Fixed incorrect public key selection for decryption
 2. **Message authentication** - Added cryptographic signatures to all messages
 3. **Sender authentication** - Enforced server-side sender identity verification
@@ -14,19 +16,23 @@ Applied **6 critical security fixes** to the messaging encryption and session ma
 ## 1. FIX: ENCRYPTION KEY USAGE - PUBLIC KEY SELECTION
 
 ### Problem
+
 - When decrypting messages, the code was using the wrong public key
 - It always used `recipientPublicKey` regardless of whether we sent or received the message
 - This made message decryption fail in the two-party chat scenario
 
 ### Solution
+
 **File:** `client/pages/Chat.tsx:73-100`
 
 **Changes:**
+
 ```typescript
 // BEFORE (BROKEN):
-const senderPublicKey = encMsg.senderId === userId
-  ? pubKeyData.publicKey     // Wrong - this is recipient's key
-  : pubKeyData.publicKey;    // Wrong - still recipient's key
+const senderPublicKey =
+  encMsg.senderId === userId
+    ? pubKeyData.publicKey // Wrong - this is recipient's key
+    : pubKeyData.publicKey; // Wrong - still recipient's key
 
 // AFTER (FIXED):
 let senderPublicKey: string;
@@ -40,6 +46,7 @@ if (encMsg.senderId === userId) {
 ```
 
 **Impact:**
+
 - Messages can now be decrypted correctly on both sender and receiver sides
 - Uses correct NaCl box.open() semantics:
   - For own messages: sender (our) public key
@@ -50,20 +57,23 @@ if (encMsg.senderId === userId) {
 ## 2. FIX: MESSAGE SIGNATURES - AUTHENTICITY VERIFICATION
 
 ### Problem
+
 - Messages had no cryptographic signature
 - Server could not verify sender identity
 - No message integrity guarantee
 - MITM attacks could modify ciphertext/nonce without detection
 
 ### Solution
+
 **File:** `shared/crypto.ts:37-43`
 
 **Added signature field to EncryptedMessage:**
+
 ```typescript
 export interface EncryptedMessage {
   nonce: string;
   ciphertext: string;
-  signature: string;  // NEW: base64-encoded NaCl signature
+  signature: string; // NEW: base64-encoded NaCl signature
   senderId: string;
   recipientId: string;
   timestamp: number;
@@ -73,6 +83,7 @@ export interface EncryptedMessage {
 **File:** `client/lib/crypto.ts:224-280`
 
 **Added signing function:**
+
 ```typescript
 function signMessage(
   nonce: Uint8Array,
@@ -80,12 +91,12 @@ function signMessage(
   senderPrivateKeyBase64: string,
 ): string {
   const senderPrivateKey = base64ToBytes(senderPrivateKeyBase64);
-  
+
   // Sign: nonce + ciphertext (the encrypted payload)
   const messageToSign = new Uint8Array(nonce.length + ciphertext.length);
   messageToSign.set(nonce);
   messageToSign.set(ciphertext, nonce.length);
-  
+
   // Use NaCl sign.detached (not box - for authenticity)
   const signature = nacl.sign.detached(messageToSign, senderPrivateKey);
   return bytesToBase64(signature);
@@ -93,6 +104,7 @@ function signMessage(
 ```
 
 **Updated encryptMessage():**
+
 ```typescript
 export function encryptMessage(
   message: string,
@@ -100,14 +112,14 @@ export function encryptMessage(
   senderPrivateKeyBase64: string,
 ): EncryptedMessage {
   // ... encryption code ...
-  
+
   // NEW: Sign the encrypted payload
   const signature = signMessage(nonce, ciphertext, senderPrivateKeyBase64);
-  
+
   return {
     nonce: bytesToBase64(nonce),
     ciphertext: bytesToBase64(ciphertext),
-    signature,  // NEW
+    signature, // NEW
     senderId: "",
     recipientId: "",
     timestamp: Date.now(),
@@ -116,6 +128,7 @@ export function encryptMessage(
 ```
 
 **Impact:**
+
 - Every message is now cryptographically signed with sender's private key
 - Provides non-repudiation (sender cannot deny sending the message)
 - Allows verification that message was not modified in transit
@@ -125,14 +138,17 @@ export function encryptMessage(
 ## 3. FIX: SIGNATURE VERIFICATION - RECEIVER-SIDE AUTHENTICATION
 
 ### Problem
+
 - Receiver had no way to verify message authenticity
 - Could not detect message tampering
 - No proof of sender identity
 
 ### Solution
+
 **File:** `client/lib/crypto.ts:285-330`
 
 **Added signature verification function:**
+
 ```typescript
 function verifyMessageSignature(
   nonce: Uint8Array,
@@ -143,12 +159,12 @@ function verifyMessageSignature(
   try {
     const senderPublicKey = base64ToBytes(senderPublicKeyBase64);
     const signatureBytes = base64ToBytes(signature);
-    
+
     // Reconstruct signed message: nonce + ciphertext
     const messageToVerify = new Uint8Array(nonce.length + ciphertext.length);
     messageToVerify.set(nonce);
     messageToVerify.set(ciphertext, nonce.length);
-    
+
     // Verify using sender's public key
     return nacl.sign.detached.verify(
       messageToVerify,
@@ -163,6 +179,7 @@ function verifyMessageSignature(
 ```
 
 **Updated decryptMessage():**
+
 ```typescript
 export function decryptMessage(
   encrypted: EncryptedMessage,
@@ -171,18 +188,18 @@ export function decryptMessage(
 ): DecryptedMessage | null {
   try {
     // ... setup code ...
-    
+
     // NEW: Verify signature FIRST
     if (!verifyMessageSignature(
-      nonce, 
-      ciphertext, 
+      nonce,
+      ciphertext,
       encrypted.signature,  // NEW
       senderPublicKeyBase64
     )) {
       console.error("Message signature verification failed");
       return null;  // Reject forged/tampered messages
     }
-    
+
     // Then decrypt only if signature is valid
     const messageBytes = nacl.box.open(
       ciphertext,
@@ -196,6 +213,7 @@ export function decryptMessage(
 ```
 
 **Impact:**
+
 - Receiver verifies every message signature before decryption
 - Tampering detected immediately
 - Forged messages rejected at verification stage
@@ -205,14 +223,17 @@ export function decryptMessage(
 ## 4. FIX: SERVER-SIDE MESSAGE VALIDATION
 
 ### Problem
+
 - Server accepted messages without validating signature format
 - Server did not enforce signature requirement
 - Invalid message structure accepted
 
 ### Solution
+
 **File:** `server/routes/messages.ts:40-55`
 
 **Added signature validation:**
+
 ```typescript
 const { recipientId, nonce, ciphertext, signature, timestamp } = req.body;
 
@@ -234,6 +255,7 @@ if (typeof signature !== "string" || signature.length === 0) {
 **File:** `server/lib/crypto.ts:40-56`
 
 **Updated validateEncryptedMessage():**
+
 ```typescript
 export function validateEncryptedMessage(
   message: any,
@@ -243,7 +265,7 @@ export function validateEncryptedMessage(
     message !== null &&
     typeof message.nonce === "string" &&
     typeof message.ciphertext === "string" &&
-    typeof message.signature === "string" &&  // NEW: REQUIRED
+    typeof message.signature === "string" && // NEW: REQUIRED
     typeof message.senderId === "string" &&
     typeof message.recipientId === "string" &&
     typeof message.timestamp === "number"
@@ -252,6 +274,7 @@ export function validateEncryptedMessage(
 ```
 
 **Impact:**
+
 - Server rejects any message without a valid signature
 - Invalid message formats caught early
 - Prevents database pollution with malformed messages
@@ -261,14 +284,17 @@ export function validateEncryptedMessage(
 ## 5. FIX: SENDER AUTHENTICATION - PREVENT SPOOFING
 
 ### Problem
+
 - Server only checked `senderId === authenticatedUserId`
 - No verification that sender is who they claim
 - WebSocket messages not validated for spoofing
 
 ### Solution
+
 **File:** `server/index.ts:154-183`
 
 **Enhanced sender verification:**
+
 ```typescript
 // CRITICAL: Verify sender matches authenticated user
 // This prevents a user from spoofing another user's ID
@@ -276,7 +302,8 @@ if (encryptedMessage.senderId !== userId) {
   ws.send(
     JSON.stringify({
       type: "error",
-      error: "Sender ID does not match authenticated user - spoofing attempt blocked",
+      error:
+        "Sender ID does not match authenticated user - spoofing attempt blocked",
     }),
   );
   console.warn(
@@ -298,6 +325,7 @@ if (!encryptedMessage.recipientId) {
 ```
 
 **Impact:**
+
 - Prevents users from spoofing each other's IDs
 - Logs spoofing attempts for auditing
 - Ensures message origin authenticity
@@ -307,18 +335,19 @@ if (!encryptedMessage.recipientId) {
 ## 6. FIX: CONTINUOUS SESSION VALIDATION
 
 ### Problem
+
 - Session validated only once at page load
 - Session could expire mid-chat without detection
 - Messages sent with invalid/expired session
 
 ### Solution
+
 **File:** `client/pages/Chat.tsx:43-60`
 
 **Added session validation helper:**
+
 ```typescript
-const validateSession = async (
-  sessionToken: string,
-): Promise<boolean> => {
+const validateSession = async (sessionToken: string): Promise<boolean> => {
   try {
     const response = await fetch("/api/auth/verify-session", {
       method: "GET",
@@ -335,6 +364,7 @@ const validateSession = async (
 ```
 
 **Applied validation on mount:**
+
 ```typescript
 useEffect(() => {
   const userId = localStorage.getItem("current_user_id");
@@ -361,6 +391,7 @@ useEffect(() => {
 ```
 
 **Applied validation before sending:**
+
 ```typescript
 // NEW: Validate session before sending
 const sessionToken = localStorage.getItem("session_token");
@@ -375,6 +406,7 @@ if (!isSessionValid) {
 ```
 
 **Impact:**
+
 - Session status checked before every message operation
 - Expired sessions detected immediately
 - User notified of session expiration
@@ -385,14 +417,17 @@ if (!isSessionValid) {
 ## 7. FIX: IMPROVED ERROR HANDLING
 
 ### Problem
+
 - Decryption failures silently skipped
 - No user feedback on problems
 - Difficult to debug issues
 
 ### Solution
+
 **File:** `client/pages/Chat.tsx:73-100`
 
 **Added user feedback:**
+
 ```typescript
 if (decrypted) {
   decryptedMessages.push({...});
@@ -409,6 +444,7 @@ if (decrypted) {
 **File:** `client/pages/Chat.tsx:149-194`
 
 **Added WebSocket error feedback:**
+
 ```typescript
 if (decrypted) {
   // ... add message ...
@@ -420,6 +456,7 @@ if (decrypted) {
 ```
 
 **Impact:**
+
 - Users see which messages failed to decrypt
 - Clearer error messages for debugging
 - Can identify specific conversation issues
@@ -443,42 +480,47 @@ if (decrypted) {
 
 ## SECURITY IMPROVEMENTS SUMMARY
 
-| Vulnerability | Fix Applied | Status |
-|---|---|---|
-| Wrong encryption keys | Fixed public key selection | ✅ Fixed |
-| No message signatures | Added NaCl signing | ✅ Fixed |
-| No authenticity check | Added signature verification | ✅ Fixed |
-| No sender verification | Enforced identity checks | ✅ Fixed |
-| No session validation | Added continuous checks | ✅ Fixed |
-| Poor error handling | Improved user feedback | ✅ Fixed |
+| Vulnerability          | Fix Applied                  | Status   |
+| ---------------------- | ---------------------------- | -------- |
+| Wrong encryption keys  | Fixed public key selection   | ✅ Fixed |
+| No message signatures  | Added NaCl signing           | ✅ Fixed |
+| No authenticity check  | Added signature verification | ✅ Fixed |
+| No sender verification | Enforced identity checks     | ✅ Fixed |
+| No session validation  | Added continuous checks      | ✅ Fixed |
+| Poor error handling    | Improved user feedback       | ✅ Fixed |
 
 ---
 
 ## TESTING RECOMMENDATIONS
 
 ### Test Case 1: Message Decryption
+
 1. Create two accounts (User A, User B)
 2. User A sends message to User B
 3. Verify User B can decrypt the message
 4. Verify signature is valid
 
 ### Test Case 2: Signature Tampering
+
 1. Intercept a message (modify ciphertext)
 2. Verify decryption fails with error
 3. Verify tampered message is rejected
 
 ### Test Case 3: Sender Spoofing
+
 1. Attempt to send message as different user
 2. Verify server blocks spoofing attempt
 3. Verify warning logged
 
 ### Test Case 4: Session Expiration
+
 1. Start chat conversation
 2. Manually expire session
 3. Send message
 4. Verify user is logged out and redirected
 
 ### Test Case 5: Cross-Device Messaging
+
 1. Create account on Device A
 2. Sign in on Device B with recovered keys
 3. Send message from Device A
