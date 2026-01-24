@@ -193,9 +193,9 @@ export default function Chat() {
     }
   };
 
-  // Set up WebSocket for real-time messages
-  const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
-    onMessage: async (encryptedMessage) => {
+  // WebSocket callbacks - memoized to prevent reconnection loops
+  const handleWebSocketMessage = useCallback(
+    async (encryptedMessage: EncryptedMessage) => {
       // Only process messages from this conversation
       if (
         encryptedMessage.senderId !== recipientId &&
@@ -253,7 +253,11 @@ export default function Chat() {
         console.error("WebSocket message processing error:", error);
       }
     },
-    onAck: (messageId, delivered) => {
+    [recipientId, currentUserId, recipientPublicKey],
+  );
+
+  const handleWebSocketAck = useCallback(
+    (messageId: string, delivered: boolean) => {
       // Update message delivery status based on ACK
       const localMessageId = sentMessagesRef.current.get(messageId);
       if (localMessageId) {
@@ -266,15 +270,26 @@ export default function Chat() {
         );
       }
     },
-    onError: (error) => {
-      console.error("WebSocket error:", error);
-      toast.error("Connection error: " + error);
-    },
-    onConnected: () => {
-      console.log("WebSocket connected for chat");
-      // Retry any pending messages that failed to send
-      retryPendingMessages();
-    },
+    [],
+  );
+
+  const handleWebSocketError = useCallback((error: string) => {
+    console.error("WebSocket error:", error);
+    toast.error("Connection error: " + error);
+  }, []);
+
+  const handleWebSocketConnected = useCallback(() => {
+    console.log("WebSocket connected for chat");
+    // Retry any pending messages that failed to send
+    retryPendingMessages();
+  }, []);
+
+  // Set up WebSocket for real-time messages
+  const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
+    onMessage: handleWebSocketMessage,
+    onAck: handleWebSocketAck,
+    onError: handleWebSocketError,
+    onConnected: handleWebSocketConnected,
   });
 
   // Retry pending messages (queued for offline delivery)
