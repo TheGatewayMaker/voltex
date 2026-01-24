@@ -381,16 +381,49 @@ export default function Recover() {
             Back
           </button>
 
-          {/* Warning */}
-          <div className="bg-destructive/10 border border-destructive rounded-lg p-4 mt-6">
-            <p className="text-sm text-destructive font-semibold">
-              ⚠️ Important
+          {/* Info */}
+          <div className="bg-secondary border border-border rounded-lg p-4 mt-6">
+            <p className="text-sm text-foreground font-semibold">
+              💡 Your Passphrase
             </p>
-            <p className="text-xs text-destructive/80 mt-2">
-              To complete account recovery, you'll need access to your original
-              cryptographic keys or a device where they are installed.
+            <p className="text-xs text-muted-foreground mt-2">
+              Enter the exact 24-word passphrase you saved when creating your
+              account. It will be used to decrypt your cryptographic keys
+              securely.
             </p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: Success
+  if (step === "success") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <div className="mb-8">
+            <svg
+              className="animate-pulse h-16 w-16 mx-auto text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold mb-2">Account Recovered!</h2>
+          <p className="text-muted-foreground mb-8">
+            Your account has been successfully recovered. Redirecting...
+          </p>
+          <p className="text-sm text-muted-foreground font-mono break-all">
+            {recoveredUserId}
+          </p>
         </div>
       </div>
     );
