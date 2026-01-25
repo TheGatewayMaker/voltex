@@ -94,18 +94,48 @@ export default function Conversations() {
 
       if (response.ok) {
         const data = await response.json();
-        // Convert server data to UI format
-        const conversationList: Conversation[] = data.conversations.map(
-          (conv: any) => ({
-            id: conv.userId,
-            name: conv.userId.substring(0, 8),
-            avatar: conv.userId.substring(0, 2).toUpperCase(),
-            lastMessage: conv.lastMessage || "(No messages)",
-            timestamp: formatTimestamp(conv.timestamp),
-            unread: 0,
-            online: false,
-          }),
-        );
+        // Convert server data to UI format with user profile info
+        const conversationList: Conversation[] = [];
+
+        for (const conv of data.conversations) {
+          try {
+            // Fetch user profile to get display name and username
+            const profileRes = await fetch(`/api/profile/${conv.userId}`);
+            let displayName = "User";
+            let username = conv.userId.substring(0, 8);
+
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              displayName = profileData.displayName || "User";
+              username = profileData.username || conv.userId.substring(0, 8);
+            }
+
+            conversationList.push({
+              id: conv.userId,
+              name: displayName,
+              username: username,
+              avatar: displayName.charAt(0).toUpperCase(),
+              lastMessage: conv.lastMessage || "(No messages)",
+              timestamp: formatTimestamp(conv.timestamp),
+              unread: 0,
+              online: false,
+            });
+          } catch (error) {
+            console.error(`Failed to load profile for ${conv.userId}:`, error);
+            // Fallback to using user ID if profile fetch fails
+            conversationList.push({
+              id: conv.userId,
+              name: "User",
+              username: conv.userId.substring(0, 8),
+              avatar: conv.userId.substring(0, 2).toUpperCase(),
+              lastMessage: conv.lastMessage || "(No messages)",
+              timestamp: formatTimestamp(conv.timestamp),
+              unread: 0,
+              online: false,
+            });
+          }
+        }
+
         setConversations(conversationList);
       }
     } catch (error) {
