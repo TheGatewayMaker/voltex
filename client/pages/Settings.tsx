@@ -50,8 +50,8 @@ export default function Settings() {
       const data = await response.json();
       setSettings({
         notifications: data.notifications ?? true,
-        theme: data.theme ?? "system",
         privacy: data.privacy ?? "public",
+        showTimestamps: data.showTimestamps ?? true,
       });
     } catch (error) {
       console.error("Error fetching settings:", error);
