@@ -134,6 +134,7 @@ export const handleGetPublicProfile: RequestHandler = async (req, res) => {
       displayName: profile.displayName || "User",
       bio: profile.bio || "",
       avatar: profile.avatar || null,
+      showTimestamps: profile.showTimestamps ?? true,
     });
   } catch (error) {
     console.error("Get public profile error:", error);
