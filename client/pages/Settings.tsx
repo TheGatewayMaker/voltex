@@ -233,6 +233,35 @@ export default function Settings() {
                   </div>
                 </label>
               ))}
+
+              {/* Show timestamps for messages toggle */}
+              <div className="p-2.5 sm:p-3 border border-border rounded-lg bg-secondary/30">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-foreground">
+                      Show timestamps for messages
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {settings.showTimestamps
+                        ? "Recipients will see date and time under your messages"
+                        : "Recipients will not see timestamps for your messages"}
+                    </p>
+                  </div>
+                  <label className="flex items-center cursor-pointer flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={settings.showTimestamps ?? true}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          showTimestamps: e.target.checked,
+                        })
+                      }
+                      className="w-4 h-4 sm:w-5 sm:h-5 rounded"
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
