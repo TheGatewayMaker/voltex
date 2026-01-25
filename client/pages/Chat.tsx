@@ -786,7 +786,7 @@ export default function Chat() {
     return userId.substring(0, 2).toUpperCase();
   };
 
-  // Helper to format time with date and 12-hour format
+  // Helper to format time with date and 12-hour format using server time
   const formatTime = (timestamp: number | undefined | null) => {
     // Validate timestamp
     if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
@@ -800,7 +800,8 @@ export default function Chat() {
       return "Invalid time";
     }
 
-    const now = new Date();
+    // Use server time for "now" to be consistent with server-based timestamps
+    const now = new Date(getServerTime());
 
     // Format time in 12-hour format with AM/PM
     const timeString = date.toLocaleTimeString("en-US", {
@@ -809,7 +810,7 @@ export default function Chat() {
       hour12: true, // Explicitly use 12-hour format
     });
 
-    // Check if message is from today
+    // Check if message is from today (using server time for comparison)
     if (date.toDateString() === now.toDateString()) {
       return timeString; // Just show time for today (e.g., "2:34 PM")
     }
