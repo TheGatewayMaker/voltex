@@ -38,6 +38,7 @@ import {
   handleDatabaseStats,
   handleRunArchival,
   handleArchivalConfig,
+  handleSystemStats,
 } from "./routes/admin";
 import {
   registerUserConnection,
