@@ -211,13 +211,13 @@ export default function Account() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
           {/* Profile Header */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2 break-words">
                   {displayName || "Your Account"}
                 </h1>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-xs sm:text-sm">
                   Manage your profile and security settings
                 </p>
               </div>
