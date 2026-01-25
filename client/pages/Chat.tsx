@@ -242,7 +242,7 @@ export default function Chat() {
         // Verify sender matches authenticated user (sender authentication)
         if (encryptedMessage.senderId === currentUserId) {
           // Our own message - should not come from WebSocket in normal flow
-          console.warn("Received own message from WebSocket");
+          // Skip to avoid duplicates
           return;
         }
 
