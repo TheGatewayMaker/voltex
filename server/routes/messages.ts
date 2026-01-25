@@ -9,7 +9,7 @@ import {
   getUserConversationsFromR2,
 } from "../lib/r2-storage";
 import { verifyMessageSignature } from "../lib/crypto";
-import { deliverMessage } from "../lib/messaging";
+import { deliverMessage, notifyMessageDeletion } from "../lib/messaging";
 import {
   getConversationKey,
   storeMessage,
