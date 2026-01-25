@@ -94,8 +94,28 @@ export default function Chat() {
 
       setCurrentUserId(userId);
       loadConversation(userId, sessionToken);
+      // Mark conversation as read
+      markConversationAsRead(sessionToken, recipientId);
     });
   }, [recipientId, navigate]);
+
+  // Mark conversation as read
+  const markConversationAsRead = async (
+    sessionToken: string,
+    otherUserId: string,
+  ) => {
+    try {
+      await fetch(`/api/messages/conversations/${otherUserId}/read`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to mark conversation as read:", error);
+      // Don't show error to user as this is non-critical
+    }
+  };
 
   // Load conversation history
   const loadConversation = async (userId: string, sessionToken: string) => {
