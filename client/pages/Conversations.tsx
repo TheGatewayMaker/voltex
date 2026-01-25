@@ -37,6 +37,8 @@ export default function Conversations() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchTimestampRef = useRef<number>(0);
 
   // Check authentication status and fetch user profile
   useEffect(() => {
