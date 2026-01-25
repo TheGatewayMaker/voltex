@@ -15,6 +15,7 @@ import {
   handleCheckUsernameAvailability,
   handleSaveEncryptedKeypair,
   handleGetEncryptedKeypair,
+  handleGetServerTime,
   getSessionFromToken,
 } from "./routes/auth";
 import {
