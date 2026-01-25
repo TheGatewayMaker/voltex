@@ -6,6 +6,11 @@ import {
 } from "../lib/archival-job";
 import { getDatabaseStats } from "../lib/db-messages";
 import { isDatabaseConnected } from "../lib/db";
+import {
+  getConnectedUserCount,
+  getConnectedUserIds,
+  getQueueStats,
+} from "../lib/messaging";
 
 /**
  * GET /api/admin/health
