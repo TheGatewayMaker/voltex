@@ -325,7 +325,7 @@ export function encryptMessage(
     signature,
     senderId: "",
     recipientId: "",
-    timestamp: Date.now(),
+    timestamp: getServerTime(),
   };
 }
 
