@@ -8,6 +8,7 @@ import { toast } from "sonner";
 interface Conversation {
   id: string;
   name: string;
+  username: string;
   avatar: string;
   lastMessage: string;
   timestamp: string;
@@ -93,18 +94,48 @@ export default function Conversations() {
 
       if (response.ok) {
         const data = await response.json();
-        // Convert server data to UI format
-        const conversationList: Conversation[] = data.conversations.map(
-          (conv: any) => ({
-            id: conv.userId,
-            name: conv.userId.substring(0, 8),
-            avatar: conv.userId.substring(0, 2).toUpperCase(),
-            lastMessage: conv.lastMessage || "(No messages)",
-            timestamp: formatTimestamp(conv.timestamp),
-            unread: 0,
-            online: false,
-          }),
-        );
+        // Convert server data to UI format with user profile info
+        const conversationList: Conversation[] = [];
+
+        for (const conv of data.conversations) {
+          try {
+            // Fetch user profile to get display name and username
+            const profileRes = await fetch(`/api/profile/${conv.userId}`);
+            let displayName = "User";
+            let username = conv.userId.substring(0, 8);
+
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              displayName = profileData.displayName || "User";
+              username = profileData.username || conv.userId.substring(0, 8);
+            }
+
+            conversationList.push({
+              id: conv.userId,
+              name: displayName,
+              username: username,
+              avatar: displayName.charAt(0).toUpperCase(),
+              lastMessage: conv.lastMessage || "(No messages)",
+              timestamp: formatTimestamp(conv.timestamp),
+              unread: 0,
+              online: false,
+            });
+          } catch (error) {
+            console.error(`Failed to load profile for ${conv.userId}:`, error);
+            // Fallback to using user ID if profile fetch fails
+            conversationList.push({
+              id: conv.userId,
+              name: "User",
+              username: conv.userId.substring(0, 8),
+              avatar: conv.userId.substring(0, 2).toUpperCase(),
+              lastMessage: conv.lastMessage || "(No messages)",
+              timestamp: formatTimestamp(conv.timestamp),
+              unread: 0,
+              online: false,
+            });
+          }
+        }
+
         setConversations(conversationList);
       }
     } catch (error) {
@@ -296,14 +327,19 @@ export default function Conversations() {
                 {/* Conversation Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <h3 className="font-semibold text-foreground truncate text-sm md:text-base">
-                      {conversation.name}
-                    </h3>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate text-sm md:text-base">
+                        {conversation.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        @{conversation.username}
+                      </p>
+                    </div>
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
                       {conversation.timestamp}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 mt-1">
                     <p className="text-muted-foreground text-xs md:text-sm truncate">
                       {conversation.lastMessage}
                     </p>
