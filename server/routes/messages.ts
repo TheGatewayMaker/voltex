@@ -558,7 +558,15 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
       // Continue anyway, message is already removed from memory and DB
     }
 
-    return res.status(200).json({ success: true, deleted: true });
+    // Notify the recipient about the deletion via WebSocket (if connected)
+    notifyMessageDeletion(recipientId, messageId, session.userId);
+
+    return res.status(200).json({
+      success: true,
+      deleted: true,
+      messageId,
+      recipientId,
+    });
   } catch (error) {
     console.error("Delete message error:", error);
     return res.status(500).json({ error: "Failed to delete message" });
