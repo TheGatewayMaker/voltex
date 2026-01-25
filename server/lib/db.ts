@@ -123,9 +123,11 @@ async function createTables(): Promise<void> {
   try {
     await pool.query(createMessagesTable);
     await pool.query(createConversationsTable);
-    console.log("Tables created successfully");
+    // Run alter table to add last_read column if it doesn't exist
+    await pool.query(alterConversationsTable);
+    console.log("Tables created/updated successfully");
   } catch (error) {
-    console.error("Failed to create tables:", error);
+    console.error("Failed to create/update tables:", error);
     throw error;
   }
 }
