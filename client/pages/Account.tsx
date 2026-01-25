@@ -233,7 +233,7 @@ export default function Account() {
             <div className="space-y-3 sm:space-y-5">
               {/* Display Name */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   Name
                 </label>
                 <input
@@ -242,16 +242,16 @@ export default function Account() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Add a display name"
                   maxLength={50}
-                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm sm:text-base"
                 />
-                <p className="text-xs text-muted-foreground mt-1.5">
+                <p className="text-xs text-muted-foreground mt-1">
                   {displayName.length}/50 characters
                 </p>
               </div>
 
               {/* Bio */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   About
                 </label>
                 <textarea
@@ -259,20 +259,20 @@ export default function Account() {
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell others about yourself"
                   maxLength={200}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none transition-all"
+                  rows={3}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none transition-all text-sm sm:text-base"
                 />
-                <p className="text-xs text-muted-foreground mt-1.5">
+                <p className="text-xs text-muted-foreground mt-1">
                   {bio.length}/200 characters
                 </p>
               </div>
 
               {/* Account Created Date */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   Account Created
                 </label>
-                <div className="px-4 py-3 bg-secondary border border-border text-foreground rounded-lg text-sm">
+                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground rounded-lg text-xs sm:text-sm">
                   {profile.createdAt
                     ? new Date(profile.createdAt).toLocaleDateString("en-US", {
                         year: "numeric",
