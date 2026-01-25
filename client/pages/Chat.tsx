@@ -9,6 +9,7 @@ import {
   decryptMessage,
   bytesToBase64,
 } from "@/lib/crypto";
+import { getServerTime } from "@/lib/serverTime";
 import { EncryptedMessage, DecryptedMessage } from "@shared/crypto";
 import { toast } from "sonner";
 
@@ -45,6 +46,9 @@ export default function Chat() {
   const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(
     null,
   );
+  const [currentUserShowTimestamps, setCurrentUserShowTimestamps] =
+    useState(true);
+  const [recipientShowTimestamps, setRecipientShowTimestamps] = useState(true);
   const lastFetchTimestampRef = useRef<number>(0);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -94,8 +98,28 @@ export default function Chat() {
 
       setCurrentUserId(userId);
       loadConversation(userId, sessionToken);
+      // Mark conversation as read
+      markConversationAsRead(sessionToken, recipientId);
     });
   }, [recipientId, navigate]);
+
+  // Mark conversation as read
+  const markConversationAsRead = async (
+    sessionToken: string,
+    otherUserId: string,
+  ) => {
+    try {
+      await fetch(`/api/messages/conversations/${otherUserId}/read`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to mark conversation as read:", error);
+      // Don't show error to user as this is non-critical
+    }
+  };
 
   // Load conversation history
   const loadConversation = async (userId: string, sessionToken: string) => {
@@ -114,17 +138,33 @@ export default function Chat() {
         pubKeyData.signPublicKey || pubKeyData.publicKey,
       );
 
-      // Get recipient's display name and username
+      // Get recipient's display name, username, and settings
       try {
         const profileRes = await fetch(`/api/profile/${recipientId}`);
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setRecipientName(profileData.displayName || "User");
+          setRecipientShowTimestamps(profileData.showTimestamps ?? true);
         } else {
           setRecipientName("User");
         }
       } catch {
         setRecipientName("User");
+      }
+
+      // Get current user's settings
+      try {
+        const meRes = await fetch("/api/profile/me", {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setCurrentUserShowTimestamps(meData.showTimestamps ?? true);
+        }
+      } catch {
+        // Use default
       }
 
       // Get conversation history
@@ -765,7 +805,7 @@ export default function Chat() {
     return userId.substring(0, 2).toUpperCase();
   };
 
-  // Helper to format time with date and 12-hour format
+  // Helper to format time with date and 12-hour format using server time
   const formatTime = (timestamp: number | undefined | null) => {
     // Validate timestamp
     if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
@@ -779,7 +819,8 @@ export default function Chat() {
       return "Invalid time";
     }
 
-    const now = new Date();
+    // Use server time for "now" to be consistent with server-based timestamps
+    const now = new Date(getServerTime());
 
     // Format time in 12-hour format with AM/PM
     const timeString = date.toLocaleTimeString("en-US", {
@@ -788,7 +829,7 @@ export default function Chat() {
       hour12: true, // Explicitly use 12-hour format
     });
 
-    // Check if message is from today
+    // Check if message is from today (using server time for comparison)
     if (date.toDateString() === now.toDateString()) {
       return timeString; // Just show time for today (e.g., "2:34 PM")
     }
@@ -1050,9 +1091,17 @@ export default function Chat() {
                   )}
 
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {formatTime(message.timestamp)}
-                    </span>
+                    {/* Show timestamp only if sender has timestamps enabled */}
+                    {message.isOwn && currentUserShowTimestamps && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatTime(message.timestamp)}
+                      </span>
+                    )}
+                    {!message.isOwn && recipientShowTimestamps && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatTime(message.timestamp)}
+                      </span>
+                    )}
                     {message.isOwn && message.status && (
                       <span className="text-xs text-muted-foreground">
                         {message.status === "sent" && "✓"}

@@ -15,6 +15,7 @@ import {
   handleCheckUsernameAvailability,
   handleSaveEncryptedKeypair,
   handleGetEncryptedKeypair,
+  handleGetServerTime,
   getSessionFromToken,
 } from "./routes/auth";
 import {
@@ -23,6 +24,7 @@ import {
   handleGetConversations,
   handleDeleteConversation,
   handleDeleteMessage,
+  handleMarkConversationAsRead,
 } from "./routes/messages";
 import {
   handleGetProfile,
@@ -127,6 +129,7 @@ export async function createServer(): Promise<{
   );
   app.get("/api/auth/verify-session", handleVerifySession);
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
+  app.get("/api/auth/server-time", handleGetServerTime);
   app.post(
     "/api/auth/recover",
     createRateLimiter(RATE_LIMITS.AUTH),
@@ -164,6 +167,10 @@ export async function createServer(): Promise<{
   app.delete(
     "/api/messages/conversation/:recipientId",
     handleDeleteConversation,
+  );
+  app.put(
+    "/api/messages/conversations/:recipientId/read",
+    handleMarkConversationAsRead,
   );
   app.delete("/api/messages/message", handleDeleteMessage);
 

@@ -5,6 +5,7 @@ import {
   DecryptedMessage,
   MnemonicData,
 } from "@shared/crypto";
+import { getServerTime } from "./serverTime";
 
 // Simple word list for mnemonic generation (subset of BIP39 words)
 const MNEMONIC_WORDS = [
@@ -324,7 +325,7 @@ export function encryptMessage(
     signature,
     senderId: "",
     recipientId: "",
-    timestamp: Date.now(),
+    timestamp: getServerTime(),
   };
 }
 

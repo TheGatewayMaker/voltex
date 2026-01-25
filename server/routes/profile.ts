@@ -134,6 +134,7 @@ export const handleGetPublicProfile: RequestHandler = async (req, res) => {
       displayName: profile.displayName || "User",
       bio: profile.bio || "",
       avatar: profile.avatar || null,
+      showTimestamps: profile.showTimestamps ?? true,
     });
   } catch (error) {
     console.error("Get public profile error:", error);
@@ -215,7 +216,7 @@ export const handleUpdateSettings: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid or expired session" });
     }
 
-    const { notifications, theme, privacy } = req.body;
+    const { notifications, privacy, showTimestamps } = req.body;
 
     // Get existing profile
     let profile = await getUserProfile(session.userId);
@@ -229,8 +230,8 @@ export const handleUpdateSettings: RequestHandler = async (req, res) => {
 
     // Update settings
     if (notifications !== undefined) profile.notifications = notifications;
-    if (theme !== undefined) profile.theme = theme;
     if (privacy !== undefined) profile.privacy = privacy;
+    if (showTimestamps !== undefined) profile.showTimestamps = showTimestamps;
 
     // Save to R2
     await saveUserProfile(session.userId, profile);

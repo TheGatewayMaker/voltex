@@ -209,15 +209,15 @@ export default function Account() {
       showProfileMenu={false}
     >
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-6 md:px-6 md:py-8">
+        <div className="max-w-2xl mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
           {/* Profile Header */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2 break-words">
                   {displayName || "Your Account"}
                 </h1>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-xs sm:text-sm">
                   Manage your profile and security settings
                 </p>
               </div>
@@ -225,15 +225,15 @@ export default function Account() {
           </div>
 
           {/* Profile Information Section */}
-          <div className="bg-card border border-border rounded-xl p-6 mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-5">
+          <div className="bg-card border border-border rounded-lg sm:rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-5">
               Profile Information
             </h2>
 
-            <div className="space-y-5">
+            <div className="space-y-3 sm:space-y-5">
               {/* Display Name */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   Name
                 </label>
                 <input
@@ -242,16 +242,16 @@ export default function Account() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Add a display name"
                   maxLength={50}
-                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm sm:text-base"
                 />
-                <p className="text-xs text-muted-foreground mt-1.5">
+                <p className="text-xs text-muted-foreground mt-1">
                   {displayName.length}/50 characters
                 </p>
               </div>
 
               {/* Bio */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   About
                 </label>
                 <textarea
@@ -259,20 +259,20 @@ export default function Account() {
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell others about yourself"
                   maxLength={200}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none transition-all"
+                  rows={3}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none transition-all text-sm sm:text-base"
                 />
-                <p className="text-xs text-muted-foreground mt-1.5">
+                <p className="text-xs text-muted-foreground mt-1">
                   {bio.length}/200 characters
                 </p>
               </div>
 
               {/* Account Created Date */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   Account Created
                 </label>
-                <div className="px-4 py-3 bg-secondary border border-border text-foreground rounded-lg text-sm">
+                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground rounded-lg text-xs sm:text-sm">
                   {profile.createdAt
                     ? new Date(profile.createdAt).toLocaleDateString("en-US", {
                         year: "numeric",
@@ -288,7 +288,7 @@ export default function Account() {
             <button
               onClick={handleSaveProfile}
               disabled={isSaving}
-              className="w-full mt-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-4 sm:mt-6 py-2.5 sm:py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               {isSaving ? (
                 <>
@@ -325,45 +325,45 @@ export default function Account() {
           </div>
 
           {/* Account Identification Section */}
-          <div className="bg-card border border-border rounded-xl p-6 mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-5">
+          <div className="bg-card border border-border rounded-lg sm:rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-5">
               Account Identification
             </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* User ID with Toggle */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   User ID
                 </label>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-1 sm:gap-2 items-center">
                   <input
                     type={showUserId ? "text" : "password"}
                     value={profile.userId}
                     readOnly
-                    className="flex-1 px-4 py-3 bg-secondary border border-border text-foreground rounded-lg font-mono text-sm"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground rounded-lg font-mono text-xs sm:text-sm"
                   />
                   <button
                     onClick={() => setShowUserId(!showUserId)}
-                    className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+                    className="p-1.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
                     title={showUserId ? "Hide ID" : "Show ID"}
                   >
                     {showUserId ? (
-                      <EyeOff className="w-5 h-5 text-muted-foreground" />
+                      <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     ) : (
-                      <Eye className="w-5 h-5 text-muted-foreground" />
+                      <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     )}
                   </button>
                   <button
                     onClick={() => copyToClipboard(profile.userId, "User ID")}
-                    className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+                    className="p-1.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
                     title="Copy to clipboard"
                   >
                     {copiedField === "User ID" ? (
-                      <Check className="w-5 h-5 text-green-500" />
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                     ) : (
                       <svg
-                        className="w-5 h-5"
+                        className="w-4 h-4 sm:w-5 sm:h-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -378,7 +378,7 @@ export default function Account() {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-1">
                   Your unique account identifier
                 </p>
               </div>
@@ -386,11 +386,11 @@ export default function Account() {
           </div>
 
           {/* Security Notice */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-blue-600 mb-1">
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="flex gap-2 sm:gap-3">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-semibold text-blue-600 mb-1">
                   End-to-End Encrypted
                 </p>
                 <p className="text-xs text-blue-600/90">
@@ -403,13 +403,13 @@ export default function Account() {
           </div>
 
           {/* Danger Zone */}
-          <div className="border-t border-border pt-6 mt-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
+          <div className="border-t border-border pt-4 sm:pt-6 mt-4 sm:mt-6">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">
               Danger Zone
             </h2>
             <button
               onClick={handleLogout}
-              className="w-full py-3 bg-destructive/10 text-destructive hover:bg-destructive/20 font-semibold rounded-lg transition-all border border-destructive/30 flex items-center justify-center gap-2"
+              className="w-full py-2.5 sm:py-3 bg-destructive/10 text-destructive hover:bg-destructive/20 font-semibold rounded-lg transition-all border border-destructive/30 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <LogOut className="w-4 h-4" />
               Sign Out

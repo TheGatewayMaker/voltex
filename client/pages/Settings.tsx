@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Moon, Shield } from "lucide-react";
+import { Bell, Shield } from "lucide-react";
 import Layout from "@/components/Layout";
 import { toast } from "sonner";
 
 interface UserSettings {
   notifications?: boolean;
-  theme?: "light" | "dark" | "system";
   privacy?: string;
+  showTimestamps?: boolean;
 }
 
 export default function Settings() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<UserSettings>({
     notifications: true,
-    theme: "system",
     privacy: "public",
+    showTimestamps: true,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -50,8 +50,8 @@ export default function Settings() {
       const data = await response.json();
       setSettings({
         notifications: data.notifications ?? true,
-        theme: data.theme ?? "system",
         privacy: data.privacy ?? "public",
+        showTimestamps: data.showTimestamps ?? true,
       });
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -132,33 +132,33 @@ export default function Settings() {
       showProfileMenu={false}
     >
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-6 md:px-6 md:py-8">
+        <div className="max-w-2xl mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
           {/* Settings Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2">
               Settings
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-xs sm:text-sm">
               Customize your Voltex experience
             </p>
           </div>
 
           {/* Notifications Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex gap-3">
-                <Bell className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">
+          <div className="bg-card border border-border rounded-lg sm:rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-2 sm:gap-3 min-w-0">
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">
                     Notifications
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                     Receive notifications for new messages
                   </p>
                 </div>
               </div>
 
-              <label className="flex items-center cursor-pointer">
+              <label className="flex items-center cursor-pointer flex-shrink-0">
                 <input
                   type="checkbox"
                   checked={settings.notifications ?? true}
@@ -168,70 +168,27 @@ export default function Settings() {
                       notifications: e.target.checked,
                     })
                   }
-                  className="w-5 h-5 rounded"
+                  className="w-4 h-4 sm:w-5 sm:h-5 rounded"
                 />
               </label>
             </div>
           </div>
 
-          {/* Theme Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <div className="flex items-start gap-3 mb-4">
-              <Moon className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Theme</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Choose your preferred color theme
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              {[
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
-                { value: "system", label: "System" },
-              ].map((option) => (
-                <label
-                  key={option.value}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <input
-                    type="radio"
-                    name="theme"
-                    value={option.value}
-                    checked={settings.theme === option.value}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        theme: e.target.value as "light" | "dark" | "system",
-                      })
-                    }
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm text-foreground">
-                    {option.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           {/* Privacy Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <div className="flex items-start gap-3 mb-4">
-              <Shield className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">
+          <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground">
                   Privacy
                 </h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                   Control who can see your profile
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:gap-3">
               {[
                 {
                   value: "public",
@@ -251,7 +208,7 @@ export default function Settings() {
               ].map((option) => (
                 <label
                   key={option.value}
-                  className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors"
+                  className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 border border-border rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors"
                 >
                   <input
                     type="radio"
@@ -264,10 +221,10 @@ export default function Settings() {
                         privacy: e.target.value,
                       })
                     }
-                    className="w-4 h-4 mt-1 flex-shrink-0"
+                    className="w-4 h-4 mt-0.5 flex-shrink-0"
                   />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-foreground">
                       {option.label}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -276,6 +233,35 @@ export default function Settings() {
                   </div>
                 </label>
               ))}
+
+              {/* Show timestamps for messages toggle */}
+              <div className="p-2.5 sm:p-3 border border-border rounded-lg bg-secondary/30">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-foreground">
+                      Show timestamps for messages
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {settings.showTimestamps
+                        ? "Recipients will see date and time under your messages"
+                        : "Recipients will not see timestamps for your messages"}
+                    </p>
+                  </div>
+                  <label className="flex items-center cursor-pointer flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={settings.showTimestamps ?? true}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          showTimestamps: e.target.checked,
+                        })
+                      }
+                      className="w-4 h-4 sm:w-5 sm:h-5 rounded"
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -283,7 +269,7 @@ export default function Settings() {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2.5 sm:py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             {isSaving ? (
               <span className="flex items-center justify-center gap-2">

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Lock, Search, X, RefreshCw } from "lucide-react";
 import { useWebSocket } from "@/lib/useWebSocket";
+import { getServerTime } from "@/lib/serverTime";
 import { toast } from "sonner";
 
 interface Conversation {
@@ -14,6 +15,7 @@ interface Conversation {
   timestamp: string;
   unread: number;
   online: boolean;
+  unreadCount?: number;
 }
 
 interface SearchResult {
@@ -136,7 +138,8 @@ export default function Conversations() {
               avatar: displayName.charAt(0).toUpperCase(),
               lastMessage: conv.lastMessage || "(No messages)",
               timestamp: formatTimestamp(conv.timestamp),
-              unread: 0,
+              unread: conv.unread || 0,
+              unreadCount: conv.unread || 0,
               online: false,
             });
           } catch (error) {
@@ -149,7 +152,8 @@ export default function Conversations() {
               avatar: conv.userId.substring(0, 2).toUpperCase(),
               lastMessage: conv.lastMessage || "(No messages)",
               timestamp: formatTimestamp(conv.timestamp),
-              unread: 0,
+              unread: conv.unread || 0,
+              unreadCount: conv.unread || 0,
               online: false,
             });
           }
@@ -164,7 +168,7 @@ export default function Conversations() {
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
-    const now = new Date();
+    const now = new Date(getServerTime());
 
     if (date.toDateString() === now.toDateString()) {
       return date.toLocaleTimeString("en-US", {
@@ -362,11 +366,12 @@ export default function Conversations() {
                     <p className="text-muted-foreground text-xs md:text-sm truncate">
                       {conversation.lastMessage}
                     </p>
-                    {conversation.unread > 0 && (
-                      <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-primary text-white rounded-full flex items-center justify-center text-xs font-semibold">
-                        {conversation.unread}
-                      </div>
-                    )}
+                    {conversation.unreadCount &&
+                      conversation.unreadCount > 0 && (
+                        <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                          {conversation.unreadCount}
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>

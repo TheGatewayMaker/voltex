@@ -21,7 +21,12 @@ export interface UserAccount {
   publicKey: string; // base64-encoded (box public key)
   signPublicKey?: string; // base64-encoded (sign public key for message authentication)
   username?: string; // Optional username for user lookup
+  displayName?: string;
+  bio?: string;
   createdAt: number;
+  notifications?: boolean;
+  privacy?: string;
+  showTimestamps?: boolean; // Whether to show timestamps in messages
 }
 
 export interface AuthChallenge {

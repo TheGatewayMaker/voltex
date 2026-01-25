@@ -25,6 +25,8 @@ import {
   deleteMessageFromDB,
   deleteConversationFromDB,
   isDatabaseConnected,
+  markConversationAsRead,
+  getUnreadCount,
 } from "../lib/db-messages";
 
 /**
@@ -438,11 +440,23 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
     }
 
     // Convert to API response format
-    const conversations = Array.from(userConversations.entries()).map(
-      ([userId, data]) => ({
-        userId,
-        lastMessage: data.lastMessage.ciphertext.substring(0, 50),
-        timestamp: data.timestamp,
+    const conversations = await Promise.all(
+      Array.from(userConversations.entries()).map(async ([userId, data]) => {
+        let unreadCount = 0;
+        if (isDatabaseConnected()) {
+          try {
+            unreadCount = await getUnreadCount(session.userId, userId);
+          } catch (error) {
+            console.error(`Failed to get unread count for ${userId}:`, error);
+          }
+        }
+
+        return {
+          userId,
+          lastMessage: data.lastMessage.ciphertext.substring(0, 50),
+          timestamp: data.timestamp,
+          unread: unreadCount,
+        };
       }),
     );
 
@@ -572,5 +586,44 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Delete message error:", error);
     return res.status(500).json({ error: "Failed to delete message" });
+  }
+};
+
+/**
+ * PUT /api/messages/conversations/:recipientId/read
+ * Mark conversation as read
+ */
+export const handleMarkConversationAsRead: RequestHandler = async (
+  req,
+  res,
+) => {
+  try {
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!sessionToken) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const session = await getSessionFromToken(sessionToken);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const { recipientId } = req.params;
+    if (!recipientId) {
+      return res.status(400).json({ error: "Missing recipientId" });
+    }
+
+    // Mark conversation as read in database
+    await markConversationAsRead(session.userId, recipientId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Conversation marked as read",
+    });
+  } catch (error) {
+    console.error("Mark conversation as read error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to mark conversation as read" });
   }
 };

@@ -98,6 +98,7 @@ async function createTables(): Promise<void> {
       other_user_id VARCHAR(255) NOT NULL,
       last_message_timestamp BIGINT NOT NULL,
       last_message_preview VARCHAR(100),
+      last_read BIGINT DEFAULT 0,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -113,12 +114,20 @@ async function createTables(): Promise<void> {
     ON conversations(user_id, updated_at DESC);
   `;
 
+  // Alter table to add last_read column if it doesn't exist
+  const alterConversationsTable = `
+    ALTER TABLE conversations
+    ADD COLUMN IF NOT EXISTS last_read BIGINT DEFAULT 0;
+  `;
+
   try {
     await pool.query(createMessagesTable);
     await pool.query(createConversationsTable);
-    console.log("Tables created successfully");
+    // Run alter table to add last_read column if it doesn't exist
+    await pool.query(alterConversationsTable);
+    console.log("Tables created/updated successfully");
   } catch (error) {
-    console.error("Failed to create tables:", error);
+    console.error("Failed to create/update tables:", error);
     throw error;
   }
 }
