@@ -444,6 +444,28 @@ export default function Chat() {
     [],
   );
 
+  const handleWebSocketDeletion = useCallback(
+    (messageId: string, deletedBy: string) => {
+      console.log(
+        `Received deletion notification for message ${messageId} deleted by ${deletedBy}`,
+      );
+      // Remove the message from local state
+      setMessages((prev) => {
+        const updated = prev.filter((m) => m.id !== messageId);
+        if (updated.length < prev.length) {
+          console.log(`Message ${messageId} removed from local state`);
+          toast.info("A message was deleted by the sender");
+        }
+        return updated;
+      });
+      // Deselect if this message was selected
+      if (selectedMessageId === messageId) {
+        setSelectedMessageId(null);
+      }
+    },
+    [selectedMessageId],
+  );
+
   const handleWebSocketError = useCallback((error: string) => {
     console.error("WebSocket error:", error);
     toast.error("Connection error: " + error);
