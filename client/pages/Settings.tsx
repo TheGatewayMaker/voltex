@@ -14,8 +14,8 @@ export default function Settings() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<UserSettings>({
     notifications: true,
-    theme: "system",
     privacy: "public",
+    showTimestamps: true,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
