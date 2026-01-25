@@ -248,8 +248,36 @@ export default function Chat() {
 
         // Get sender's public keys for decryption
         // For messages from other user, use their box and sign public keys
-        const senderBoxPublicKey = recipientPublicKey;
-        const senderSignPublicKey = recipientSignPublicKey;
+        let senderBoxPublicKey = recipientPublicKey;
+        let senderSignPublicKey = recipientSignPublicKey;
+
+        // If public keys haven't been loaded yet, fetch them now
+        // This handles the race condition where messages arrive before keys are fetched
+        if (!senderBoxPublicKey && recipientId) {
+          try {
+            console.log(
+              "Public keys not yet loaded, fetching for decryption...",
+            );
+            const pubKeyRes = await fetch(
+              `/api/auth/public-key/${recipientId}`,
+            );
+            if (pubKeyRes.ok) {
+              const pubKeyData = await pubKeyRes.json();
+              senderBoxPublicKey = pubKeyData.publicKey;
+              senderSignPublicKey =
+                pubKeyData.signPublicKey || pubKeyData.publicKey;
+              // Update state so future messages don't need to re-fetch
+              setRecipientPublicKey(pubKeyData.publicKey);
+              setRecipientSignPublicKey(
+                pubKeyData.signPublicKey || pubKeyData.publicKey,
+              );
+              console.log("Successfully fetched public keys for decryption");
+            }
+          } catch (error) {
+            console.error("Failed to fetch public keys for decryption:", error);
+            return;
+          }
+        }
 
         if (!senderBoxPublicKey) {
           console.error("No sender box public key available for decryption");
