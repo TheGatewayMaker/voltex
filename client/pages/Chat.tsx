@@ -232,11 +232,6 @@ export default function Chat() {
       const sessionToken = localStorage.getItem("session_token");
       if (!sessionToken || !recipientId || !currentUserId) return;
 
-      // Only fetch messages newer than the last one we have
-      const lastMessageTimestamp = messages.length > 0
-        ? messages[messages.length - 1].timestamp
-        : lastFetchTimestamp;
-
       const historyRes = await fetch(
         `/api/messages/conversation/${recipientId}?limit=100&offset=0`,
         {
@@ -258,8 +253,8 @@ export default function Chat() {
 
       // Process new messages
       for (const encMsg of historyData.messages) {
-        // Skip messages we already have
-        if (encMsg.timestamp <= lastMessageTimestamp) continue;
+        // Skip messages we already have (using ref to track last timestamp)
+        if (encMsg.timestamp <= lastFetchTimestampRef.current) continue;
 
         try {
           const senderBoxPublicKey = encMsg.senderId === currentUserId
@@ -294,7 +289,11 @@ export default function Chat() {
               return [...prev, newMessage];
             });
 
-            setLastFetchTimestamp(Math.max(lastFetchTimestamp, encMsg.timestamp));
+            // Update ref to track the latest timestamp we've seen
+            lastFetchTimestampRef.current = Math.max(
+              lastFetchTimestampRef.current,
+              encMsg.timestamp,
+            );
           }
         } catch (error) {
           console.error("Polling: Error decrypting message:", error);
@@ -303,7 +302,7 @@ export default function Chat() {
     } catch (error) {
       console.error("Polling error:", error);
     }
-  }, [recipientId, currentUserId, messages, lastFetchTimestamp, recipientPublicKey, recipientSignPublicKey]);
+  }, [recipientId, currentUserId, recipientPublicKey, recipientSignPublicKey]);
 
   // WebSocket callbacks - memoized to prevent reconnection loops
   const handleWebSocketMessage = useCallback(
