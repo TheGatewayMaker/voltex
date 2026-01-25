@@ -622,6 +622,8 @@ export const handleMarkConversationAsRead: RequestHandler = async (
     });
   } catch (error) {
     console.error("Mark conversation as read error:", error);
-    return res.status(500).json({ error: "Failed to mark conversation as read" });
+    return res
+      .status(500)
+      .json({ error: "Failed to mark conversation as read" });
   }
 };

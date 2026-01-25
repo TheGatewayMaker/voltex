@@ -48,8 +48,7 @@ export default function Chat() {
   );
   const [currentUserShowTimestamps, setCurrentUserShowTimestamps] =
     useState(true);
-  const [recipientShowTimestamps, setRecipientShowTimestamps] =
-    useState(true);
+  const [recipientShowTimestamps, setRecipientShowTimestamps] = useState(true);
   const lastFetchTimestampRef = useRef<number>(0);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
