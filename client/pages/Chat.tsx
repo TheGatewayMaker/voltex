@@ -390,19 +390,31 @@ export default function Chat() {
         );
 
         if (decrypted) {
+          // Use senderId + timestamp for unique message ID (consistent across sources)
+          // This is crucial for deduplication across polling + WebSocket
+          const messageId = `${encryptedMessage.timestamp}-${encryptedMessage.senderId}`;
           const newMessage: ChatMessage = {
             ...decrypted,
-            id: `${encryptedMessage.timestamp}-${encryptedMessage.senderId}`,
+            id: messageId,
             isOwn: false, // Always false since we filtered out own messages
           };
 
           setMessages((prev) => {
-            // Avoid duplicates
-            if (prev.some((m) => m.id === newMessage.id)) {
+            // Check for exact duplicate by message ID
+            const isDuplicate = prev.some((m) => m.id === messageId);
+            if (isDuplicate) {
+              console.log(`Skipping duplicate message ${messageId} from WebSocket`);
               return prev;
             }
+            console.log(`Adding new message ${messageId} from WebSocket`);
             return [...prev, newMessage];
           });
+
+          // Update last fetch timestamp to prevent polling from re-adding this message
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            encryptedMessage.timestamp,
+          );
         } else {
           console.error(
             `Failed to decrypt WebSocket message from ${encryptedMessage.senderId}`,
@@ -412,7 +424,7 @@ export default function Chat() {
         console.error("WebSocket message processing error:", error);
       }
     },
-    [recipientId, currentUserId, recipientPublicKey],
+    [recipientId, currentUserId, recipientPublicKey, recipientSignPublicKey],
   );
 
   const handleWebSocketAck = useCallback(
