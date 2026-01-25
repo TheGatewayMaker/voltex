@@ -587,19 +587,31 @@ export default function Chat() {
     return userId.substring(0, 2).toUpperCase();
   };
 
-  // Helper to format time
+  // Helper to format time with date and 12-hour format
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     const now = new Date();
 
+    // Format time in 12-hour format with AM/PM
+    const timeString = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true, // Explicitly use 12-hour format
+    });
+
+    // Check if message is from today
     if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return timeString; // Just show time for today (e.g., "2:34 PM")
     }
 
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    // For past messages, show date and time together in compact format
+    const dateString = date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
+    });
+
+    return `${dateString} ${timeString}`; // e.g., "Jan 3 2:34 PM"
   };
 
   // Delete message handler
