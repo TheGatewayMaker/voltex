@@ -330,11 +330,17 @@ export async function createServer(): Promise<{
             // Generate unique message ID
             const messageId = uuidv4();
 
-            // Try to store in PostgreSQL first (if available)
+            // Store in both PostgreSQL and R2 in PARALLEL for speed
+            // Don't wait for one to complete before starting the other
             let dbStorageSuccess = false;
+            let r2StorageSuccess = false;
+
+            const storagePromises: Promise<any>[] = [];
+
+            // Parallel storage in PostgreSQL (if available)
             if (isDatabaseConnected()) {
-              try {
-                dbStorageSuccess = await storeMessageInDB(
+              storagePromises.push(
+                storeMessageInDB(
                   messageId,
                   userId,
                   encryptedMessage.recipientId,
@@ -344,22 +350,28 @@ export async function createServer(): Promise<{
                     signature: encryptedMessage.signature,
                     timestamp: encryptedMessage.timestamp,
                   },
-                );
-                console.log(
-                  `[WS] Message ${messageId} stored in PostgreSQL for ${userId} -> ${encryptedMessage.recipientId}`,
-                );
-              } catch (dbError) {
-                console.error(
-                  `[WS] Failed to store message ${messageId} in PostgreSQL:`,
-                  dbError,
-                );
-              }
+                )
+                  .then((success) => {
+                    dbStorageSuccess = success;
+                    if (success) {
+                      console.log(
+                        `[WS] Message ${messageId} stored in PostgreSQL for ${userId} -> ${encryptedMessage.recipientId}`,
+                      );
+                    }
+                    return success;
+                  })
+                  .catch((dbError) => {
+                    console.error(
+                      `[WS] Failed to store message ${messageId} in PostgreSQL:`,
+                      dbError,
+                    );
+                  }),
+              );
             }
 
-            // Store message in R2 for persistence (fallback if no DB or for redundancy)
-            let r2StorageSuccess = false;
-            try {
-              await saveMessageWithMetadata(
+            // Parallel storage in R2 for persistence
+            storagePromises.push(
+              saveMessageWithMetadata(
                 messageId,
                 userId,
                 encryptedMessage.recipientId,
@@ -369,17 +381,24 @@ export async function createServer(): Promise<{
                   signature: encryptedMessage.signature,
                   timestamp: encryptedMessage.timestamp,
                 },
-              );
-              console.log(
-                `[WS] Message ${messageId} stored in R2 for ${userId} -> ${encryptedMessage.recipientId}`,
-              );
-              r2StorageSuccess = true;
-            } catch (r2Error) {
-              console.error(
-                `[WS] Failed to store message ${messageId} in R2:`,
-                r2Error,
-              );
-              // Continue anyway, message is in memory and possibly in DB
+              )
+                .then(() => {
+                  console.log(
+                    `[WS] Message ${messageId} stored in R2 for ${userId} -> ${encryptedMessage.recipientId}`,
+                  );
+                  r2StorageSuccess = true;
+                })
+                .catch((r2Error) => {
+                  console.error(
+                    `[WS] Failed to store message ${messageId} in R2:`,
+                    r2Error,
+                  );
+                }),
+            );
+
+            // Wait for all storage operations to complete (in parallel)
+            if (storagePromises.length > 0) {
+              await Promise.all(storagePromises);
             }
 
             // Deliver message to recipient
