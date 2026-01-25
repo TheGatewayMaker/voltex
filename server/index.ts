@@ -129,6 +129,7 @@ export async function createServer(): Promise<{
   );
   app.get("/api/auth/verify-session", handleVerifySession);
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
+  app.get("/api/auth/server-time", handleGetServerTime);
   app.post(
     "/api/auth/recover",
     createRateLimiter(RATE_LIMITS.AUTH),
