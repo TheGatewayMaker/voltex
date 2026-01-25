@@ -333,37 +333,37 @@ export default function Account() {
             <div className="space-y-3 sm:space-y-4">
               {/* User ID with Toggle */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
                   User ID
                 </label>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-1 sm:gap-2 items-center">
                   <input
                     type={showUserId ? "text" : "password"}
                     value={profile.userId}
                     readOnly
-                    className="flex-1 px-4 py-3 bg-secondary border border-border text-foreground rounded-lg font-mono text-sm"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-secondary border border-border text-foreground rounded-lg font-mono text-xs sm:text-sm"
                   />
                   <button
                     onClick={() => setShowUserId(!showUserId)}
-                    className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+                    className="p-1.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
                     title={showUserId ? "Hide ID" : "Show ID"}
                   >
                     {showUserId ? (
-                      <EyeOff className="w-5 h-5 text-muted-foreground" />
+                      <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     ) : (
-                      <Eye className="w-5 h-5 text-muted-foreground" />
+                      <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     )}
                   </button>
                   <button
                     onClick={() => copyToClipboard(profile.userId, "User ID")}
-                    className="p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
+                    className="p-1.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors flex-shrink-0"
                     title="Copy to clipboard"
                   >
                     {copiedField === "User ID" ? (
-                      <Check className="w-5 h-5 text-green-500" />
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                     ) : (
                       <svg
-                        className="w-5 h-5"
+                        className="w-4 h-4 sm:w-5 sm:h-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -378,7 +378,7 @@ export default function Account() {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-1">
                   Your unique account identifier
                 </p>
               </div>
