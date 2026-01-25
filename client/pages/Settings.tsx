@@ -144,21 +144,21 @@ export default function Settings() {
           </div>
 
           {/* Notifications Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex gap-3">
-                <Bell className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">
+          <div className="bg-card border border-border rounded-lg sm:rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-2 sm:gap-3 min-w-0">
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">
                     Notifications
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                     Receive notifications for new messages
                   </p>
                 </div>
               </div>
 
-              <label className="flex items-center cursor-pointer">
+              <label className="flex items-center cursor-pointer flex-shrink-0">
                 <input
                   type="checkbox"
                   checked={settings.notifications ?? true}
@@ -168,7 +168,7 @@ export default function Settings() {
                       notifications: e.target.checked,
                     })
                   }
-                  className="w-5 h-5 rounded"
+                  className="w-4 h-4 sm:w-5 sm:h-5 rounded"
                 />
               </label>
             </div>
