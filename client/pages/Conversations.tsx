@@ -327,14 +327,19 @@ export default function Conversations() {
                 {/* Conversation Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <h3 className="font-semibold text-foreground truncate text-sm md:text-base">
-                      {conversation.name}
-                    </h3>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate text-sm md:text-base">
+                        {conversation.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        @{conversation.username}
+                      </p>
+                    </div>
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
                       {conversation.timestamp}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 mt-1">
                     <p className="text-muted-foreground text-xs md:text-sm truncate">
                       {conversation.lastMessage}
                     </p>
