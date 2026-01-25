@@ -197,15 +197,17 @@ export const handleSystemStats: RequestHandler = async (req, res) => {
         queuedMessages: queueStats.totalQueuedMessages,
         usersWithQueuedMessages: queueStats.usersWithQueuedMessages,
       },
-      database: dbStats ? {
-        totalMessages: dbStats.total,
-        activeMessages: dbStats.active,
-        archivedMessages: dbStats.archived,
-        connected: true,
-      } : {
-        connected: false,
-        message: "Database not connected",
-      },
+      database: dbStats
+        ? {
+            totalMessages: dbStats.total,
+            activeMessages: dbStats.active,
+            archivedMessages: dbStats.archived,
+            connected: true,
+          }
+        : {
+            connected: false,
+            message: "Database not connected",
+          },
       capacity: {
         maxConnectionPool: 100,
         maxQueuePerUser: 500,

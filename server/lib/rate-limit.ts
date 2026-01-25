@@ -70,7 +70,10 @@ export function createRateLimiter(config: RateLimitConfig): RequestHandler {
     // Set rate limit headers
     const timeRemaining = Math.max(0, limitData.resetTime - now);
     res.set("X-RateLimit-Limit", config.maxRequests.toString());
-    res.set("X-RateLimit-Remaining", Math.max(0, config.maxRequests - limitData.count).toString());
+    res.set(
+      "X-RateLimit-Remaining",
+      Math.max(0, config.maxRequests - limitData.count).toString(),
+    );
     res.set("X-RateLimit-Reset", limitData.resetTime.toString());
 
     // Check if limit exceeded

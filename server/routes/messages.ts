@@ -153,17 +153,12 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // Parallel storage in PostgreSQL (if available)
     if (isDatabaseConnected()) {
       storagePromises.push(
-        storeMessageInDB(
-          messageId,
-          session.userId,
-          recipientId,
-          {
-            nonce,
-            ciphertext,
-            signature,
-            timestamp,
-          },
-        )
+        storeMessageInDB(messageId, session.userId, recipientId, {
+          nonce,
+          ciphertext,
+          signature,
+          timestamp,
+        })
           .then((success) => {
             dbStorageSuccess = success;
             if (success) {
