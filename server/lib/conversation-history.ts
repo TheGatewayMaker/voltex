@@ -32,9 +32,28 @@ export function storeMessage(
   const messages = conversationHistory.get(conversationKey)!;
   messages.push(message);
 
-  // Keep only last 1000 messages per conversation to prevent memory bloat
-  if (messages.length > 1000) {
-    messages.shift();
+  // Keep only last 100 messages per conversation in memory
+  // Messages are persisted in PostgreSQL/R2, so this is just for real-time delivery
+  if (messages.length > 100) {
+    messages.splice(0, messages.length - 100);
+  }
+}
+
+/**
+ * Cleanup older messages from memory after they're persisted
+ * Keeps only the most recent N messages for real-time delivery
+ */
+export function cleanupMessagesAfterPersist(
+  userId1: string,
+  userId2: string,
+  maxMessagesInMemory: number = 50,
+): void {
+  const conversationKey = getConversationKey(userId1, userId2);
+  const messages = conversationHistory.get(conversationKey);
+
+  if (messages && messages.length > maxMessagesInMemory) {
+    // Remove oldest messages, keep only recent ones
+    messages.splice(0, messages.length - maxMessagesInMemory);
   }
 }
 
