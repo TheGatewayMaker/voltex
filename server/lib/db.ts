@@ -98,6 +98,7 @@ async function createTables(): Promise<void> {
       other_user_id VARCHAR(255) NOT NULL,
       last_message_timestamp BIGINT NOT NULL,
       last_message_preview VARCHAR(100),
+      last_read BIGINT DEFAULT 0,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -111,6 +112,12 @@ async function createTables(): Promise<void> {
     -- Index for quick lookup
     CREATE INDEX IF NOT EXISTS idx_conversations_user_id
     ON conversations(user_id, updated_at DESC);
+  `;
+
+  // Alter table to add last_read column if it doesn't exist
+  const alterConversationsTable = `
+    ALTER TABLE conversations
+    ADD COLUMN IF NOT EXISTS last_read BIGINT DEFAULT 0;
   `;
 
   try {
