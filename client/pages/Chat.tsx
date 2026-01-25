@@ -226,6 +226,85 @@ export default function Chat() {
     }
   };
 
+  // Poll for new messages as a fallback to WebSocket
+  const pollForNewMessages = useCallback(async () => {
+    try {
+      const sessionToken = localStorage.getItem("session_token");
+      if (!sessionToken || !recipientId || !currentUserId) return;
+
+      // Only fetch messages newer than the last one we have
+      const lastMessageTimestamp = messages.length > 0
+        ? messages[messages.length - 1].timestamp
+        : lastFetchTimestamp;
+
+      const historyRes = await fetch(
+        `/api/messages/conversation/${recipientId}?limit=100&offset=0`,
+        {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        },
+      );
+
+      if (!historyRes.ok) return;
+
+      const historyData = await historyRes.json();
+      const keyPair = getStoredKeyPair();
+      if (!keyPair) return;
+
+      const currentSignPublicKey = localStorage.getItem(
+        "current_sign_public_key",
+      );
+
+      // Process new messages
+      for (const encMsg of historyData.messages) {
+        // Skip messages we already have
+        if (encMsg.timestamp <= lastMessageTimestamp) continue;
+
+        try {
+          const senderBoxPublicKey = encMsg.senderId === currentUserId
+            ? localStorage.getItem("current_public_key")
+            : recipientPublicKey;
+
+          const senderSignPublicKey = encMsg.senderId === currentUserId
+            ? currentSignPublicKey
+            : recipientSignPublicKey;
+
+          if (!senderBoxPublicKey || !senderSignPublicKey) continue;
+
+          const decrypted = decryptMessage(
+            encMsg,
+            senderBoxPublicKey,
+            keyPair.privateKeyBase64,
+            senderSignPublicKey,
+          );
+
+          if (decrypted) {
+            const newMessage: ChatMessage = {
+              ...decrypted,
+              id: `${encMsg.timestamp}-${encMsg.senderId}`,
+              isOwn: encMsg.senderId === currentUserId,
+            };
+
+            // Add only if not already present
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMessage.id)) {
+                return prev;
+              }
+              return [...prev, newMessage];
+            });
+
+            setLastFetchTimestamp(Math.max(lastFetchTimestamp, encMsg.timestamp));
+          }
+        } catch (error) {
+          console.error("Polling: Error decrypting message:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Polling error:", error);
+    }
+  }, [recipientId, currentUserId, messages, lastFetchTimestamp, recipientPublicKey, recipientSignPublicKey]);
+
   // WebSocket callbacks - memoized to prevent reconnection loops
   const handleWebSocketMessage = useCallback(
     async (encryptedMessage: EncryptedMessage) => {
