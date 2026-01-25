@@ -325,12 +325,12 @@ export default function Account() {
           </div>
 
           {/* Account Identification Section */}
-          <div className="bg-card border border-border rounded-xl p-6 mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-5">
+          <div className="bg-card border border-border rounded-lg sm:rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-5">
               Account Identification
             </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* User ID with Toggle */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
