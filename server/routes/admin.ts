@@ -180,3 +180,43 @@ export const handleArchivalConfig: RequestHandler = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET /api/admin/system-stats
+ * Get real-time system statistics (connected users, queue size, etc)
+ */
+export const handleSystemStats: RequestHandler = async (req, res) => {
+  try {
+    const connectedUserCount = getConnectedUserCount();
+    const queueStats = getQueueStats();
+    const dbStats = isDatabaseConnected() ? await getDatabaseStats() : null;
+
+    res.status(200).json({
+      realtime: {
+        connectedUsers: connectedUserCount,
+        queuedMessages: queueStats.totalQueuedMessages,
+        usersWithQueuedMessages: queueStats.usersWithQueuedMessages,
+      },
+      database: dbStats ? {
+        totalMessages: dbStats.total,
+        activeMessages: dbStats.active,
+        archivedMessages: dbStats.archived,
+        connected: true,
+      } : {
+        connected: false,
+        message: "Database not connected",
+      },
+      capacity: {
+        maxConnectionPool: 100,
+        maxQueuePerUser: 500,
+        totalCapacity: "supports ~1000 concurrent users",
+      },
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error("System stats error:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
