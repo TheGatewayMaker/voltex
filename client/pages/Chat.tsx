@@ -263,7 +263,13 @@ export default function Chat() {
       // Process new messages
       for (const encMsg of historyData.messages) {
         // Skip messages we already have (using ref to track last timestamp)
-        if (encMsg.timestamp <= lastFetchTimestampRef.current) continue;
+        // Use both timestamp AND messageId for more robust deduplication
+        if (encMsg.timestamp <= lastFetchTimestampRef.current) {
+          console.log(
+            `Polling: Skipping old message timestamp=${encMsg.timestamp} (last seen: ${lastFetchTimestampRef.current})`,
+          );
+          continue;
+        }
 
         try {
           const senderBoxPublicKey =
@@ -276,7 +282,12 @@ export default function Chat() {
               ? currentSignPublicKey
               : recipientSignPublicKey;
 
-          if (!senderBoxPublicKey || !senderSignPublicKey) continue;
+          if (!senderBoxPublicKey || !senderSignPublicKey) {
+            console.warn(
+              `Polling: Missing keys for message from ${encMsg.senderId}`,
+            );
+            continue;
+          }
 
           const decrypted = decryptMessage(
             encMsg,
@@ -286,17 +297,22 @@ export default function Chat() {
           );
 
           if (decrypted) {
+            // Use senderId + timestamp for unique message ID
+            const messageId = `${encMsg.timestamp}-${encMsg.senderId}`;
             const newMessage: ChatMessage = {
               ...decrypted,
-              id: `${encMsg.timestamp}-${encMsg.senderId}`,
+              id: messageId,
               isOwn: encMsg.senderId === currentUserId,
             };
 
-            // Add only if not already present
+            // Add only if not already present (by message ID)
             setMessages((prev) => {
-              if (prev.some((m) => m.id === newMessage.id)) {
+              const exists = prev.some((m) => m.id === messageId);
+              if (exists) {
+                console.log(`Polling: Skipping duplicate message ${messageId}`);
                 return prev;
               }
+              console.log(`Polling: Adding new message ${messageId}`);
               return [...prev, newMessage];
             });
 
@@ -304,6 +320,10 @@ export default function Chat() {
             lastFetchTimestampRef.current = Math.max(
               lastFetchTimestampRef.current,
               encMsg.timestamp,
+            );
+          } else {
+            console.error(
+              `Polling: Failed to decrypt message from ${encMsg.senderId}`,
             );
           }
         } catch (error) {
