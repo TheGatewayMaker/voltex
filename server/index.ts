@@ -132,14 +132,14 @@ export async function createServer(): Promise<{
 
   // Profile routes
   app.get("/api/profile/me", handleGetProfile);
-  app.put("/api/profile/me", handleUpdateProfile);
+  app.put("/api/profile/me", createRateLimiter(RATE_LIMITS.PROFILE_UPDATE), handleUpdateProfile);
   app.get("/api/profile/:userId", handleGetPublicProfile);
-  app.post("/api/profile/avatar", handleUploadAvatar);
-  app.post("/api/profile/settings", handleUpdateSettings);
+  app.post("/api/profile/avatar", createRateLimiter(RATE_LIMITS.FILE_UPLOAD), handleUploadAvatar);
+  app.post("/api/profile/settings", createRateLimiter(RATE_LIMITS.PROFILE_UPDATE), handleUpdateSettings);
 
   // User search routes
-  app.post("/api/users/search", handleSearchUsers);
-  app.get("/api/users/by-username/:username", handleGetUserByUsername);
+  app.post("/api/users/search", createRateLimiter(RATE_LIMITS.USER_SEARCH), handleSearchUsers);
+  app.get("/api/users/by-username/:username", createRateLimiter(RATE_LIMITS.USER_SEARCH), handleGetUserByUsername);
 
   // Admin routes (for monitoring and testing)
   app.get("/api/admin/health", handleHealthCheck);
