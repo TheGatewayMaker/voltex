@@ -69,6 +69,23 @@ export default function Conversations() {
     }
   }, [location]);
 
+  // Set up polling to refresh conversations every 3 seconds
+  useEffect(() => {
+    const sessionToken = localStorage.getItem("session_token");
+    if (!sessionToken || !isAuthenticated) return;
+
+    // Start polling for new messages
+    pollIntervalRef.current = setInterval(() => {
+      loadConversations(sessionToken);
+    }, 3000); // Poll every 3 seconds
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [isAuthenticated]);
+
   const fetchUserProfile = async (sessionToken: string) => {
     try {
       const response = await fetch("/api/profile/me", {
