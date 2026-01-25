@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Lock, Search, X, RefreshCw } from "lucide-react";
@@ -37,6 +37,8 @@ export default function Conversations() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchTimestampRef = useRef<number>(0);
 
   // Check authentication status and fetch user profile
   useEffect(() => {
@@ -66,6 +68,23 @@ export default function Conversations() {
       }
     }
   }, [location]);
+
+  // Set up polling to refresh conversations every 3 seconds
+  useEffect(() => {
+    const sessionToken = localStorage.getItem("session_token");
+    if (!sessionToken || !isAuthenticated) return;
+
+    // Start polling for new messages
+    pollIntervalRef.current = setInterval(() => {
+      loadConversations(sessionToken);
+    }, 3000); // Poll every 3 seconds
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [isAuthenticated]);
 
   const fetchUserProfile = async (sessionToken: string) => {
     try {

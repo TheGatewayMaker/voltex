@@ -45,6 +45,8 @@ export default function Chat() {
   const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(
     null,
   );
+  const lastFetchTimestampRef = useRef<number>(0);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -216,6 +218,15 @@ export default function Chat() {
       }
 
       setMessages(decryptedMessages);
+
+      // Track the last timestamp we've loaded
+      if (decryptedMessages.length > 0) {
+        const maxTimestamp = Math.max(
+          ...decryptedMessages.map((m) => m.timestamp),
+        );
+        lastFetchTimestampRef.current = maxTimestamp;
+      }
+
       setIsLoading(false);
     } catch (error) {
       console.error("Load conversation error:", error);
@@ -223,6 +234,86 @@ export default function Chat() {
       setIsLoading(false);
     }
   };
+
+  // Poll for new messages as a fallback to WebSocket
+  const pollForNewMessages = useCallback(async () => {
+    try {
+      const sessionToken = localStorage.getItem("session_token");
+      if (!sessionToken || !recipientId || !currentUserId) return;
+
+      const historyRes = await fetch(
+        `/api/messages/conversation/${recipientId}?limit=100&offset=0`,
+        {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        },
+      );
+
+      if (!historyRes.ok) return;
+
+      const historyData = await historyRes.json();
+      const keyPair = getStoredKeyPair();
+      if (!keyPair) return;
+
+      const currentSignPublicKey = localStorage.getItem(
+        "current_sign_public_key",
+      );
+
+      // Process new messages
+      for (const encMsg of historyData.messages) {
+        // Skip messages we already have (using ref to track last timestamp)
+        if (encMsg.timestamp <= lastFetchTimestampRef.current) continue;
+
+        try {
+          const senderBoxPublicKey =
+            encMsg.senderId === currentUserId
+              ? localStorage.getItem("current_public_key")
+              : recipientPublicKey;
+
+          const senderSignPublicKey =
+            encMsg.senderId === currentUserId
+              ? currentSignPublicKey
+              : recipientSignPublicKey;
+
+          if (!senderBoxPublicKey || !senderSignPublicKey) continue;
+
+          const decrypted = decryptMessage(
+            encMsg,
+            senderBoxPublicKey,
+            keyPair.privateKeyBase64,
+            senderSignPublicKey,
+          );
+
+          if (decrypted) {
+            const newMessage: ChatMessage = {
+              ...decrypted,
+              id: `${encMsg.timestamp}-${encMsg.senderId}`,
+              isOwn: encMsg.senderId === currentUserId,
+            };
+
+            // Add only if not already present
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMessage.id)) {
+                return prev;
+              }
+              return [...prev, newMessage];
+            });
+
+            // Update ref to track the latest timestamp we've seen
+            lastFetchTimestampRef.current = Math.max(
+              lastFetchTimestampRef.current,
+              encMsg.timestamp,
+            );
+          }
+        } catch (error) {
+          console.error("Polling: Error decrypting message:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Polling error:", error);
+    }
+  }, [recipientId, currentUserId, recipientPublicKey, recipientSignPublicKey]);
 
   // WebSocket callbacks - memoized to prevent reconnection loops
   const handleWebSocketMessage = useCallback(
@@ -242,7 +333,7 @@ export default function Chat() {
         // Verify sender matches authenticated user (sender authentication)
         if (encryptedMessage.senderId === currentUserId) {
           // Our own message - should not come from WebSocket in normal flow
-          console.warn("Received own message from WebSocket");
+          // Skip to avoid duplicates
           return;
         }
 
@@ -359,6 +450,25 @@ export default function Chat() {
     onError: handleWebSocketError,
     onConnected: handleWebSocketConnected,
   });
+
+  // Start polling for new messages as a fallback (every 2 seconds)
+  useEffect(() => {
+    if (!recipientId || !currentUserId) return;
+
+    // Initial poll immediately
+    pollForNewMessages();
+
+    // Set up polling interval
+    pollIntervalRef.current = setInterval(() => {
+      pollForNewMessages();
+    }, 2000); // Poll every 2 seconds for new messages
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [recipientId, currentUserId, pollForNewMessages]);
 
   // Retry pending messages (queued for offline delivery)
   const retryPendingMessages = async () => {
@@ -588,8 +698,19 @@ export default function Chat() {
   };
 
   // Helper to format time with date and 12-hour format
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timestamp: number | undefined | null) => {
+    // Validate timestamp
+    if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
+      return "Invalid time";
+    }
+
     const date = new Date(timestamp);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid time";
+    }
+
     const now = new Date();
 
     // Format time in 12-hour format with AM/PM
