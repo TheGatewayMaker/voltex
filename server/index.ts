@@ -166,6 +166,10 @@ export async function createServer(): Promise<{
     "/api/messages/conversation/:recipientId",
     handleDeleteConversation,
   );
+  app.put(
+    "/api/messages/conversations/:recipientId/read",
+    handleMarkConversationAsRead,
+  );
   app.delete("/api/messages/message", handleDeleteMessage);
 
   // Profile routes
