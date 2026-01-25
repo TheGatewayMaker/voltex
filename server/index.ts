@@ -147,6 +147,7 @@ export async function createServer(): Promise<{
   app.get("/api/admin/archival-status", handleArchivalStatus);
   app.get("/api/admin/database-stats", handleDatabaseStats);
   app.get("/api/admin/archival-config", handleArchivalConfig);
+  app.get("/api/admin/system-stats", handleSystemStats);
   app.post("/api/admin/run-archival", handleRunArchival);
 
   // Create WebSocket server if not already created
