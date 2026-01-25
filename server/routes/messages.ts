@@ -332,16 +332,11 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       allMessages = [...allMessages, ...newMessages];
     }
 
-    // Sort all messages by timestamp
+    // Sort all messages by timestamp (oldest first)
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
 
     // Apply pagination
-    const paginatedMessages = allMessages
-      .slice(
-        Math.max(0, allMessages.length - (offset + limit)),
-        allMessages.length - offset,
-      )
-      .reverse(); // Newest first
+    const paginatedMessages = allMessages.slice(offset, offset + limit);
 
     return res.status(200).json({
       recipientId,
