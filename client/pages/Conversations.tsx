@@ -137,7 +137,8 @@ export default function Conversations() {
               avatar: displayName.charAt(0).toUpperCase(),
               lastMessage: conv.lastMessage || "(No messages)",
               timestamp: formatTimestamp(conv.timestamp),
-              unread: 0,
+              unread: conv.unread || 0,
+              unreadCount: conv.unread || 0,
               online: false,
             });
           } catch (error) {
