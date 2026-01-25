@@ -1092,9 +1092,17 @@ export default function Chat() {
                   )}
 
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {formatTime(message.timestamp)}
-                    </span>
+                    {/* Show timestamp only if sender has timestamps enabled */}
+                    {message.isOwn && currentUserShowTimestamps && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatTime(message.timestamp)}
+                      </span>
+                    )}
+                    {!message.isOwn && recipientShowTimestamps && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatTime(message.timestamp)}
+                      </span>
+                    )}
                     {message.isOwn && message.status && (
                       <span className="text-xs text-muted-foreground">
                         {message.status === "sent" && "✓"}
