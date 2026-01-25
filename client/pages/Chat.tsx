@@ -266,13 +266,15 @@ export default function Chat() {
         if (encMsg.timestamp <= lastFetchTimestampRef.current) continue;
 
         try {
-          const senderBoxPublicKey = encMsg.senderId === currentUserId
-            ? localStorage.getItem("current_public_key")
-            : recipientPublicKey;
+          const senderBoxPublicKey =
+            encMsg.senderId === currentUserId
+              ? localStorage.getItem("current_public_key")
+              : recipientPublicKey;
 
-          const senderSignPublicKey = encMsg.senderId === currentUserId
-            ? currentSignPublicKey
-            : recipientSignPublicKey;
+          const senderSignPublicKey =
+            encMsg.senderId === currentUserId
+              ? currentSignPublicKey
+              : recipientSignPublicKey;
 
           if (!senderBoxPublicKey || !senderSignPublicKey) continue;
 
