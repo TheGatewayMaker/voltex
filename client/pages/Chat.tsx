@@ -46,6 +46,10 @@ export default function Chat() {
   const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(
     null,
   );
+  const [currentUserShowTimestamps, setCurrentUserShowTimestamps] =
+    useState(true);
+  const [recipientShowTimestamps, setRecipientShowTimestamps] =
+    useState(true);
   const lastFetchTimestampRef = useRef<number>(0);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
