@@ -64,6 +64,26 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       });
     }
 
+    // Validate timestamp format and value
+    if (typeof timestamp !== "number" || timestamp <= 0) {
+      return res.status(400).json({
+        error: "Invalid timestamp - must be a positive number",
+      });
+    }
+
+    // Ensure timestamp is not too far in the past or future (allow 24 hour clock skew)
+    const now = Date.now();
+    const MAX_CLOCK_SKEW = 24 * 60 * 60 * 1000; // 24 hours
+    if (Math.abs(now - timestamp) > MAX_CLOCK_SKEW) {
+      console.warn(
+        `Message timestamp ${timestamp} is too far from server time ${now} (difference: ${Math.abs(now - timestamp)}ms)`,
+      );
+      return res.status(400).json({
+        error:
+          "Message timestamp is too far from server time. Please check your device clock.",
+      });
+    }
+
     // Validate signature format (64 bytes base64-encoded)
     if (typeof signature !== "string" || signature.length === 0) {
       return res.status(400).json({
