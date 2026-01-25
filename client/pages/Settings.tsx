@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Moon, Shield } from "lucide-react";
+import { Bell, Shield } from "lucide-react";
 import Layout from "@/components/Layout";
 import { toast } from "sonner";
 
 interface UserSettings {
   notifications?: boolean;
-  theme?: "light" | "dark" | "system";
   privacy?: string;
+  showTimestamps?: boolean;
 }
 
 export default function Settings() {
