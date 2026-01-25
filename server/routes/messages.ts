@@ -264,6 +264,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
         if (dbMessages && dbMessages.length > 0) {
           // Convert database message format to EncryptedMessage format
           allMessages = dbMessages.map((msg) => ({
+            id: msg.id, // Include unique message ID for deduplication
             nonce: msg.nonce,
             ciphertext: msg.ciphertext,
             signature: msg.signature,
@@ -324,10 +325,10 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
     // Also get conversation from in-memory cache to ensure real-time messages are included
     const inMemoryMessages = getStoredMessages(session.userId, recipientId);
     if (inMemoryMessages.length > 0) {
-      // Merge with DB messages, avoiding duplicates
-      const dbTimestamps = new Set(allMessages.map((m) => m.timestamp));
+      // Merge with DB messages, avoiding duplicates using message ID
+      const messageIds = new Set(allMessages.map((m) => m.id || `${m.timestamp}-${m.senderId}`));
       const newMessages = inMemoryMessages.filter(
-        (m) => !dbTimestamps.has(m.timestamp),
+        (m) => !messageIds.has(m.id || `${m.timestamp}-${m.senderId}`),
       );
       allMessages = [...allMessages, ...newMessages];
     }
