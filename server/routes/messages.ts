@@ -588,3 +588,40 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
     return res.status(500).json({ error: "Failed to delete message" });
   }
 };
+
+/**
+ * PUT /api/messages/conversations/:recipientId/read
+ * Mark conversation as read
+ */
+export const handleMarkConversationAsRead: RequestHandler = async (
+  req,
+  res,
+) => {
+  try {
+    const sessionToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!sessionToken) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const session = await getSessionFromToken(sessionToken);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const { recipientId } = req.params;
+    if (!recipientId) {
+      return res.status(400).json({ error: "Missing recipientId" });
+    }
+
+    // Mark conversation as read in database
+    await markConversationAsRead(session.userId, recipientId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Conversation marked as read",
+    });
+  } catch (error) {
+    console.error("Mark conversation as read error:", error);
+    return res.status(500).json({ error: "Failed to mark conversation as read" });
+  }
+};
