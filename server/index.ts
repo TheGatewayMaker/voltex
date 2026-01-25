@@ -97,6 +97,9 @@ export async function createServer(): Promise<{
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Start rate limit cleanup background job
+  startRateLimitCleanup();
+
   // Example API routes
   app.get("/api/ping", (_req, res) => {
     const ping = process.env.PING_MESSAGE ?? "ping";
@@ -106,21 +109,21 @@ export async function createServer(): Promise<{
   app.get("/api/demo", handleDemo);
 
   // Authentication routes
-  app.post("/api/auth/register", handleRegister);
-  app.post("/api/auth/challenge", handleGetChallenge);
-  app.post("/api/auth/verify", handleVerifyChallenge);
+  app.post("/api/auth/register", createRateLimiter(RATE_LIMITS.AUTH), handleRegister);
+  app.post("/api/auth/challenge", createRateLimiter(RATE_LIMITS.AUTH), handleGetChallenge);
+  app.post("/api/auth/verify", createRateLimiter(RATE_LIMITS.AUTH), handleVerifyChallenge);
   app.get("/api/auth/verify-session", handleVerifySession);
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
-  app.post("/api/auth/recover", handleRecoverAccount);
+  app.post("/api/auth/recover", createRateLimiter(RATE_LIMITS.AUTH), handleRecoverAccount);
   app.post("/api/auth/logout", handleLogout);
-  app.post("/api/auth/username-availability", handleCheckUsernameAvailability);
-  app.post("/api/auth/save-encrypted-keypair", handleSaveEncryptedKeypair);
+  app.post("/api/auth/username-availability", createRateLimiter(RATE_LIMITS.AUTH), handleCheckUsernameAvailability);
+  app.post("/api/auth/save-encrypted-keypair", createRateLimiter(RATE_LIMITS.PROFILE_UPDATE), handleSaveEncryptedKeypair);
   app.get("/api/auth/encrypted-keypair/:userId", handleGetEncryptedKeypair);
 
   // Message routes
-  app.post("/api/messages/send", handleSendMessage);
-  app.get("/api/messages/conversation/:recipientId", handleGetConversation);
-  app.get("/api/messages/conversations", handleGetConversations);
+  app.post("/api/messages/send", createRateLimiter(RATE_LIMITS.MESSAGE_SEND), handleSendMessage);
+  app.get("/api/messages/conversation/:recipientId", createRateLimiter(RATE_LIMITS.CONVERSATION_GET), handleGetConversation);
+  app.get("/api/messages/conversations", createRateLimiter(RATE_LIMITS.CONVERSATION_GET), handleGetConversations);
   app.delete(
     "/api/messages/conversation/:recipientId",
     handleDeleteConversation,
