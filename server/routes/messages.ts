@@ -25,6 +25,8 @@ import {
   deleteMessageFromDB,
   deleteConversationFromDB,
   isDatabaseConnected,
+  markConversationAsRead,
+  getUnreadCount,
 } from "../lib/db-messages";
 
 /**
