@@ -247,9 +247,7 @@ export function notifyMessageDeletion(
           },
         }),
       );
-      console.log(
-        `[DELETION] ✓ Deletion notification sent to ${recipientId}`,
-      );
+      console.log(`[DELETION] ✓ Deletion notification sent to ${recipientId}`);
       return true;
     } catch (error) {
       console.error(

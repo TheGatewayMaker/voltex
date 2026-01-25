@@ -434,7 +434,9 @@ export default function Chat() {
             // Check for exact duplicate by message ID
             const isDuplicate = prev.some((m) => m.id === messageId);
             if (isDuplicate) {
-              console.log(`Skipping duplicate message ${messageId} from WebSocket`);
+              console.log(
+                `Skipping duplicate message ${messageId} from WebSocket`,
+              );
               return prev;
             }
             console.log(`Adding new message ${messageId} from WebSocket`);

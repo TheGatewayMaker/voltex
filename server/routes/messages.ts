@@ -347,7 +347,9 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
     const inMemoryMessages = getStoredMessages(session.userId, recipientId);
     if (inMemoryMessages.length > 0) {
       // Merge with DB messages, avoiding duplicates using message ID
-      const messageIds = new Set(allMessages.map((m) => m.id || `${m.timestamp}-${m.senderId}`));
+      const messageIds = new Set(
+        allMessages.map((m) => m.id || `${m.timestamp}-${m.senderId}`),
+      );
       const newMessages = inMemoryMessages.filter(
         (m) => !messageIds.has(m.id || `${m.timestamp}-${m.senderId}`),
       );
