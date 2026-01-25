@@ -218,20 +218,20 @@ export default function Settings() {
           </div>
 
           {/* Privacy Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <div className="flex items-start gap-3 mb-4">
-              <Shield className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">
+          <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground">
                   Privacy
                 </h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                   Control who can see your profile
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:gap-3">
               {[
                 {
                   value: "public",
@@ -251,7 +251,7 @@ export default function Settings() {
               ].map((option) => (
                 <label
                   key={option.value}
-                  className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors"
+                  className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 border border-border rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors"
                 >
                   <input
                     type="radio"
@@ -264,10 +264,10 @@ export default function Settings() {
                         privacy: e.target.value,
                       })
                     }
-                    className="w-4 h-4 mt-1 flex-shrink-0"
+                    className="w-4 h-4 mt-0.5 flex-shrink-0"
                   />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-foreground">
                       {option.label}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -283,7 +283,7 @@ export default function Settings() {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2.5 sm:py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             {isSaving ? (
               <span className="flex items-center justify-center gap-2">
