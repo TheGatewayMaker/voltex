@@ -174,49 +174,6 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Theme Section */}
-          <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-            <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <h2 className="text-base sm:text-lg font-semibold text-foreground">Theme</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                  Choose your preferred color theme
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {[
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
-                { value: "system", label: "System" },
-              ].map((option) => (
-                <label
-                  key={option.value}
-                  className="flex items-center gap-1.5 sm:gap-2 cursor-pointer"
-                >
-                  <input
-                    type="radio"
-                    name="theme"
-                    value={option.value}
-                    checked={settings.theme === option.value}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        theme: e.target.value as "light" | "dark" | "system",
-                      })
-                    }
-                    className="w-4 h-4"
-                  />
-                  <span className="text-xs sm:text-sm text-foreground">
-                    {option.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           {/* Privacy Section */}
           <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
             <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
