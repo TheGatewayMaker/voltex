@@ -386,11 +386,11 @@ export default function Account() {
           </div>
 
           {/* Security Notice */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-blue-600 mb-1">
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="flex gap-2 sm:gap-3">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-semibold text-blue-600 mb-1">
                   End-to-End Encrypted
                 </p>
                 <p className="text-xs text-blue-600/90">
@@ -403,13 +403,13 @@ export default function Account() {
           </div>
 
           {/* Danger Zone */}
-          <div className="border-t border-border pt-6 mt-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
+          <div className="border-t border-border pt-4 sm:pt-6 mt-4 sm:mt-6">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">
               Danger Zone
             </h2>
             <button
               onClick={handleLogout}
-              className="w-full py-3 bg-destructive/10 text-destructive hover:bg-destructive/20 font-semibold rounded-lg transition-all border border-destructive/30 flex items-center justify-center gap-2"
+              className="w-full py-2.5 sm:py-3 bg-destructive/10 text-destructive hover:bg-destructive/20 font-semibold rounded-lg transition-all border border-destructive/30 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <LogOut className="w-4 h-4" />
               Sign Out
