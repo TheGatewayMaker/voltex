@@ -218,6 +218,15 @@ export default function Chat() {
       }
 
       setMessages(decryptedMessages);
+
+      // Track the last timestamp we've loaded
+      if (decryptedMessages.length > 0) {
+        const maxTimestamp = Math.max(
+          ...decryptedMessages.map((m) => m.timestamp),
+        );
+        lastFetchTimestampRef.current = maxTimestamp;
+      }
+
       setIsLoading(false);
     } catch (error) {
       console.error("Load conversation error:", error);
