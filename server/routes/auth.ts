@@ -608,3 +608,18 @@ export async function getSessionFromToken(
     return null;
   }
 }
+
+/**
+ * GET /api/auth/server-time
+ * Return current server timestamp for client-server time synchronization
+ */
+export const handleGetServerTime: RequestHandler = (req, res) => {
+  try {
+    res.status(200).json({
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error("Error getting server time:", error);
+    res.status(500).json({ error: "Failed to get server time" });
+  }
+};
