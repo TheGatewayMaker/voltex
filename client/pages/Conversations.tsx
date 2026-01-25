@@ -168,7 +168,7 @@ export default function Conversations() {
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
-    const now = new Date();
+    const now = new Date(getServerTime());
 
     if (date.toDateString() === now.toDateString()) {
       return date.toLocaleTimeString("en-US", {
