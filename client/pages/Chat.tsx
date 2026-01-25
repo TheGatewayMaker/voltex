@@ -441,6 +441,25 @@ export default function Chat() {
     onConnected: handleWebSocketConnected,
   });
 
+  // Start polling for new messages as a fallback (every 2 seconds)
+  useEffect(() => {
+    if (!recipientId || !currentUserId) return;
+
+    // Initial poll immediately
+    pollForNewMessages();
+
+    // Set up polling interval
+    pollIntervalRef.current = setInterval(() => {
+      pollForNewMessages();
+    }, 2000); // Poll every 2 seconds for new messages
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [recipientId, currentUserId, pollForNewMessages]);
+
   // Retry pending messages (queued for offline delivery)
   const retryPendingMessages = async () => {
     if (pendingMessagesRef.current.length === 0) return;
