@@ -54,6 +54,12 @@ import { getConversationKey, storeMessage } from "./lib/conversation-history";
 import { storeMessageInDB, isDatabaseConnected } from "./lib/db-messages";
 import { initializeDatabase } from "./lib/db";
 import { startArchivalJob } from "./lib/archival-job";
+import {
+  createRateLimiter,
+  startRateLimitCleanup,
+  RATE_LIMITS,
+} from "./lib/rate-limit";
+import { cleanupMessagesAfterPersist } from "./lib/conversation-history";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
