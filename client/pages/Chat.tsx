@@ -588,8 +588,19 @@ export default function Chat() {
   };
 
   // Helper to format time with date and 12-hour format
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timestamp: number | undefined | null) => {
+    // Validate timestamp
+    if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
+      return "Invalid time";
+    }
+
     const date = new Date(timestamp);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid time";
+    }
+
     const now = new Date();
 
     // Format time in 12-hour format with AM/PM
