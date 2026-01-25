@@ -175,18 +175,18 @@ export default function Settings() {
           </div>
 
           {/* Theme Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <div className="flex items-start gap-3 mb-4">
-              <Moon className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Theme</h2>
-                <p className="text-sm text-muted-foreground mt-1">
+          <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground">Theme</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                   Choose your preferred color theme
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {[
                 { value: "light", label: "Light" },
                 { value: "dark", label: "Dark" },
@@ -194,7 +194,7 @@ export default function Settings() {
               ].map((option) => (
                 <label
                   key={option.value}
-                  className="flex items-center gap-2 cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 cursor-pointer"
                 >
                   <input
                     type="radio"
@@ -209,7 +209,7 @@ export default function Settings() {
                     }
                     className="w-4 h-4"
                   />
-                  <span className="text-sm text-foreground">
+                  <span className="text-xs sm:text-sm text-foreground">
                     {option.label}
                   </span>
                 </label>
