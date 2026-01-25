@@ -143,11 +143,17 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // This ensures both WebSocket and HTTP routes access the same data
     storeMessage(session.userId, recipientId, message);
 
-    // Try to store in PostgreSQL first (if available)
+    // Store in both PostgreSQL and R2 in PARALLEL for speed
+    // Don't wait for one to complete before starting the other
     let dbStorageSuccess = false;
+    let r2StorageSuccess = false;
+
+    const storagePromises: Promise<any>[] = [];
+
+    // Parallel storage in PostgreSQL (if available)
     if (isDatabaseConnected()) {
-      try {
-        dbStorageSuccess = await storeMessageInDB(
+      storagePromises.push(
+        storeMessageInDB(
           messageId,
           session.userId,
           recipientId,
@@ -157,27 +163,40 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
             signature,
             timestamp,
           },
-        );
-        console.log(`Message ${messageId} stored in PostgreSQL`);
-      } catch (dbError) {
-        console.error("Failed to store message in PostgreSQL:", dbError);
-      }
+        )
+          .then((success) => {
+            dbStorageSuccess = success;
+            if (success) {
+              console.log(`Message ${messageId} stored in PostgreSQL`);
+            }
+            return success;
+          })
+          .catch((dbError) => {
+            console.error("Failed to store message in PostgreSQL:", dbError);
+          }),
+      );
     }
 
-    // Also store in R2 for persistence (fallback if no DB or for redundancy)
-    let r2StorageSuccess = false;
-    try {
-      await saveMessageWithMetadata(messageId, session.userId, recipientId, {
+    // Parallel storage in R2 for persistence
+    storagePromises.push(
+      saveMessageWithMetadata(messageId, session.userId, recipientId, {
         nonce,
         ciphertext,
         signature,
         timestamp,
-      });
-      console.log(`Message ${messageId} stored in R2`);
-      r2StorageSuccess = true;
-    } catch (r2Error) {
-      console.error("Failed to store message in R2:", r2Error);
-      // Continue anyway, message is in memory and possibly in DB
+      })
+        .then(() => {
+          console.log(`Message ${messageId} stored in R2`);
+          r2StorageSuccess = true;
+        })
+        .catch((r2Error) => {
+          console.error("Failed to store message in R2:", r2Error);
+        }),
+    );
+
+    // Wait for all storage operations to complete (in parallel, not sequential)
+    if (storagePromises.length > 0) {
+      await Promise.all(storagePromises);
     }
 
     // Attempt to deliver message to recipient in real-time (if connected)
