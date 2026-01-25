@@ -365,9 +365,9 @@ export default function Conversations() {
                     <p className="text-muted-foreground text-xs md:text-sm truncate">
                       {conversation.lastMessage}
                     </p>
-                    {conversation.unread > 0 && (
-                      <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-primary text-white rounded-full flex items-center justify-center text-xs font-semibold">
-                        {conversation.unread}
+                    {conversation.unreadCount && conversation.unreadCount > 0 && (
+                      <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                        {conversation.unreadCount}
                       </div>
                     )}
                   </div>
