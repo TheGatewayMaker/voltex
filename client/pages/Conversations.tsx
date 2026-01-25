@@ -14,6 +14,7 @@ interface Conversation {
   timestamp: string;
   unread: number;
   online: boolean;
+  unreadCount?: number;
 }
 
 interface SearchResult {
