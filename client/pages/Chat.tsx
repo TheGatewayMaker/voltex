@@ -45,7 +45,7 @@ export default function Chat() {
   const [isDeletingMessageId, setIsDeletingMessageId] = useState<string | null>(
     null,
   );
-  const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number>(0);
+  const lastFetchTimestampRef = useRef<number>(0);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll to bottom
