@@ -23,6 +23,7 @@ import {
   handleGetConversations,
   handleDeleteConversation,
   handleDeleteMessage,
+  handleMarkConversationAsRead,
 } from "./routes/messages";
 import {
   handleGetProfile,
