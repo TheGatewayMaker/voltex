@@ -160,9 +160,19 @@ export default function Chat() {
       const currentSignPublicKey = localStorage.getItem(
         "current_sign_public_key",
       );
+      const messageIds = new Set<string>(); // Track unique messages to prevent duplicates
 
       for (const encMsg of historyData.messages) {
         try {
+          // Create unique message ID for deduplication
+          const messageId = `${encMsg.timestamp}-${encMsg.senderId}`;
+
+          // Skip if we already have this message (shouldn't happen, but safety check)
+          if (messageIds.has(messageId)) {
+            console.log(`Load: Skipping duplicate message ${messageId}`);
+            continue;
+          }
+
           // Determine public keys for decryption and signature verification
           // For NaCl box.open: we use the OTHER person's box public key + our PRIVATE key
           // This works for both our messages (we encrypted with their public key)
@@ -200,9 +210,10 @@ export default function Chat() {
           if (decrypted) {
             decryptedMessages.push({
               ...decrypted,
-              id: `${encMsg.timestamp}-${encMsg.senderId}`,
+              id: messageId,
               isOwn: encMsg.senderId === userId,
             });
+            messageIds.add(messageId);
           } else {
             console.error(
               `Failed to decrypt message from ${encMsg.senderId}: signature verification or decryption failed`,
