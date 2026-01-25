@@ -440,11 +440,23 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
     }
 
     // Convert to API response format
-    const conversations = Array.from(userConversations.entries()).map(
-      ([userId, data]) => ({
-        userId,
-        lastMessage: data.lastMessage.ciphertext.substring(0, 50),
-        timestamp: data.timestamp,
+    const conversations = await Promise.all(
+      Array.from(userConversations.entries()).map(async ([userId, data]) => {
+        let unreadCount = 0;
+        if (isDatabaseConnected()) {
+          try {
+            unreadCount = await getUnreadCount(session.userId, userId);
+          } catch (error) {
+            console.error(`Failed to get unread count for ${userId}:`, error);
+          }
+        }
+
+        return {
+          userId,
+          lastMessage: data.lastMessage.ciphertext.substring(0, 50),
+          timestamp: data.timestamp,
+          unread: unreadCount,
+        };
       }),
     );
 
