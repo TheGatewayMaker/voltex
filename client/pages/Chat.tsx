@@ -139,17 +139,33 @@ export default function Chat() {
         pubKeyData.signPublicKey || pubKeyData.publicKey,
       );
 
-      // Get recipient's display name and username
+      // Get recipient's display name, username, and settings
       try {
         const profileRes = await fetch(`/api/profile/${recipientId}`);
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setRecipientName(profileData.displayName || "User");
+          setRecipientShowTimestamps(profileData.showTimestamps ?? true);
         } else {
           setRecipientName("User");
         }
       } catch {
         setRecipientName("User");
+      }
+
+      // Get current user's settings
+      try {
+        const meRes = await fetch("/api/profile/me", {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setCurrentUserShowTimestamps(meData.showTimestamps ?? true);
+        }
+      } catch {
+        // Use default
       }
 
       // Get conversation history
