@@ -28,7 +28,8 @@ export async function initializeDatabase(): Promise<void> {
   try {
     pool = new Pool({
       connectionString,
-      max: 10, // Maximum number of connections in the pool
+      max: 100, // Maximum number of connections in the pool (supports ~1000 concurrent users)
+      min: 10, // Maintain minimum connections for performance
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
     });

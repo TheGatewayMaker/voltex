@@ -38,6 +38,7 @@ import {
   handleDatabaseStats,
   handleRunArchival,
   handleArchivalConfig,
+  handleSystemStats,
 } from "./routes/admin";
 import {
   registerUserConnection,
@@ -45,6 +46,7 @@ import {
   deliverMessage,
   getQueuedMessages,
   queueMessage,
+  getQueueStats,
 } from "./lib/messaging";
 import { validateEncryptedMessage, verifyMessageSignature } from "./lib/crypto";
 import { saveMessageWithMetadata, getUserAccount } from "./lib/r2-storage";
@@ -53,6 +55,12 @@ import { getConversationKey, storeMessage } from "./lib/conversation-history";
 import { storeMessageInDB, isDatabaseConnected } from "./lib/db-messages";
 import { initializeDatabase } from "./lib/db";
 import { startArchivalJob } from "./lib/archival-job";
+import {
+  createRateLimiter,
+  startRateLimitCleanup,
+  RATE_LIMITS,
+} from "./lib/rate-limit";
+import { cleanupMessagesAfterPersist } from "./lib/conversation-history";
 
 // WebSocket server instance (shared across all connections)
 let wssInstance: WebSocketServer | null = null;
@@ -90,6 +98,9 @@ export async function createServer(): Promise<{
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Start rate limit cleanup background job
+  startRateLimitCleanup();
+
   // Example API routes
   app.get("/api/ping", (_req, res) => {
     const ping = process.env.PING_MESSAGE ?? "ping";
@@ -99,21 +110,57 @@ export async function createServer(): Promise<{
   app.get("/api/demo", handleDemo);
 
   // Authentication routes
-  app.post("/api/auth/register", handleRegister);
-  app.post("/api/auth/challenge", handleGetChallenge);
-  app.post("/api/auth/verify", handleVerifyChallenge);
+  app.post(
+    "/api/auth/register",
+    createRateLimiter(RATE_LIMITS.AUTH),
+    handleRegister,
+  );
+  app.post(
+    "/api/auth/challenge",
+    createRateLimiter(RATE_LIMITS.AUTH),
+    handleGetChallenge,
+  );
+  app.post(
+    "/api/auth/verify",
+    createRateLimiter(RATE_LIMITS.AUTH),
+    handleVerifyChallenge,
+  );
   app.get("/api/auth/verify-session", handleVerifySession);
   app.get("/api/auth/public-key/:userId", handleGetPublicKey);
-  app.post("/api/auth/recover", handleRecoverAccount);
+  app.post(
+    "/api/auth/recover",
+    createRateLimiter(RATE_LIMITS.AUTH),
+    handleRecoverAccount,
+  );
   app.post("/api/auth/logout", handleLogout);
-  app.post("/api/auth/username-availability", handleCheckUsernameAvailability);
-  app.post("/api/auth/save-encrypted-keypair", handleSaveEncryptedKeypair);
+  app.post(
+    "/api/auth/username-availability",
+    createRateLimiter(RATE_LIMITS.AUTH),
+    handleCheckUsernameAvailability,
+  );
+  app.post(
+    "/api/auth/save-encrypted-keypair",
+    createRateLimiter(RATE_LIMITS.PROFILE_UPDATE),
+    handleSaveEncryptedKeypair,
+  );
   app.get("/api/auth/encrypted-keypair/:userId", handleGetEncryptedKeypair);
 
   // Message routes
-  app.post("/api/messages/send", handleSendMessage);
-  app.get("/api/messages/conversation/:recipientId", handleGetConversation);
-  app.get("/api/messages/conversations", handleGetConversations);
+  app.post(
+    "/api/messages/send",
+    createRateLimiter(RATE_LIMITS.MESSAGE_SEND),
+    handleSendMessage,
+  );
+  app.get(
+    "/api/messages/conversation/:recipientId",
+    createRateLimiter(RATE_LIMITS.CONVERSATION_GET),
+    handleGetConversation,
+  );
+  app.get(
+    "/api/messages/conversations",
+    createRateLimiter(RATE_LIMITS.CONVERSATION_GET),
+    handleGetConversations,
+  );
   app.delete(
     "/api/messages/conversation/:recipientId",
     handleDeleteConversation,
@@ -122,20 +169,41 @@ export async function createServer(): Promise<{
 
   // Profile routes
   app.get("/api/profile/me", handleGetProfile);
-  app.put("/api/profile/me", handleUpdateProfile);
+  app.put(
+    "/api/profile/me",
+    createRateLimiter(RATE_LIMITS.PROFILE_UPDATE),
+    handleUpdateProfile,
+  );
   app.get("/api/profile/:userId", handleGetPublicProfile);
-  app.post("/api/profile/avatar", handleUploadAvatar);
-  app.post("/api/profile/settings", handleUpdateSettings);
+  app.post(
+    "/api/profile/avatar",
+    createRateLimiter(RATE_LIMITS.FILE_UPLOAD),
+    handleUploadAvatar,
+  );
+  app.post(
+    "/api/profile/settings",
+    createRateLimiter(RATE_LIMITS.PROFILE_UPDATE),
+    handleUpdateSettings,
+  );
 
   // User search routes
-  app.post("/api/users/search", handleSearchUsers);
-  app.get("/api/users/by-username/:username", handleGetUserByUsername);
+  app.post(
+    "/api/users/search",
+    createRateLimiter(RATE_LIMITS.USER_SEARCH),
+    handleSearchUsers,
+  );
+  app.get(
+    "/api/users/by-username/:username",
+    createRateLimiter(RATE_LIMITS.USER_SEARCH),
+    handleGetUserByUsername,
+  );
 
   // Admin routes (for monitoring and testing)
   app.get("/api/admin/health", handleHealthCheck);
   app.get("/api/admin/archival-status", handleArchivalStatus);
   app.get("/api/admin/database-stats", handleDatabaseStats);
   app.get("/api/admin/archival-config", handleArchivalConfig);
+  app.get("/api/admin/system-stats", handleSystemStats);
   app.post("/api/admin/run-archival", handleRunArchival);
 
   // Create WebSocket server if not already created
@@ -330,11 +398,17 @@ export async function createServer(): Promise<{
             // Generate unique message ID
             const messageId = uuidv4();
 
-            // Try to store in PostgreSQL first (if available)
+            // Store in both PostgreSQL and R2 in PARALLEL for speed
+            // Don't wait for one to complete before starting the other
             let dbStorageSuccess = false;
+            let r2StorageSuccess = false;
+
+            const storagePromises: Promise<any>[] = [];
+
+            // Parallel storage in PostgreSQL (if available)
             if (isDatabaseConnected()) {
-              try {
-                dbStorageSuccess = await storeMessageInDB(
+              storagePromises.push(
+                storeMessageInDB(
                   messageId,
                   userId,
                   encryptedMessage.recipientId,
@@ -344,22 +418,28 @@ export async function createServer(): Promise<{
                     signature: encryptedMessage.signature,
                     timestamp: encryptedMessage.timestamp,
                   },
-                );
-                console.log(
-                  `[WS] Message ${messageId} stored in PostgreSQL for ${userId} -> ${encryptedMessage.recipientId}`,
-                );
-              } catch (dbError) {
-                console.error(
-                  `[WS] Failed to store message ${messageId} in PostgreSQL:`,
-                  dbError,
-                );
-              }
+                )
+                  .then((success) => {
+                    dbStorageSuccess = success;
+                    if (success) {
+                      console.log(
+                        `[WS] Message ${messageId} stored in PostgreSQL for ${userId} -> ${encryptedMessage.recipientId}`,
+                      );
+                    }
+                    return success;
+                  })
+                  .catch((dbError) => {
+                    console.error(
+                      `[WS] Failed to store message ${messageId} in PostgreSQL:`,
+                      dbError,
+                    );
+                  }),
+              );
             }
 
-            // Store message in R2 for persistence (fallback if no DB or for redundancy)
-            let r2StorageSuccess = false;
-            try {
-              await saveMessageWithMetadata(
+            // Parallel storage in R2 for persistence
+            storagePromises.push(
+              saveMessageWithMetadata(
                 messageId,
                 userId,
                 encryptedMessage.recipientId,
@@ -369,17 +449,24 @@ export async function createServer(): Promise<{
                   signature: encryptedMessage.signature,
                   timestamp: encryptedMessage.timestamp,
                 },
-              );
-              console.log(
-                `[WS] Message ${messageId} stored in R2 for ${userId} -> ${encryptedMessage.recipientId}`,
-              );
-              r2StorageSuccess = true;
-            } catch (r2Error) {
-              console.error(
-                `[WS] Failed to store message ${messageId} in R2:`,
-                r2Error,
-              );
-              // Continue anyway, message is in memory and possibly in DB
+              )
+                .then(() => {
+                  console.log(
+                    `[WS] Message ${messageId} stored in R2 for ${userId} -> ${encryptedMessage.recipientId}`,
+                  );
+                  r2StorageSuccess = true;
+                })
+                .catch((r2Error) => {
+                  console.error(
+                    `[WS] Failed to store message ${messageId} in R2:`,
+                    r2Error,
+                  );
+                }),
+            );
+
+            // Wait for all storage operations to complete (in parallel)
+            if (storagePromises.length > 0) {
+              await Promise.all(storagePromises);
             }
 
             // Deliver message to recipient
