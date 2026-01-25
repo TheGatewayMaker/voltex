@@ -225,6 +225,73 @@ async function updateConversation(
 }
 
 /**
+ * Update the last_read timestamp for a conversation
+ */
+export async function markConversationAsRead(
+  userId: string,
+  otherUserId: string,
+): Promise<void> {
+  if (!checkDatabaseConnected()) {
+    return;
+  }
+
+  try {
+    const [user1, user2] = [userId, otherUserId].sort();
+    const now = Date.now();
+
+    await query(
+      `INSERT INTO conversations (user_id, other_user_id, last_message_timestamp, last_read, updated_at)
+      VALUES ($1, $2, 0, $3, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, other_user_id) DO UPDATE
+      SET last_read = $3,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1 AND other_user_id = $2;`,
+      [user1, user2, now],
+    );
+  } catch (error) {
+    console.error("Failed to mark conversation as read:", error);
+  }
+}
+
+/**
+ * Get unread count for a conversation
+ */
+export async function getUnreadCount(
+  userId: string,
+  otherUserId: string,
+): Promise<number> {
+  if (!checkDatabaseConnected()) {
+    return 0;
+  }
+
+  try {
+    const [user1, user2] = [userId, otherUserId].sort();
+
+    const result = await queryOne<{ count: number }>(
+      `WITH conv_data AS (
+        SELECT COALESCE(last_read, 0) as last_read_ts
+        FROM conversations
+        WHERE (user_id = $1 AND other_user_id = $2)
+           OR (user_id = $2 AND other_user_id = $1)
+        LIMIT 1
+      )
+      SELECT COUNT(*) as count
+      FROM messages, conv_data
+      WHERE archived = FALSE
+        AND sender_id = $2
+        AND recipient_id = $1
+        AND timestamp > conv_data.last_read_ts;`,
+      [user1, user2],
+    );
+
+    return result?.count || 0;
+  } catch (error) {
+    console.error("Failed to get unread count:", error);
+    return 0;
+  }
+}
+
+/**
  * Delete a specific message
  */
 export async function deleteMessageFromDB(messageId: string): Promise<boolean> {
