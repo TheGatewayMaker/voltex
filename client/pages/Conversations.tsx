@@ -182,7 +182,7 @@ export default function Conversations() {
   };
 
   // WebSocket callbacks - memoized to prevent reconnection loops
-  const handleWebSocketMessage = useCallback(() => {
+  const handleWebSocketMessage = useCallback((_message: any) => {
     console.log("New message received");
     // Refresh conversations list when a new message arrives
     const sessionToken = localStorage.getItem("session_token");
