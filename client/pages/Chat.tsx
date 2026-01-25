@@ -160,9 +160,19 @@ export default function Chat() {
       const currentSignPublicKey = localStorage.getItem(
         "current_sign_public_key",
       );
+      const messageIds = new Set<string>(); // Track unique messages to prevent duplicates
 
       for (const encMsg of historyData.messages) {
         try {
+          // Create unique message ID for deduplication
+          const messageId = `${encMsg.timestamp}-${encMsg.senderId}`;
+
+          // Skip if we already have this message (shouldn't happen, but safety check)
+          if (messageIds.has(messageId)) {
+            console.log(`Load: Skipping duplicate message ${messageId}`);
+            continue;
+          }
+
           // Determine public keys for decryption and signature verification
           // For NaCl box.open: we use the OTHER person's box public key + our PRIVATE key
           // This works for both our messages (we encrypted with their public key)
@@ -200,9 +210,10 @@ export default function Chat() {
           if (decrypted) {
             decryptedMessages.push({
               ...decrypted,
-              id: `${encMsg.timestamp}-${encMsg.senderId}`,
+              id: messageId,
               isOwn: encMsg.senderId === userId,
             });
+            messageIds.add(messageId);
           } else {
             console.error(
               `Failed to decrypt message from ${encMsg.senderId}: signature verification or decryption failed`,
@@ -263,7 +274,13 @@ export default function Chat() {
       // Process new messages
       for (const encMsg of historyData.messages) {
         // Skip messages we already have (using ref to track last timestamp)
-        if (encMsg.timestamp <= lastFetchTimestampRef.current) continue;
+        // Use both timestamp AND messageId for more robust deduplication
+        if (encMsg.timestamp <= lastFetchTimestampRef.current) {
+          console.log(
+            `Polling: Skipping old message timestamp=${encMsg.timestamp} (last seen: ${lastFetchTimestampRef.current})`,
+          );
+          continue;
+        }
 
         try {
           const senderBoxPublicKey =
@@ -276,7 +293,12 @@ export default function Chat() {
               ? currentSignPublicKey
               : recipientSignPublicKey;
 
-          if (!senderBoxPublicKey || !senderSignPublicKey) continue;
+          if (!senderBoxPublicKey || !senderSignPublicKey) {
+            console.warn(
+              `Polling: Missing keys for message from ${encMsg.senderId}`,
+            );
+            continue;
+          }
 
           const decrypted = decryptMessage(
             encMsg,
@@ -286,17 +308,22 @@ export default function Chat() {
           );
 
           if (decrypted) {
+            // Use senderId + timestamp for unique message ID
+            const messageId = `${encMsg.timestamp}-${encMsg.senderId}`;
             const newMessage: ChatMessage = {
               ...decrypted,
-              id: `${encMsg.timestamp}-${encMsg.senderId}`,
+              id: messageId,
               isOwn: encMsg.senderId === currentUserId,
             };
 
-            // Add only if not already present
+            // Add only if not already present (by message ID)
             setMessages((prev) => {
-              if (prev.some((m) => m.id === newMessage.id)) {
+              const exists = prev.some((m) => m.id === messageId);
+              if (exists) {
+                console.log(`Polling: Skipping duplicate message ${messageId}`);
                 return prev;
               }
+              console.log(`Polling: Adding new message ${messageId}`);
               return [...prev, newMessage];
             });
 
@@ -304,6 +331,10 @@ export default function Chat() {
             lastFetchTimestampRef.current = Math.max(
               lastFetchTimestampRef.current,
               encMsg.timestamp,
+            );
+          } else {
+            console.error(
+              `Polling: Failed to decrypt message from ${encMsg.senderId}`,
             );
           }
         } catch (error) {
@@ -390,19 +421,33 @@ export default function Chat() {
         );
 
         if (decrypted) {
+          // Use senderId + timestamp for unique message ID (consistent across sources)
+          // This is crucial for deduplication across polling + WebSocket
+          const messageId = `${encryptedMessage.timestamp}-${encryptedMessage.senderId}`;
           const newMessage: ChatMessage = {
             ...decrypted,
-            id: `${encryptedMessage.timestamp}-${encryptedMessage.senderId}`,
+            id: messageId,
             isOwn: false, // Always false since we filtered out own messages
           };
 
           setMessages((prev) => {
-            // Avoid duplicates
-            if (prev.some((m) => m.id === newMessage.id)) {
+            // Check for exact duplicate by message ID
+            const isDuplicate = prev.some((m) => m.id === messageId);
+            if (isDuplicate) {
+              console.log(
+                `Skipping duplicate message ${messageId} from WebSocket`,
+              );
               return prev;
             }
+            console.log(`Adding new message ${messageId} from WebSocket`);
             return [...prev, newMessage];
           });
+
+          // Update last fetch timestamp to prevent polling from re-adding this message
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            encryptedMessage.timestamp,
+          );
         } else {
           console.error(
             `Failed to decrypt WebSocket message from ${encryptedMessage.senderId}`,
@@ -412,7 +457,7 @@ export default function Chat() {
         console.error("WebSocket message processing error:", error);
       }
     },
-    [recipientId, currentUserId, recipientPublicKey],
+    [recipientId, currentUserId, recipientPublicKey, recipientSignPublicKey],
   );
 
   const handleWebSocketAck = useCallback(
@@ -432,6 +477,28 @@ export default function Chat() {
     [],
   );
 
+  const handleWebSocketDeletion = useCallback(
+    (messageId: string, deletedBy: string) => {
+      console.log(
+        `Received deletion notification for message ${messageId} deleted by ${deletedBy}`,
+      );
+      // Remove the message from local state
+      setMessages((prev) => {
+        const updated = prev.filter((m) => m.id !== messageId);
+        if (updated.length < prev.length) {
+          console.log(`Message ${messageId} removed from local state`);
+          toast.info("A message was deleted by the sender");
+        }
+        return updated;
+      });
+      // Deselect if this message was selected
+      if (selectedMessageId === messageId) {
+        setSelectedMessageId(null);
+      }
+    },
+    [selectedMessageId],
+  );
+
   const handleWebSocketError = useCallback((error: string) => {
     console.error("WebSocket error:", error);
     toast.error("Connection error: " + error);
@@ -447,6 +514,7 @@ export default function Chat() {
   const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
     onMessage: handleWebSocketMessage,
     onAck: handleWebSocketAck,
+    onMessageDeleted: handleWebSocketDeletion,
     onError: handleWebSocketError,
     onConnected: handleWebSocketConnected,
   });

@@ -9,7 +9,7 @@ import {
   getUserConversationsFromR2,
 } from "../lib/r2-storage";
 import { verifyMessageSignature } from "../lib/crypto";
-import { deliverMessage } from "../lib/messaging";
+import { deliverMessage, notifyMessageDeletion } from "../lib/messaging";
 import {
   getConversationKey,
   storeMessage,
@@ -61,6 +61,26 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       return res.status(400).json({
         error:
           "Missing required fields: recipientId, nonce, ciphertext, signature, timestamp",
+      });
+    }
+
+    // Validate timestamp format and value
+    if (typeof timestamp !== "number" || timestamp <= 0) {
+      return res.status(400).json({
+        error: "Invalid timestamp - must be a positive number",
+      });
+    }
+
+    // Ensure timestamp is not too far in the past or future (allow 24 hour clock skew)
+    const now = Date.now();
+    const MAX_CLOCK_SKEW = 24 * 60 * 60 * 1000; // 24 hours
+    if (Math.abs(now - timestamp) > MAX_CLOCK_SKEW) {
+      console.warn(
+        `Message timestamp ${timestamp} is too far from server time ${now} (difference: ${Math.abs(now - timestamp)}ms)`,
+      );
+      return res.status(400).json({
+        error:
+          "Message timestamp is too far from server time. Please check your device clock.",
       });
     }
 
@@ -206,7 +226,8 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      messageId: `${timestamp}-${session.userId}`,
+      messageId: messageId, // Return unique UUID for database tracking
+      clientMessageId: `${timestamp}-${session.userId}`, // Client can use this for optimistic updates
       timestamp,
       persisted: dbStorageSuccess || r2StorageSuccess,
       persistedInDB: dbStorageSuccess,
@@ -264,6 +285,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
         if (dbMessages && dbMessages.length > 0) {
           // Convert database message format to EncryptedMessage format
           allMessages = dbMessages.map((msg) => ({
+            id: msg.id, // Include unique message ID for deduplication
             nonce: msg.nonce,
             ciphertext: msg.ciphertext,
             signature: msg.signature,
@@ -324,10 +346,12 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
     // Also get conversation from in-memory cache to ensure real-time messages are included
     const inMemoryMessages = getStoredMessages(session.userId, recipientId);
     if (inMemoryMessages.length > 0) {
-      // Merge with DB messages, avoiding duplicates
-      const dbTimestamps = new Set(allMessages.map((m) => m.timestamp));
+      // Merge with DB messages, avoiding duplicates using message ID
+      const messageIds = new Set(
+        allMessages.map((m) => m.id || `${m.timestamp}-${m.senderId}`),
+      );
       const newMessages = inMemoryMessages.filter(
-        (m) => !dbTimestamps.has(m.timestamp),
+        (m) => !messageIds.has(m.id || `${m.timestamp}-${m.senderId}`),
       );
       allMessages = [...allMessages, ...newMessages];
     }
@@ -536,7 +560,15 @@ export const handleDeleteMessage: RequestHandler = async (req, res) => {
       // Continue anyway, message is already removed from memory and DB
     }
 
-    return res.status(200).json({ success: true, deleted: true });
+    // Notify the recipient about the deletion via WebSocket (if connected)
+    notifyMessageDeletion(recipientId, messageId, session.userId);
+
+    return res.status(200).json({
+      success: true,
+      deleted: true,
+      messageId,
+      recipientId,
+    });
   } catch (error) {
     console.error("Delete message error:", error);
     return res.status(500).json({ error: "Failed to delete message" });

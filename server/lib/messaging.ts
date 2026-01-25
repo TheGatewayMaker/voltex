@@ -215,3 +215,51 @@ export function closeAllConnections(): void {
 export function getConnectedUserIds(): string[] {
   return Array.from(userConnections.keys());
 }
+
+/**
+ * Notify a user about message deletion
+ * Sends a deletion notification to connected users
+ */
+export function notifyMessageDeletion(
+  recipientId: string,
+  messageId: string,
+  deletedBy: string,
+): boolean {
+  const userWs = userConnections.get(recipientId);
+  const isConnected = userWs && userWs.readyState === 1;
+
+  console.log(
+    `[DELETION] Attempting to notify ${recipientId} about message deletion by ${deletedBy}`,
+  );
+  console.log(
+    `[DELETION] Recipient connection status: found=${!!userWs}, connected=${isConnected}`,
+  );
+
+  if (isConnected) {
+    try {
+      userWs.send(
+        JSON.stringify({
+          type: "message-deleted",
+          data: {
+            messageId,
+            deletedBy,
+            timestamp: Date.now(),
+          },
+        }),
+      );
+      console.log(`[DELETION] ✓ Deletion notification sent to ${recipientId}`);
+      return true;
+    } catch (error) {
+      console.error(
+        `[DELETION] ✗ Error sending deletion notification to ${recipientId}:`,
+        error,
+      );
+      return false;
+    }
+  } else {
+    console.log(
+      `[DELETION] ℹ User ${recipientId} not connected, deletion notification skipped (client will sync on reconnect)`,
+    );
+    return false;
+  }
+}
