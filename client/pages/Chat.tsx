@@ -481,6 +481,7 @@ export default function Chat() {
   const { isConnected, sendEncryptedMessage: sendViaWebSocket } = useWebSocket({
     onMessage: handleWebSocketMessage,
     onAck: handleWebSocketAck,
+    onMessageDeleted: handleWebSocketDeletion,
     onError: handleWebSocketError,
     onConnected: handleWebSocketConnected,
   });
