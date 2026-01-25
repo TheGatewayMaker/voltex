@@ -8,6 +8,7 @@ import { toast } from "sonner";
 interface Conversation {
   id: string;
   name: string;
+  username: string;
   avatar: string;
   lastMessage: string;
   timestamp: string;
