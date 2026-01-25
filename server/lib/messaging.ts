@@ -111,6 +111,7 @@ export function deliverMessage(message: EncryptedMessage): boolean {
 
 /**
  * Queue a message for later delivery
+ * Max 500 messages per user to prevent memory bloat
  */
 export function queueMessage(message: EncryptedMessage): void {
   const recipientId = message.recipientId;
@@ -119,18 +120,40 @@ export function queueMessage(message: EncryptedMessage): void {
   }
 
   const queue = messageQueues.get(recipientId)!;
+  const MAX_QUEUE_SIZE = 500; // Reduced from 1000 for better memory management
 
   // Limit queue size to prevent memory issues
-  if (queue.length < 1000) {
+  if (queue.length < MAX_QUEUE_SIZE) {
     queue.push(message);
     console.log(
-      `[QUEUE] Message queued for ${recipientId}. Queue size: ${queue.length}`,
+      `[QUEUE] Message queued for ${recipientId}. Queue size: ${queue.length}/${MAX_QUEUE_SIZE}`,
     );
   } else {
+    // Drop oldest message and add new one (FIFO overflow)
+    queue.shift();
+    queue.push(message);
     console.warn(
-      `[QUEUE] Message queue for ${recipientId} is full (${queue.length} messages), dropping message`,
+      `[QUEUE] Message queue for ${recipientId} full (${MAX_QUEUE_SIZE}), dropped oldest message to make space`,
     );
   }
+}
+
+/**
+ * Get queue statistics for monitoring
+ */
+export function getQueueStats(): {
+  totalQueuedMessages: number;
+  usersWithQueuedMessages: number;
+} {
+  let totalQueuedMessages = 0;
+  for (const queue of messageQueues.values()) {
+    totalQueuedMessages += queue.length;
+  }
+
+  return {
+    totalQueuedMessages,
+    usersWithQueuedMessages: messageQueues.size,
+  };
 }
 
 /**
