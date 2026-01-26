@@ -624,13 +624,24 @@ export default function Chat() {
         });
 
         if (sendRes.ok) {
-          // Update message status to delivered
+          const response = await sendRes.json();
+          const serverTimestamp = response.timestamp; // Get server's authoritative timestamp
+          const serverMessageId = `${serverTimestamp}-${currentUserId}`; // Use server timestamp for message ID
+
+          // Update message with server timestamp and delivered status
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === message.id ? { ...msg, status: "delivered" } : msg,
+              msg.id === message.id
+                ? {
+                    ...msg,
+                    id: serverMessageId,
+                    timestamp: serverTimestamp,
+                    status: "delivered",
+                  }
+                : msg,
             ),
           );
-          console.log(`Retried message ${message.id} successfully`);
+          console.log(`Retried message ${message.id} successfully with server timestamp ${serverTimestamp}`);
         } else {
           // Re-queue if still failed
           pendingMessagesRef.current.push(message);
