@@ -327,9 +327,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
     // Return the last (limit) messages, starting from the end minus offset
     const startIndex = Math.max(0, allMessages.length - offset - limit);
     const endIndex = Math.max(0, allMessages.length - offset);
-    const paginatedMessages = allMessages
-      .slice(startIndex, endIndex)
-      .reverse(); // Reverse to get newest first
+    const paginatedMessages = allMessages.slice(startIndex, endIndex).reverse(); // Reverse to get newest first
 
     return res.status(200).json({
       recipientId,
