@@ -512,31 +512,68 @@ export async function getUserConversationsFromR2(
 
   try {
     const client = initializeR2Client();
-    const command = new ListObjectsV2Command({
-      Bucket: bucketName,
-      Prefix: prefix,
-    });
-
-    const response = await client.send(command);
-
-    if (!response.Contents || response.Contents.length === 0) {
-      return conversations;
-    }
-
-    // Find all conversation folders that include this user
     const conversationFolders = new Set<string>();
-    for (const content of response.Contents) {
-      if (!content.Key) continue;
-      // Key format: conversations/{userId1}:{userId2}/{messageId}.json
-      const match = content.Key.match(/conversations\/([^/]+)\//);
-      if (match) {
-        const conversationKey = match[1];
-        const [user1, user2] = conversationKey.split(":");
-        if (user1 === userId || user2 === userId) {
-          conversationFolders.add(conversationKey);
+    let continuationToken: string | undefined;
+    let pageCount = 0;
+
+    // Paginate through all objects (R2 returns max 1000 per request)
+    do {
+      pageCount++;
+      console.log(
+        `Fetching R2 conversations for user ${userId} (page ${pageCount})...`,
+      );
+
+      const command = new ListObjectsV2Command({
+        Bucket: bucketName,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000, // Explicitly set to ensure pagination
+      });
+
+      const response = await client.send(command);
+
+      if (!response.Contents || response.Contents.length === 0) {
+        if (pageCount === 1) {
+          // No results at all
+          return conversations;
+        }
+        // End of pagination
+        break;
+      }
+
+      console.log(
+        `Found ${response.Contents.length} objects in R2 page ${pageCount}`,
+      );
+
+      // Find all conversation folders that include this user
+      for (const content of response.Contents) {
+        if (!content.Key) continue;
+        // Key format: conversations/{userId1}:{userId2}/{messageId}.json
+        const match = content.Key.match(/conversations\/([^/]+)\//);
+        if (match) {
+          const conversationKey = match[1];
+          const [user1, user2] = conversationKey.split(":");
+          if (user1 === userId || user2 === userId) {
+            conversationFolders.add(conversationKey);
+          }
         }
       }
-    }
+
+      // Handle pagination
+      if (response.IsTruncated && response.NextContinuationToken) {
+        continuationToken = response.NextContinuationToken;
+        console.log(
+          `More results available, fetching next page (token: ${continuationToken.substring(0, 20)}...)`,
+        );
+      } else {
+        // No more results
+        continuationToken = undefined;
+      }
+    } while (continuationToken);
+
+    console.log(
+      `Found ${conversationFolders.size} total conversations for user ${userId} across all R2 pages`,
+    );
 
     // For each conversation, get the last message
     for (const conversationKey of conversationFolders) {
