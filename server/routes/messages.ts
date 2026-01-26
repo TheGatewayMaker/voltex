@@ -177,9 +177,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     storeMessage(session.userId, recipientId, messageWithServerTimestamp);
 
     // Store in both PostgreSQL and R2 in PARALLEL for speed
-    // Don't wait for one to complete before starting the other
+    // CRITICAL: At least one storage backend must succeed, otherwise message is lost
     let dbStorageSuccess = false;
     let r2StorageSuccess = false;
+    let storageErrors: string[] = [];
 
     const storagePromises: Promise<any>[] = [];
 
@@ -203,7 +204,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
             return success;
           })
           .catch((dbError) => {
-            console.error("Failed to store message in PostgreSQL:", dbError);
+            const dbErrorMsg =
+              dbError instanceof Error ? dbError.message : String(dbError);
+            console.error("Failed to store message in PostgreSQL:", dbErrorMsg);
+            storageErrors.push(`PostgreSQL: ${dbErrorMsg}`);
           }),
       );
     }
@@ -224,13 +228,29 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
           r2StorageSuccess = true;
         })
         .catch((r2Error) => {
-          console.error("Failed to store message in R2:", r2Error);
+          const r2ErrorMsg =
+            r2Error instanceof Error ? r2Error.message : String(r2Error);
+          console.error("Failed to store message in R2:", r2ErrorMsg);
+          storageErrors.push(`R2: ${r2ErrorMsg}`);
         }),
     );
 
     // Wait for all storage operations to complete (in parallel, not sequential)
     if (storagePromises.length > 0) {
       await Promise.all(storagePromises);
+    }
+
+    // CRITICAL: Ensure message was persisted to at least one backend
+    // If both storage operations failed, the message will be lost when server restarts
+    // or when users leave the conversation before in-memory cache is flushed
+    if (!dbStorageSuccess && !r2StorageSuccess) {
+      console.error(
+        `CRITICAL: Message ${messageId} failed to persist to any storage backend. Errors: ${storageErrors.join("; ")}`,
+      );
+      return res.status(500).json({
+        error: `Failed to persist message to any storage backend. Message was not saved. Please try again. Details: ${storageErrors.join("; ")}`,
+        critical: true,
+      });
     }
 
     // Attempt to deliver message to recipient in real-time (if connected)
@@ -288,10 +308,25 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Try to get recent messages from PostgreSQL first
-    let allMessages = [];
-    let fromDatabase = false;
+    // CRITICAL: Get in-memory messages FIRST to catch messages that were just sent
+    // but not yet persisted to DB/R2 (they exist in memory and should not be lost)
+    const inMemoryMessages = getStoredMessages(session.userId, recipientId);
+    const messageIds = new Set<string>();
 
+    // Start with in-memory messages (most recent, not yet persisted)
+    let allMessages: any[] = [];
+    if (inMemoryMessages.length > 0) {
+      allMessages = inMemoryMessages;
+      inMemoryMessages.forEach((m) => {
+        messageIds.add(m.id || `${m.timestamp}-${m.senderId}`);
+      });
+      console.log(
+        `Loaded ${inMemoryMessages.length} messages from memory for conversation ${session.userId}:${recipientId}`,
+      );
+    }
+
+    // Then load from PostgreSQL (hot storage - most recent persisted messages)
+    let fromDatabase = false;
     if (isDatabaseConnected()) {
       try {
         const dbMessages = await getConversationMessagesFromDB(
@@ -303,7 +338,7 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
 
         if (dbMessages && dbMessages.length > 0) {
           // Convert database message format to EncryptedMessage format
-          allMessages = dbMessages.map((msg) => ({
+          const convertedMessages = dbMessages.map((msg) => ({
             id: msg.id, // Include unique message ID for deduplication
             nonce: msg.nonce,
             ciphertext: msg.ciphertext,
@@ -312,9 +347,20 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
             recipientId: msg.recipient_id || msg.recipientId,
             timestamp: msg.timestamp,
           }));
+
+          // Only add messages we don't already have from memory
+          const newMessages = convertedMessages.filter(
+            (m) => !messageIds.has(m.id || `${m.timestamp}-${m.senderId}`),
+          );
+
+          allMessages = [...allMessages, ...newMessages];
+          newMessages.forEach((m) => {
+            messageIds.add(m.id || `${m.timestamp}-${m.senderId}`);
+          });
+
           fromDatabase = true;
           console.log(
-            `Loaded ${dbMessages.length} messages from PostgreSQL for conversation ${session.userId}:${recipientId}`,
+            `Loaded ${convertedMessages.length} messages from PostgreSQL (${newMessages.length} new) for conversation ${session.userId}:${recipientId}`,
           );
         }
       } catch (dbError) {
@@ -322,8 +368,8 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       }
     }
 
-    // If database is empty or disabled, try R2 persistence
-    if (allMessages.length === 0) {
+    // Finally, try R2 persistence for older messages or if DB is empty
+    if (allMessages.length < limit + offset) {
       try {
         const r2Messages = await getConversationMessagesFromR2(
           session.userId,
@@ -333,46 +379,23 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
         );
 
         if (r2Messages && r2Messages.length > 0) {
-          allMessages = r2Messages;
+          // Only add messages we don't already have
+          const newMessages = r2Messages.filter(
+            (m) => !messageIds.has(m.id || `${m.timestamp}-${m.senderId}`),
+          );
+
+          allMessages = [...allMessages, ...newMessages];
+          newMessages.forEach((m) => {
+            messageIds.add(m.id || `${m.timestamp}-${m.senderId}`);
+          });
+
           console.log(
-            `Loaded ${r2Messages.length} messages from R2 for conversation ${session.userId}:${recipientId}`,
+            `Loaded ${r2Messages.length} messages from R2 (${newMessages.length} new) for conversation ${session.userId}:${recipientId}`,
           );
         }
       } catch (r2Error) {
         console.error("Error loading messages from R2:", r2Error);
       }
-    } else if (allMessages.length < limit + offset) {
-      // If we have fewer messages than requested, try to load older ones from R2
-      try {
-        const r2Messages = await getConversationMessagesFromR2(
-          session.userId,
-          recipientId,
-          1000,
-          0,
-        );
-
-        if (r2Messages && r2Messages.length > 0) {
-          allMessages = [...allMessages, ...r2Messages];
-          console.log(
-            `Loaded ${r2Messages.length} older messages from R2 for conversation ${session.userId}:${recipientId}`,
-          );
-        }
-      } catch (r2Error) {
-        console.error("Error loading older messages from R2:", r2Error);
-      }
-    }
-
-    // Also get conversation from in-memory cache to ensure real-time messages are included
-    const inMemoryMessages = getStoredMessages(session.userId, recipientId);
-    if (inMemoryMessages.length > 0) {
-      // Merge with DB messages, avoiding duplicates using message ID
-      const messageIds = new Set(
-        allMessages.map((m) => m.id || `${m.timestamp}-${m.senderId}`),
-      );
-      const newMessages = inMemoryMessages.filter(
-        (m) => !messageIds.has(m.id || `${m.timestamp}-${m.senderId}`),
-      );
-      allMessages = [...allMessages, ...newMessages];
     }
 
     // Sort all messages by timestamp (oldest first)

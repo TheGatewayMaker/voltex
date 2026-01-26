@@ -765,7 +765,11 @@ export default function Chat() {
 
           if (!sendRes.ok) {
             const errorData = await sendRes.json();
-            throw new Error(errorData.error || "Failed to send message");
+            const error = new Error(
+              errorData.error || "Failed to send message",
+            );
+            (error as any).critical = errorData.critical || false;
+            throw error;
           }
 
           const response = await sendRes.json();
@@ -805,7 +809,20 @@ export default function Chat() {
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error occurred";
+          const isCritical = (error as any).critical || false;
+
           console.error("Failed to send message:", errorMessage);
+
+          // Check if this is a critical persistence error
+          if (isCritical) {
+            console.error(
+              "CRITICAL: Message failed to persist. This is a serious error.",
+            );
+            toast.error(
+              "Critical error: Message could not be saved. Please check your connection and storage configuration.",
+            );
+          }
+
           // Update message status to failed
           setMessages((prev) =>
             prev.map((msg) =>
