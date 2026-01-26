@@ -116,50 +116,59 @@ export default function Conversations() {
 
       if (response.ok) {
         const data = await response.json();
-        // Convert server data to UI format with user profile info
-        const conversationList: Conversation[] = [];
+        console.log(
+          `Received ${data.conversations.length} conversations from server`,
+        );
 
-        for (const conv of data.conversations) {
-          try {
-            // Fetch user profile to get display name and username
-            const profileRes = await fetch(`/api/profile/${conv.userId}`);
-            let displayName = "User";
-            let username = conv.userId.substring(0, 8);
+        // Convert server data to UI format with user profile info (fetch profiles in parallel)
+        const conversationPromises = data.conversations.map(
+          async (conv: any) => {
+            try {
+              // Fetch user profile to get display name and username
+              const profileRes = await fetch(`/api/profile/${conv.userId}`);
+              let displayName = "User";
+              let username = conv.userId.substring(0, 8);
 
-            if (profileRes.ok) {
-              const profileData = await profileRes.json();
-              displayName = profileData.displayName || "User";
-              username = profileData.username || conv.userId.substring(0, 8);
+              if (profileRes.ok) {
+                const profileData = await profileRes.json();
+                displayName = profileData.displayName || "User";
+                username = profileData.username || conv.userId.substring(0, 8);
+              }
+
+              return {
+                id: conv.userId,
+                name: displayName,
+                username: username,
+                avatar: displayName.charAt(0).toUpperCase(),
+                lastMessage: conv.lastMessage || "(No messages)",
+                timestamp: formatTimestamp(conv.timestamp),
+                unread: conv.unread || 0,
+                unreadCount: conv.unread || 0,
+                online: false,
+              };
+            } catch (error) {
+              console.error(`Failed to load profile for ${conv.userId}:`, error);
+              // Fallback to using user ID if profile fetch fails
+              return {
+                id: conv.userId,
+                name: "User",
+                username: conv.userId.substring(0, 8),
+                avatar: conv.userId.substring(0, 2).toUpperCase(),
+                lastMessage: conv.lastMessage || "(No messages)",
+                timestamp: formatTimestamp(conv.timestamp),
+                unread: conv.unread || 0,
+                unreadCount: conv.unread || 0,
+                online: false,
+              };
             }
+          },
+        );
 
-            conversationList.push({
-              id: conv.userId,
-              name: displayName,
-              username: username,
-              avatar: displayName.charAt(0).toUpperCase(),
-              lastMessage: conv.lastMessage || "(No messages)",
-              timestamp: formatTimestamp(conv.timestamp),
-              unread: conv.unread || 0,
-              unreadCount: conv.unread || 0,
-              online: false,
-            });
-          } catch (error) {
-            console.error(`Failed to load profile for ${conv.userId}:`, error);
-            // Fallback to using user ID if profile fetch fails
-            conversationList.push({
-              id: conv.userId,
-              name: "User",
-              username: conv.userId.substring(0, 8),
-              avatar: conv.userId.substring(0, 2).toUpperCase(),
-              lastMessage: conv.lastMessage || "(No messages)",
-              timestamp: formatTimestamp(conv.timestamp),
-              unread: conv.unread || 0,
-              unreadCount: conv.unread || 0,
-              online: false,
-            });
-          }
-        }
-
+        // Wait for all profile fetches to complete in parallel
+        const conversationList = await Promise.all(conversationPromises);
+        console.log(
+          `Successfully processed ${conversationList.length} conversations with profiles`,
+        );
         setConversations(conversationList);
       }
     } catch (error) {
