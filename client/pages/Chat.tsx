@@ -692,6 +692,12 @@ export default function Chat() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Synchronous guard to prevent double-submit
+    if (isSendingRef.current) {
+      console.log("Message send already in progress, ignoring duplicate submit");
+      return;
+    }
+
     if (!messageInput.trim()) {
       return;
     }
@@ -702,6 +708,7 @@ export default function Chat() {
     }
 
     try {
+      isSendingRef.current = true;
       setIsSending(true);
 
       // Validate session before sending
