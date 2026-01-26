@@ -123,9 +123,6 @@ export const handleGetPublicProfile: RequestHandler = async (req, res) => {
 
     // Get both profile and account to include username
     const profile = await getUserProfile(userId);
-
-    // Import getUserAccount at the top of the file to get the username
-    const { getUserAccount } = await import("../lib/r2-storage");
     const account = await getUserAccount(userId);
 
     if (!profile && !account) {
