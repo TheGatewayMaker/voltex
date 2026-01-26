@@ -270,7 +270,6 @@ export default function Conversations() {
     }
   };
 
-
   const handleSearchUsers = async (query: string) => {
     setSearchQuery(query);
 
@@ -479,7 +478,10 @@ export default function Conversations() {
                       </p>
                     </div>
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
-                      {formatConversationTime(conversation.timestamp, getServerTime())}
+                      {formatConversationTime(
+                        conversation.timestamp,
+                        getServerTime(),
+                      )}
                     </span>
                   </div>
                   <p className="text-muted-foreground text-xs md:text-sm truncate">
@@ -488,14 +490,13 @@ export default function Conversations() {
                 </div>
 
                 {/* Badge - Positioned on the right, vertically centered */}
-                {conversation.unreadCount &&
-                  conversation.unreadCount > 0 && (
-                    <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 min-w-6 md:min-w-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
-                      {conversation.unreadCount > 99
-                        ? "99+"
-                        : conversation.unreadCount}
-                    </div>
-                  )}
+                {conversation.unreadCount && conversation.unreadCount > 0 && (
+                  <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 min-w-6 md:min-w-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
+                    {conversation.unreadCount > 99
+                      ? "99+"
+                      : conversation.unreadCount}
+                  </div>
+                )}
               </div>
             </Link>
           ))}

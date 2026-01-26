@@ -835,7 +835,6 @@ export default function Chat() {
     return userId.substring(0, 2).toUpperCase();
   };
 
-
   // Delete message handler
   const handleDeleteMessage = async (messageId: string) => {
     try {
