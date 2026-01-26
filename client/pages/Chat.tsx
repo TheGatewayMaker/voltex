@@ -765,7 +765,9 @@ export default function Chat() {
 
           if (!sendRes.ok) {
             const errorData = await sendRes.json();
-            const error = new Error(errorData.error || "Failed to send message");
+            const error = new Error(
+              errorData.error || "Failed to send message",
+            );
             (error as any).critical = errorData.critical || false;
             throw error;
           }

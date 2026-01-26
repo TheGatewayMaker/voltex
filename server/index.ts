@@ -438,7 +438,9 @@ export async function createServer(): Promise<{
                   })
                   .catch((dbError) => {
                     const dbErrorMsg =
-                      dbError instanceof Error ? dbError.message : String(dbError);
+                      dbError instanceof Error
+                        ? dbError.message
+                        : String(dbError);
                     console.error(
                       `[WS] Failed to store message ${messageId} in PostgreSQL:`,
                       dbErrorMsg,
@@ -469,7 +471,9 @@ export async function createServer(): Promise<{
                 })
                 .catch((r2Error) => {
                   const r2ErrorMsg =
-                    r2Error instanceof Error ? r2Error.message : String(r2Error);
+                    r2Error instanceof Error
+                      ? r2Error.message
+                      : String(r2Error);
                   console.error(
                     `[WS] Failed to store message ${messageId} in R2:`,
                     r2ErrorMsg,
