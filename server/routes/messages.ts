@@ -177,9 +177,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     storeMessage(session.userId, recipientId, messageWithServerTimestamp);
 
     // Store in both PostgreSQL and R2 in PARALLEL for speed
-    // Don't wait for one to complete before starting the other
+    // CRITICAL: At least one storage backend must succeed, otherwise message is lost
     let dbStorageSuccess = false;
     let r2StorageSuccess = false;
+    let storageErrors: string[] = [];
 
     const storagePromises: Promise<any>[] = [];
 
@@ -203,7 +204,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
             return success;
           })
           .catch((dbError) => {
-            console.error("Failed to store message in PostgreSQL:", dbError);
+            const dbErrorMsg =
+              dbError instanceof Error ? dbError.message : String(dbError);
+            console.error("Failed to store message in PostgreSQL:", dbErrorMsg);
+            storageErrors.push(`PostgreSQL: ${dbErrorMsg}`);
           }),
       );
     }
@@ -224,13 +228,29 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
           r2StorageSuccess = true;
         })
         .catch((r2Error) => {
-          console.error("Failed to store message in R2:", r2Error);
+          const r2ErrorMsg =
+            r2Error instanceof Error ? r2Error.message : String(r2Error);
+          console.error("Failed to store message in R2:", r2ErrorMsg);
+          storageErrors.push(`R2: ${r2ErrorMsg}`);
         }),
     );
 
     // Wait for all storage operations to complete (in parallel, not sequential)
     if (storagePromises.length > 0) {
       await Promise.all(storagePromises);
+    }
+
+    // CRITICAL: Ensure message was persisted to at least one backend
+    // If both storage operations failed, the message will be lost when server restarts
+    // or when users leave the conversation before in-memory cache is flushed
+    if (!dbStorageSuccess && !r2StorageSuccess) {
+      console.error(
+        `CRITICAL: Message ${messageId} failed to persist to any storage backend. Errors: ${storageErrors.join("; ")}`,
+      );
+      return res.status(500).json({
+        error: `Failed to persist message to any storage backend. Message was not saved. Please try again. Details: ${storageErrors.join("; ")}`,
+        critical: true,
+      });
     }
 
     // Attempt to deliver message to recipient in real-time (if connected)
