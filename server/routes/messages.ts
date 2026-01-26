@@ -286,25 +286,6 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       } catch (r2Error) {
         console.error("Error loading messages from R2:", r2Error);
       }
-    } else if (allMessages.length < limit + offset) {
-      // If we have fewer messages than requested, try to load older ones from R2
-      try {
-        const r2Messages = await getConversationMessagesFromR2(
-          session.userId,
-          recipientId,
-          1000,
-          0,
-        );
-
-        if (r2Messages && r2Messages.length > 0) {
-          allMessages = [...allMessages, ...r2Messages];
-          console.log(
-            `Loaded ${r2Messages.length} older messages from R2 for conversation ${session.userId}:${recipientId}`,
-          );
-        }
-      } catch (r2Error) {
-        console.error("Error loading older messages from R2:", r2Error);
-      }
     }
 
     // Also get conversation from in-memory cache to ensure real-time messages are included
