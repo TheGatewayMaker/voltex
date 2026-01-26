@@ -1,5 +1,5 @@
 import nacl from "tweetnacl";
-import { wordlist } from "bip39/wordlists/english";
+import * as bip39 from "bip39";
 import {
   CryptoKeyPair,
   EncryptedMessage,
@@ -11,7 +11,7 @@ import { getServerTime } from "./serverTime";
 // Full BIP39 English word list for mnemonic generation (2048 words)
 // This provides significantly more entropy and variety compared to the previous limited list
 // Users now get much better uniqueness for their recovery passphrases
-const MNEMONIC_WORDS = wordlist;
+const MNEMONIC_WORDS = bip39.wordlists.english;
 
 // Utility functions for encoding/decoding
 function utf8Encode(str: string): Uint8Array {
