@@ -521,17 +521,18 @@ export async function createServer(): Promise<{
               `[WS] Message delivery attempt: recipient=${encryptedMessage.recipientId}, delivered=${delivered}`,
             );
 
-            // Send ACK back to sender with original client message ID
+            // Send ACK back to sender with original client message ID and server timestamp
             ws.send(
               JSON.stringify({
                 type: "message-ack",
                 messageId: clientMessageId,
                 delivered,
                 serverMessageId: messageId,
+                timestamp: serverTimestamp, // Include server timestamp so client can update message
               }),
             );
             console.log(
-              `[WS] Sent ACK to ${userId}: messageId=${clientMessageId}, delivered=${delivered}`,
+              `[WS] Sent ACK to ${userId}: messageId=${clientMessageId}, timestamp=${serverTimestamp}, delivered=${delivered}`,
             );
           }
         } catch (error) {
