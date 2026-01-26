@@ -239,9 +239,13 @@ export async function markConversationAsRead(
     const [user1, user2] = [userId, otherUserId].sort();
     const now = Date.now();
 
+    // CRITICAL FIX: Do NOT insert last_message_timestamp = 0 for new conversations
+    // This was causing all conversations to show "Now" instead of actual timestamps
+    // Instead, only update the last_read timestamp for existing conversations
+    // The conversation will be created (if needed) when the first message is stored
     await query(
-      `INSERT INTO conversations (user_id, other_user_id, last_message_timestamp, last_read, updated_at)
-      VALUES ($1, $2, 0, $3, CURRENT_TIMESTAMP)
+      `INSERT INTO conversations (user_id, other_user_id, last_read, updated_at)
+      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
       ON CONFLICT (user_id, other_user_id) DO UPDATE
       SET last_read = $3,
           updated_at = CURRENT_TIMESTAMP

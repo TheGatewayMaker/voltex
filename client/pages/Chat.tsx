@@ -52,6 +52,7 @@ export default function Chat() {
   const [recipientShowTimestamps, setRecipientShowTimestamps] = useState(true);
   const lastFetchTimestampRef = useRef<number>(0);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isSendingRef = useRef<boolean>(false); // Synchronous guard to prevent double-submit
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -357,13 +358,40 @@ export default function Chat() {
               isOwn: encMsg.senderId === currentUserId,
             };
 
-            // Add only if not already present (by message ID)
+            // Add only if not already present (by message ID AND by content)
             setMessages((prev) => {
-              const exists = prev.some((m) => m.id === messageId);
-              if (exists) {
+              // Check for exact ID match first
+              const existsByID = prev.some((m) => m.id === messageId);
+              if (existsByID) {
                 console.log(`Polling: Skipping duplicate message ${messageId}`);
                 return prev;
               }
+
+              // CRITICAL: Also check if we have this message by content match
+              // This catches duplicates where timestamps differ between client/server versions
+              // (e.g., optimistic message with client timestamp vs polled message with server timestamp)
+              const existsByContent = prev.some((m) => {
+                // Same sender, same content, within a few seconds (timestamps may differ)
+                if (
+                  m.senderId === encMsg.senderId &&
+                  m.content === decrypted.content &&
+                  Math.abs(m.timestamp - encMsg.timestamp) < 5000 // Within 5 seconds
+                ) {
+                  console.log(
+                    `Polling: Found duplicate by content (sender: ${encMsg.senderId}, content: "${decrypted.content.substring(0, 20)}...", timestamps: ${m.timestamp} vs ${encMsg.timestamp})`,
+                  );
+                  return true;
+                }
+                return false;
+              });
+
+              if (existsByContent) {
+                console.log(
+                  `Polling: Skipping duplicate message by content match`,
+                );
+                return prev;
+              }
+
               console.log(`Polling: Adding new message ${messageId}`);
               return [...prev, newMessage];
             });
@@ -473,13 +501,37 @@ export default function Chat() {
 
           setMessages((prev) => {
             // Check for exact duplicate by message ID
-            const isDuplicate = prev.some((m) => m.id === messageId);
-            if (isDuplicate) {
+            const isDuplicateByID = prev.some((m) => m.id === messageId);
+            if (isDuplicateByID) {
               console.log(
                 `Skipping duplicate message ${messageId} from WebSocket`,
               );
               return prev;
             }
+
+            // CRITICAL: Also check if we have this message by content match
+            // This catches duplicates where timestamps differ between client/server versions
+            const isDuplicateByContent = prev.some((m) => {
+              if (
+                m.senderId === encryptedMessage.senderId &&
+                m.content === decrypted.content &&
+                Math.abs(m.timestamp - encryptedMessage.timestamp) < 5000 // Within 5 seconds
+              ) {
+                console.log(
+                  `WebSocket: Found duplicate by content match: "${m.content.substring(0, 20)}..." (timestamps: ${m.timestamp} vs ${encryptedMessage.timestamp})`,
+                );
+                return true;
+              }
+              return false;
+            });
+
+            if (isDuplicateByContent) {
+              console.log(
+                `Skipping duplicate message by content match from WebSocket`,
+              );
+              return prev;
+            }
+
             console.log(`Adding new message ${messageId} from WebSocket`);
             return [...prev, newMessage];
           });
@@ -691,6 +743,14 @@ export default function Chat() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Synchronous guard to prevent double-submit
+    if (isSendingRef.current) {
+      console.log(
+        "Message send already in progress, ignoring duplicate submit",
+      );
+      return;
+    }
+
     if (!messageInput.trim()) {
       return;
     }
@@ -701,6 +761,7 @@ export default function Chat() {
     }
 
     try {
+      isSendingRef.current = true;
       setIsSending(true);
 
       // Validate session before sending
@@ -761,12 +822,9 @@ export default function Chat() {
       setMessages((prev) => [...prev, newMessage]);
       setMessageInput("");
 
-      // Update lastFetchTimestampRef to track this optimistic message
-      // This prevents polling from adding it again if it has the same or lower timestamp
-      lastFetchTimestampRef.current = Math.max(
-        lastFetchTimestampRef.current,
-        encrypted.timestamp,
-      );
+      // DO NOT update lastFetchTimestampRef with client timestamp
+      // This would prevent polling from fetching the server version with a different (server) timestamp
+      // The timestamp will be updated properly once we get the server response
 
       // Try to send via WebSocket if connected (real-time delivery)
       let sent = false;
@@ -887,6 +945,7 @@ export default function Chat() {
         error instanceof Error ? error.message : "Unknown error occurred";
       toast.error(errorMessage);
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
   };
