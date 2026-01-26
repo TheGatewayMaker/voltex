@@ -132,7 +132,7 @@ export default function Settings() {
       showProfileMenu={false}
     >
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+        <div className="max-w-2xl mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 pb-8 sm:pb-12 md:pb-16">
           {/* Settings Header */}
           <div className="mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2">
