@@ -61,11 +61,12 @@ export default function Conversations() {
     loadConversations(sessionToken);
   }, [navigate]);
 
-  // Refresh conversations when navigating back to this page
+  // Refresh conversations when navigating back to this page (to reset unread counts)
   useEffect(() => {
     if (location.pathname === "/") {
       const sessionToken = localStorage.getItem("session_token");
       if (sessionToken) {
+        console.log("Returned to conversations list, refreshing unread counts");
         loadConversations(sessionToken);
       }
     }
