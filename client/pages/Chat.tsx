@@ -314,8 +314,9 @@ export default function Chat() {
       // Process new messages
       for (const encMsg of historyData.messages) {
         // Skip messages we already have (using ref to track last timestamp)
-        // Use both timestamp AND messageId for more robust deduplication
-        if (encMsg.timestamp <= lastFetchTimestampRef.current) {
+        // Use strict less-than comparison to allow messages at the exact same timestamp
+        // (multiple messages can have the same server timestamp)
+        if (encMsg.timestamp < lastFetchTimestampRef.current) {
           console.log(
             `Polling: Skipping old message timestamp=${encMsg.timestamp} (last seen: ${lastFetchTimestampRef.current})`,
           );
