@@ -663,6 +663,13 @@ export default function Chat() {
                 : msg,
             ),
           );
+
+          // Update lastFetchTimestampRef with the server timestamp
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            serverTimestamp,
+          );
+
           console.log(
             `Retried message ${message.id} successfully with server timestamp ${serverTimestamp}`,
           );
