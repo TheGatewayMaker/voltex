@@ -6,7 +6,7 @@ interface UseWebSocketOptions {
   onError?: (error: string) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
-  onAck?: (messageId: string, delivered: boolean) => void; // Track delivery ACKs
+  onAck?: (messageId: string, delivered: boolean, serverTimestamp?: number) => void; // Track delivery ACKs and server timestamp
   onMessageDeleted?: (messageId: string, deletedBy: string) => void; // Handle message deletion
 }
 
