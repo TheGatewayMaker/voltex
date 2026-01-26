@@ -116,6 +116,103 @@ export default function Conversations() {
     }
   };
 
+  // Fetch user profile with caching and retry logic
+  const fetchUserProfileWithCache = async (
+    userId: string,
+    retryCount: number = 0,
+  ): Promise<{ displayName: string; username: string }> => {
+    const maxRetries = 2;
+    const cacheExpiry = 5 * 60 * 1000; // 5 minutes
+
+    // Check cache first
+    const cached = profileCacheRef.current.get(userId);
+    if (
+      cached &&
+      Date.now() - cached.fetched < cacheExpiry &&
+      cached.displayName !== "User" // Don't use failed cache entries
+    ) {
+      console.log(`Using cached profile for ${userId}`);
+      return {
+        displayName: cached.displayName,
+        username: cached.username,
+      };
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const profileRes = await fetch(`/api/profile/${userId}`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        const displayName = profileData.displayName || "User";
+        const username = profileData.username || `user-${userId.substring(0, 8)}`;
+
+        // Cache the result
+        profileCacheRef.current.set(userId, {
+          displayName,
+          username,
+          fetched: Date.now(),
+        });
+
+        console.log(
+          `Fetched profile for ${userId}: ${displayName} (@${username})`,
+        );
+
+        return { displayName, username };
+      } else {
+        console.warn(
+          `Profile fetch failed for ${userId}: status ${profileRes.status}`,
+        );
+
+        // Retry on failure
+        if (retryCount < maxRetries) {
+          console.log(`Retrying profile fetch for ${userId} (attempt ${retryCount + 1}/${maxRetries})...`);
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * Math.pow(2, retryCount)),
+          ); // Exponential backoff
+          return fetchUserProfileWithCache(userId, retryCount + 1);
+        }
+
+        // Fallback after retries
+        const fallbackUsername = `user-${userId.substring(0, 8)}`;
+        profileCacheRef.current.set(userId, {
+          displayName: "User",
+          username: fallbackUsername,
+          fetched: Date.now(),
+        });
+        return { displayName: "User", username: fallbackUsername };
+      }
+    } catch (error) {
+      console.error(`Error fetching profile for ${userId}:`, error);
+
+      // Retry on error (like timeout)
+      if (retryCount < maxRetries) {
+        console.log(
+          `Retrying profile fetch for ${userId} after error (attempt ${retryCount + 1}/${maxRetries})...`,
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * Math.pow(2, retryCount)),
+        );
+        return fetchUserProfileWithCache(userId, retryCount + 1);
+      }
+
+      // Fallback after retries
+      const fallbackUsername = `user-${userId.substring(0, 8)}`;
+      profileCacheRef.current.set(userId, {
+        displayName: "User",
+        username: fallbackUsername,
+        fetched: Date.now(),
+      });
+      return { displayName: "User", username: fallbackUsername };
+    }
+  };
+
   const loadConversations = async (sessionToken: string) => {
     try {
       const response = await fetch("/api/messages/conversations", {
