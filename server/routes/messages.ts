@@ -103,6 +103,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       timestamp,
     };
 
+    // Generate server timestamp NOW - this is the authoritative timestamp for the message
+    // This ensures timestamps are consistent and don't depend on client time sync or recipient being online
+    const serverTimestamp = Date.now();
+
     // Verify message signature using sender's sign public key
     let signPublicKeyToUse = session.signPublicKey;
 
@@ -161,9 +165,16 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // Generate unique message ID
     const messageId = uuidv4();
 
+    // Use server timestamp instead of client timestamp for storage and delivery
+    // This ensures all timestamps are consistent and authoritative
+    const messageWithServerTimestamp: EncryptedMessage = {
+      ...message,
+      timestamp: serverTimestamp,
+    };
+
     // Store in shared conversation history (in-memory for current session)
     // This ensures both WebSocket and HTTP routes access the same data
-    storeMessage(session.userId, recipientId, message);
+    storeMessage(session.userId, recipientId, messageWithServerTimestamp);
 
     // Store in both PostgreSQL and R2 in PARALLEL for speed
     // Don't wait for one to complete before starting the other
