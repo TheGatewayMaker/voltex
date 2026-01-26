@@ -769,12 +769,9 @@ export default function Chat() {
       setMessages((prev) => [...prev, newMessage]);
       setMessageInput("");
 
-      // Update lastFetchTimestampRef to track this optimistic message
-      // This prevents polling from adding it again if it has the same or lower timestamp
-      lastFetchTimestampRef.current = Math.max(
-        lastFetchTimestampRef.current,
-        encrypted.timestamp,
-      );
+      // DO NOT update lastFetchTimestampRef with client timestamp
+      // This would prevent polling from fetching the server version with a different (server) timestamp
+      // The timestamp will be updated properly once we get the server response
 
       // Try to send via WebSocket if connected (real-time delivery)
       let sent = false;
