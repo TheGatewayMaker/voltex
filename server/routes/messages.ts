@@ -103,6 +103,10 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
       timestamp,
     };
 
+    // Generate server timestamp NOW - this is the authoritative timestamp for the message
+    // This ensures timestamps are consistent and don't depend on client time sync or recipient being online
+    const serverTimestamp = Date.now();
+
     // Verify message signature using sender's sign public key
     let signPublicKeyToUse = session.signPublicKey;
 
@@ -161,9 +165,16 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     // Generate unique message ID
     const messageId = uuidv4();
 
+    // Use server timestamp instead of client timestamp for storage and delivery
+    // This ensures all timestamps are consistent and authoritative
+    const messageWithServerTimestamp: EncryptedMessage = {
+      ...message,
+      timestamp: serverTimestamp,
+    };
+
     // Store in shared conversation history (in-memory for current session)
     // This ensures both WebSocket and HTTP routes access the same data
-    storeMessage(session.userId, recipientId, message);
+    storeMessage(session.userId, recipientId, messageWithServerTimestamp);
 
     // Store in both PostgreSQL and R2 in PARALLEL for speed
     // Don't wait for one to complete before starting the other
@@ -173,18 +184,21 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     const storagePromises: Promise<any>[] = [];
 
     // Parallel storage in PostgreSQL (if available)
+    // Use server timestamp for all storage to ensure consistency
     if (isDatabaseConnected()) {
       storagePromises.push(
         storeMessageInDB(messageId, session.userId, recipientId, {
           nonce,
           ciphertext,
           signature,
-          timestamp,
+          timestamp: serverTimestamp, // Use server-generated timestamp
         })
           .then((success) => {
             dbStorageSuccess = success;
             if (success) {
-              console.log(`Message ${messageId} stored in PostgreSQL`);
+              console.log(
+                `Message ${messageId} stored in PostgreSQL with timestamp ${serverTimestamp}`,
+              );
             }
             return success;
           })
@@ -195,15 +209,18 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     }
 
     // Parallel storage in R2 for persistence
+    // Use server timestamp for all storage to ensure consistency
     storagePromises.push(
       saveMessageWithMetadata(messageId, session.userId, recipientId, {
         nonce,
         ciphertext,
         signature,
-        timestamp,
+        timestamp: serverTimestamp, // Use server-generated timestamp
       })
         .then(() => {
-          console.log(`Message ${messageId} stored in R2`);
+          console.log(
+            `Message ${messageId} stored in R2 with timestamp ${serverTimestamp}`,
+          );
           r2StorageSuccess = true;
         })
         .catch((r2Error) => {
@@ -229,8 +246,8 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     return res.status(200).json({
       success: true,
       messageId: messageId, // Return unique UUID for database tracking
-      clientMessageId: `${timestamp}-${session.userId}`, // Client can use this for optimistic updates
-      timestamp,
+      clientMessageId: `${serverTimestamp}-${session.userId}`, // Use server timestamp for optimistic updates
+      timestamp: serverTimestamp, // Return server-generated timestamp
       persisted: dbStorageSuccess || r2StorageSuccess,
       persistedInDB: dbStorageSuccess,
       persistedInR2: r2StorageSuccess,
