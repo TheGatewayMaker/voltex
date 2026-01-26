@@ -827,6 +827,12 @@ export default function Chat() {
               : m,
           );
 
+          // Update lastFetchTimestampRef with the server timestamp
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            serverTimestamp,
+          );
+
           // Warn user if message wasn't persisted to R2 (but still delivered to memory)
           if (!response.persisted) {
             console.warn("Message sent but not persisted to R2");
