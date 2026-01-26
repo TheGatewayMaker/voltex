@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { Lock, Search, X, RefreshCw } from "lucide-react";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { getServerTime } from "@/lib/serverTime";
+import { formatConversationTime } from "@/lib/dateFormatter";
 import { toast } from "sonner";
 
 interface Conversation {
