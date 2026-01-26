@@ -6,7 +6,11 @@ interface UseWebSocketOptions {
   onError?: (error: string) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
-  onAck?: (messageId: string, delivered: boolean) => void; // Track delivery ACKs
+  onAck?: (
+    messageId: string,
+    delivered: boolean,
+    serverTimestamp?: number,
+  ) => void; // Track delivery ACKs and server timestamp
   onMessageDeleted?: (messageId: string, deletedBy: string) => void; // Handle message deletion
 }
 
@@ -75,12 +79,17 @@ export function useWebSocket(options?: UseWebSocketOptions) {
               // Handle incoming encrypted message
               optionsRef.current?.onMessage?.(data.data);
             } else if (data.type === "message-ack") {
-              // Handle message acknowledgment - track delivery
+              // Handle message acknowledgment - track delivery and timestamp
               const delivered = data.delivered !== false;
+              const serverTimestamp = data.timestamp;
               console.log(
-                `Message ${data.messageId} acknowledged (delivered: ${delivered})`,
+                `Message ${data.messageId} acknowledged (delivered: ${delivered}, timestamp: ${serverTimestamp})`,
               );
-              optionsRef.current?.onAck?.(data.messageId, delivered);
+              optionsRef.current?.onAck?.(
+                data.messageId,
+                delivered,
+                serverTimestamp,
+              );
             } else if (data.type === "message-deleted") {
               // Handle message deletion notification
               const { messageId, deletedBy } = data.data;

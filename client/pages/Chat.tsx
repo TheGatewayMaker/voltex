@@ -314,8 +314,9 @@ export default function Chat() {
       // Process new messages
       for (const encMsg of historyData.messages) {
         // Skip messages we already have (using ref to track last timestamp)
-        // Use both timestamp AND messageId for more robust deduplication
-        if (encMsg.timestamp <= lastFetchTimestampRef.current) {
+        // Use strict less-than comparison to allow messages at the exact same timestamp
+        // (multiple messages can have the same server timestamp)
+        if (encMsg.timestamp < lastFetchTimestampRef.current) {
           console.log(
             `Polling: Skipping old message timestamp=${encMsg.timestamp} (last seen: ${lastFetchTimestampRef.current})`,
           );
@@ -501,17 +502,40 @@ export default function Chat() {
   );
 
   const handleWebSocketAck = useCallback(
-    (messageId: string, delivered: boolean) => {
-      // Update message delivery status based on ACK
+    (messageId: string, delivered: boolean, serverTimestamp?: number) => {
+      // Update message delivery status and timestamp based on ACK
       const localMessageId = sentMessagesRef.current.get(messageId);
       if (localMessageId) {
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === localMessageId
-              ? { ...msg, status: delivered ? "delivered" : "sent" }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.id === localMessageId) {
+              // If server timestamp is provided, update message ID and timestamp to match server
+              if (serverTimestamp) {
+                const newMessageId = `${serverTimestamp}-${msg.senderId}`;
+                return {
+                  ...msg,
+                  id: newMessageId,
+                  timestamp: serverTimestamp,
+                  status: delivered ? "delivered" : "sent",
+                };
+              }
+              return {
+                ...msg,
+                status: delivered ? "delivered" : "sent",
+              };
+            }
+            return msg;
+          }),
         );
+
+        // Update lastFetchTimestampRef to include the server timestamp
+        // This prevents polling from adding the message again
+        if (serverTimestamp) {
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            serverTimestamp,
+          );
+        }
       }
     },
     [],
@@ -640,6 +664,13 @@ export default function Chat() {
                 : msg,
             ),
           );
+
+          // Update lastFetchTimestampRef with the server timestamp
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            serverTimestamp,
+          );
+
           console.log(
             `Retried message ${message.id} successfully with server timestamp ${serverTimestamp}`,
           );
@@ -730,6 +761,13 @@ export default function Chat() {
       setMessages((prev) => [...prev, newMessage]);
       setMessageInput("");
 
+      // Update lastFetchTimestampRef to track this optimistic message
+      // This prevents polling from adding it again if it has the same or lower timestamp
+      lastFetchTimestampRef.current = Math.max(
+        lastFetchTimestampRef.current,
+        encrypted.timestamp,
+      );
+
       // Try to send via WebSocket if connected (real-time delivery)
       let sent = false;
       if (isConnected) {
@@ -795,6 +833,12 @@ export default function Chat() {
             m.id === localMessageId
               ? { ...m, id: serverMessageId, timestamp: serverTimestamp }
               : m,
+          );
+
+          // Update lastFetchTimestampRef with the server timestamp
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            serverTimestamp,
           );
 
           // Warn user if message wasn't persisted to R2 (but still delivered to memory)
