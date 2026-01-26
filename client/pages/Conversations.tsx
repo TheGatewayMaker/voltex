@@ -385,21 +385,19 @@ export default function Conversations() {
           });
         } else {
           console.log(
-            `New conversation detected from ${message.senderId}, will refresh full list`,
+            `New conversation detected from ${message.senderId}, will refresh full list on next poll`,
           );
-          // New conversation, will refresh in background
+          // New conversation, will be picked up by next polling cycle
           return prev;
         }
       });
     }
 
-    // Always refresh the full list in the background to ensure all conversations are included
-    // This is especially important for new conversations
-    const sessionToken = localStorage.getItem("session_token");
-    if (sessionToken) {
-      console.log("Refreshing full conversation list from server");
-      loadConversations(sessionToken);
-    }
+    // Note: We intentionally do NOT immediately call loadConversations() here
+    // because the server might not have fully processed the message yet,
+    // causing a race condition where the badge disappears.
+    // Instead, we rely on the existing polling mechanism (3-second interval)
+    // which will sync the updated unread counts from the server once the message is processed.
   }, []);
 
   const handleWebSocketConnected = useCallback(() => {
