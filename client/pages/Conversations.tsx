@@ -41,6 +41,16 @@ export default function Conversations() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchTimestampRef = useRef<number>(0);
+  const profileCacheRef = useRef<
+    Map<
+      string,
+      {
+        displayName: string;
+        username: string;
+        fetched: number;
+      }
+    >
+  >(new Map());
 
   // Check authentication status and fetch user profile
   useEffect(() => {
