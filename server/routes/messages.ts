@@ -350,7 +350,7 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // Try to get conversations from PostgreSQL first
+    // Try to get conversations from PostgreSQL first (primary source)
     let userConversations = new Map<
       string,
       { lastMessage: any; timestamp: number }
@@ -371,7 +371,7 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       }
     }
 
-    // If database is empty or disabled, try R2 persistence
+    // If database is empty/disabled, try R2 persistence (fallback)
     if (userConversations.size === 0) {
       try {
         userConversations = await getUserConversationsFromR2(session.userId);
@@ -383,12 +383,13 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       }
     }
 
-    // Also check in-memory conversations
+    // Merge with in-memory conversations (real-time, highest priority)
+    // These are conversations from the current session that may not be persisted yet
     const inMemoryConversations = getUserConversations(session.userId);
     if (inMemoryConversations.size > 0) {
-      // Merge with database conversations, newer timestamps win
       for (const [userId, data] of inMemoryConversations) {
         const existing = userConversations.get(userId);
+        // In-memory conversations should override if they're newer (most recent activity)
         if (!existing || data.timestamp > existing.timestamp) {
           userConversations.set(userId, data);
         }
