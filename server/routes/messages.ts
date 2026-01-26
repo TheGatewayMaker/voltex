@@ -242,8 +242,8 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
     return res.status(200).json({
       success: true,
       messageId: messageId, // Return unique UUID for database tracking
-      clientMessageId: `${timestamp}-${session.userId}`, // Client can use this for optimistic updates
-      timestamp,
+      clientMessageId: `${serverTimestamp}-${session.userId}`, // Use server timestamp for optimistic updates
+      timestamp: serverTimestamp, // Return server-generated timestamp
       persisted: dbStorageSuccess || r2StorageSuccess,
       persistedInDB: dbStorageSuccess,
       persistedInR2: r2StorageSuccess,
