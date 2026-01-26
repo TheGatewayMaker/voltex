@@ -234,8 +234,14 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "recipientId is required" });
     }
 
-    // Try to get recent messages from PostgreSQL first
-    let allMessages = [];
+    // Always load in-memory messages first (they represent current session activity)
+    const inMemoryMessages = getStoredMessages(session.userId, recipientId);
+    console.log(
+      `In-memory messages for conversation ${session.userId}:${recipientId}: ${inMemoryMessages.length}`,
+    );
+
+    // Try to get recent messages from PostgreSQL
+    let allMessages: EncryptedMessage[] = [];
     let fromDatabase = false;
 
     if (isDatabaseConnected()) {
@@ -288,25 +294,27 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
       }
     }
 
-    // Also get conversation from in-memory cache to ensure real-time messages are included
-    const inMemoryMessages = getStoredMessages(session.userId, recipientId);
+    // Merge in-memory messages with persistent storage
+    // Create a Map keyed by (timestamp, senderId) to avoid duplicates
     if (inMemoryMessages.length > 0) {
-      // Create a Map of all messages by a unique key (timestamp + senderId) to avoid duplicates
-      const messageMap = new Map<string, any>();
+      const messageMap = new Map<string, EncryptedMessage>();
 
-      // Add existing messages to map
+      // First, add all persistent messages (DB or R2)
       for (const msg of allMessages) {
-        const key = `${msg.timestamp}-${msg.senderId}`;
+        const key = `${msg.timestamp}|${msg.senderId}`;
         messageMap.set(key, msg);
       }
 
-      // Add in-memory messages, newer ones overwrite older ones
+      // Then, add in-memory messages (these are most recent and take priority)
       for (const msg of inMemoryMessages) {
-        const key = `${msg.timestamp}-${msg.senderId}`;
+        const key = `${msg.timestamp}|${msg.senderId}`;
         messageMap.set(key, msg);
       }
 
       allMessages = Array.from(messageMap.values());
+      console.log(
+        `After merging in-memory messages: total=${allMessages.length} for ${session.userId}:${recipientId}`,
+      );
     }
 
     // Sort all messages by timestamp (oldest first)
