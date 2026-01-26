@@ -13,7 +13,7 @@ interface Conversation {
   username: string;
   avatar: string;
   lastMessage: string;
-  timestamp: string;
+  timestamp: number; // Keep as raw timestamp for consistent formatting
   unread: number;
   online: boolean;
   unreadCount?: number;
