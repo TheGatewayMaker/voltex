@@ -394,43 +394,66 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Invalid session" });
     }
 
-    // Try to get conversations from PostgreSQL first
+    // Get conversations from ALL sources and merge them (don't early return)
+    // This ensures conversations aren't lost even if one source is incomplete
     let userConversations = new Map<
       string,
       { lastMessage: any; timestamp: number }
     >();
     let fromDatabase = false;
+    let loadedFromDB = 0;
+    let loadedFromR2 = 0;
+    let loadedFromMemory = 0;
 
+    // 1. Load from PostgreSQL (hot storage - most recent)
     if (isDatabaseConnected()) {
       try {
-        userConversations = await getUserConversationsFromDB(session.userId);
-        if (userConversations.size > 0) {
+        const dbConversations = await getUserConversationsFromDB(
+          session.userId,
+        );
+        if (dbConversations.size > 0) {
           fromDatabase = true;
+          loadedFromDB = dbConversations.size;
           console.log(
-            `Loaded ${userConversations.size} conversations from PostgreSQL for user ${session.userId}`,
+            `Loaded ${dbConversations.size} conversations from PostgreSQL for user ${session.userId}`,
           );
+          // Merge into result map
+          for (const [userId, data] of dbConversations) {
+            userConversations.set(userId, data);
+          }
         }
       } catch (dbError) {
         console.error("Error loading conversations from PostgreSQL:", dbError);
       }
     }
 
-    // If database is empty or disabled, try R2 persistence
-    if (userConversations.size === 0) {
-      try {
-        userConversations = await getUserConversationsFromR2(session.userId);
-        console.log(
-          `Loaded ${userConversations.size} conversations from R2 for user ${session.userId}`,
-        );
-      } catch (r2Error) {
-        console.error("Error loading conversations from R2:", r2Error);
+    // 2. Also load from R2 persistence (cold storage - archive) - ALWAYS check even if DB has results
+    // This ensures we don't lose conversations that exist only in R2
+    try {
+      const r2Conversations = await getUserConversationsFromR2(session.userId);
+      loadedFromR2 = r2Conversations.size;
+      console.log(
+        `Loaded ${r2Conversations.size} conversations from R2 for user ${session.userId}`,
+      );
+      // Merge with existing, newer timestamps win
+      for (const [userId, data] of r2Conversations) {
+        const existing = userConversations.get(userId);
+        if (!existing || data.timestamp > existing.timestamp) {
+          userConversations.set(userId, data);
+        }
       }
+    } catch (r2Error) {
+      console.error("Error loading conversations from R2:", r2Error);
     }
 
-    // Also check in-memory conversations
+    // 3. Also check in-memory conversations (real-time)
     const inMemoryConversations = getUserConversations(session.userId);
+    loadedFromMemory = inMemoryConversations.size;
     if (inMemoryConversations.size > 0) {
-      // Merge with database conversations, newer timestamps win
+      console.log(
+        `Loaded ${inMemoryConversations.size} conversations from memory for user ${session.userId}`,
+      );
+      // Merge with existing, newer timestamps win (in-memory is most recent)
       for (const [userId, data] of inMemoryConversations) {
         const existing = userConversations.get(userId);
         if (!existing || data.timestamp > existing.timestamp) {
@@ -438,6 +461,10 @@ export const handleGetConversations: RequestHandler = async (req, res) => {
         }
       }
     }
+
+    console.log(
+      `Total conversations merged for user ${session.userId}: DB=${loadedFromDB}, R2=${loadedFromR2}, Memory=${loadedFromMemory}, Final=${userConversations.size}`,
+    );
 
     // Convert to API response format
     const conversations = await Promise.all(
