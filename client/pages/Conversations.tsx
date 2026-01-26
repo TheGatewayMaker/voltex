@@ -151,7 +151,8 @@ export default function Conversations() {
       if (profileRes.ok) {
         const profileData = await profileRes.json();
         const displayName = profileData.displayName || "User";
-        const username = profileData.username || `user-${userId.substring(0, 8)}`;
+        const username =
+          profileData.username || `user-${userId.substring(0, 8)}`;
 
         // Cache the result
         profileCacheRef.current.set(userId, {
@@ -172,7 +173,9 @@ export default function Conversations() {
 
         // Retry on failure
         if (retryCount < maxRetries) {
-          console.log(`Retrying profile fetch for ${userId} (attempt ${retryCount + 1}/${maxRetries})...`);
+          console.log(
+            `Retrying profile fetch for ${userId} (attempt ${retryCount + 1}/${maxRetries})...`,
+          );
           await new Promise((resolve) =>
             setTimeout(resolve, 1000 * Math.pow(2, retryCount)),
           ); // Exponential backoff
@@ -256,10 +259,7 @@ export default function Conversations() {
 
         // Log sample of conversations to verify display names are correct
         if (conversationList.length > 0) {
-          console.log(
-            "Sample conversation:",
-            conversationList[0],
-          );
+          console.log("Sample conversation:", conversationList[0]);
         }
 
         setConversations(conversationList);
@@ -506,7 +506,9 @@ export default function Conversations() {
                     {conversation.unreadCount &&
                       conversation.unreadCount > 0 && (
                         <div className="flex-shrink-0 px-2.5 py-1 md:px-3 md:py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 min-w-max shadow-md animate-pulse">
-                          {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                          {conversation.unreadCount > 99
+                            ? "99+"
+                            : conversation.unreadCount}
                         </div>
                       )}
                   </div>
