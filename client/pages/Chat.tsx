@@ -838,41 +838,58 @@ export default function Chat() {
 
   // Helper to format time with date and 12-hour format using server time
   const formatTime = (timestamp: number | undefined | null) => {
-    // Validate timestamp
-    if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
-      return "Invalid time";
+    // Fallback to current server time if timestamp is missing or invalid
+    let time = timestamp;
+
+    if (!time || typeof time !== "number" || time <= 0) {
+      time = getServerTime(); // Use current server time as fallback
     }
 
-    const date = new Date(timestamp);
+    try {
+      const date = new Date(time);
 
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return "Invalid time";
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        time = getServerTime();
+        return new Date(time).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+
+      // Use server time for "now" to be consistent with server-based timestamps
+      const now = new Date(getServerTime());
+
+      // Format time in 12-hour format with AM/PM
+      const timeString = date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true, // Explicitly use 12-hour format
+      });
+
+      // Check if message is from today (using server time for comparison)
+      if (date.toDateString() === now.toDateString()) {
+        return timeString; // Just show time for today (e.g., "2:34 PM")
+      }
+
+      // For past messages, show date and time together in compact format
+      const dateString = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
+      });
+
+      return `${dateString} ${timeString}`; // e.g., "Jan 3 2:34 PM"
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      // Return a safe fallback
+      return new Date(getServerTime()).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
     }
-
-    // Use server time for "now" to be consistent with server-based timestamps
-    const now = new Date(getServerTime());
-
-    // Format time in 12-hour format with AM/PM
-    const timeString = date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true, // Explicitly use 12-hour format
-    });
-
-    // Check if message is from today (using server time for comparison)
-    if (date.toDateString() === now.toDateString()) {
-      return timeString; // Just show time for today (e.g., "2:34 PM")
-    }
-
-    // For past messages, show date and time together in compact format
-    const dateString = date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
-    });
-
-    return `${dateString} ${timeString}`; // e.g., "Jan 3 2:34 PM"
   };
 
   // Delete message handler
