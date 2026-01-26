@@ -292,7 +292,10 @@ export default function Conversations() {
         });
       }
 
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
     } catch (error) {
       console.error("Error formatting timestamp:", error);
       return "now";
