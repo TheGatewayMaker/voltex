@@ -260,7 +260,7 @@ export default function Chat() {
               `Failed to decrypt message from ${encMsg.senderId}: signature verification or decryption failed`,
             );
             toast.error(
-              `Could not decrypt message from ${encMsg.senderId.substring(0, 8)}`,
+              "Could not decrypt message from sender",
             );
           }
         } catch (error) {
