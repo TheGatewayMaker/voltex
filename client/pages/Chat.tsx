@@ -641,7 +641,9 @@ export default function Chat() {
                 : msg,
             ),
           );
-          console.log(`Retried message ${message.id} successfully with server timestamp ${serverTimestamp}`);
+          console.log(
+            `Retried message ${message.id} successfully with server timestamp ${serverTimestamp}`,
+          );
         } else {
           // Re-queue if still failed
           pendingMessagesRef.current.push(message);

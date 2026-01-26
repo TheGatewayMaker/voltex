@@ -196,7 +196,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
           .then((success) => {
             dbStorageSuccess = success;
             if (success) {
-              console.log(`Message ${messageId} stored in PostgreSQL with timestamp ${serverTimestamp}`);
+              console.log(
+                `Message ${messageId} stored in PostgreSQL with timestamp ${serverTimestamp}`,
+              );
             }
             return success;
           })
@@ -216,7 +218,9 @@ export const handleSendMessage: RequestHandler = async (req, res) => {
         timestamp: serverTimestamp, // Use server-generated timestamp
       })
         .then(() => {
-          console.log(`Message ${messageId} stored in R2 with timestamp ${serverTimestamp}`);
+          console.log(
+            `Message ${messageId} stored in R2 with timestamp ${serverTimestamp}`,
+          );
           r2StorageSuccess = true;
         })
         .catch((r2Error) => {
