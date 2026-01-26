@@ -892,6 +892,7 @@ export default function Chat() {
         error instanceof Error ? error.message : "Unknown error occurred";
       toast.error(errorMessage);
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
   };
