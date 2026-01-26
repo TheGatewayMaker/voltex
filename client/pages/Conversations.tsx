@@ -247,26 +247,45 @@ export default function Conversations() {
 
   // WebSocket callbacks - memoized to prevent reconnection loops
   const handleWebSocketMessage = useCallback((message: any) => {
-    console.log("New message received, updating unread counts");
+    console.log("New message received, updating conversation list");
     // When a new message arrives, update the specific conversation's unread count
-    // First increment the unread count for the sender's conversation
+    // First check if conversation exists and update it, or refresh if it's new
     if (message && message.senderId) {
-      setConversations((prev) =>
-        prev.map((conv) => {
-          if (conv.id === message.senderId) {
-            return {
-              ...conv,
-              unread: (conv.unread || 0) + 1,
-              unreadCount: (conv.unreadCount || 0) + 1,
-            };
-          }
-          return conv;
-        }),
-      );
+      setConversations((prev) => {
+        const conversationExists = prev.some(
+          (conv) => conv.id === message.senderId,
+        );
+
+        if (conversationExists) {
+          // Update unread count for existing conversation
+          return prev.map((conv) => {
+            if (conv.id === message.senderId) {
+              console.log(
+                `Incrementing unread count for conversation with ${message.senderId}`,
+              );
+              return {
+                ...conv,
+                unread: (conv.unread || 0) + 1,
+                unreadCount: (conv.unreadCount || 0) + 1,
+              };
+            }
+            return conv;
+          });
+        } else {
+          console.log(
+            `New conversation detected from ${message.senderId}, will refresh full list`,
+          );
+          // New conversation, will refresh in background
+          return prev;
+        }
+      });
     }
-    // Also refresh the full list in the background to ensure accuracy
+
+    // Always refresh the full list in the background to ensure all conversations are included
+    // This is especially important for new conversations
     const sessionToken = localStorage.getItem("session_token");
     if (sessionToken) {
+      console.log("Refreshing full conversation list from server");
       loadConversations(sessionToken);
     }
   }, []);
