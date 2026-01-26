@@ -270,38 +270,6 @@ export default function Conversations() {
     }
   };
 
-  const formatTimestamp = (timestamp: number) => {
-    // Handle invalid timestamps gracefully
-    if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
-      return "now";
-    }
-
-    try {
-      const date = new Date(timestamp);
-
-      // Validate date
-      if (isNaN(date.getTime())) {
-        return "now";
-      }
-
-      const now = new Date(getServerTime());
-
-      if (date.toDateString() === now.toDateString()) {
-        return date.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    } catch (error) {
-      console.error("Error formatting timestamp:", error);
-      return "now";
-    }
-  };
 
   const handleSearchUsers = async (query: string) => {
     setSearchQuery(query);
