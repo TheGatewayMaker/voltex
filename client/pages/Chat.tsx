@@ -526,7 +526,9 @@ export default function Chat() {
             });
 
             if (isDuplicateByContent) {
-              console.log(`Skipping duplicate message by content match from WebSocket`);
+              console.log(
+                `Skipping duplicate message by content match from WebSocket`,
+              );
               return prev;
             }
 
@@ -743,7 +745,9 @@ export default function Chat() {
 
     // Synchronous guard to prevent double-submit
     if (isSendingRef.current) {
-      console.log("Message send already in progress, ignoring duplicate submit");
+      console.log(
+        "Message send already in progress, ignoring duplicate submit",
+      );
       return;
     }
 
