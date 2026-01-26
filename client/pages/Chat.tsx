@@ -501,17 +501,40 @@ export default function Chat() {
   );
 
   const handleWebSocketAck = useCallback(
-    (messageId: string, delivered: boolean) => {
-      // Update message delivery status based on ACK
+    (messageId: string, delivered: boolean, serverTimestamp?: number) => {
+      // Update message delivery status and timestamp based on ACK
       const localMessageId = sentMessagesRef.current.get(messageId);
       if (localMessageId) {
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === localMessageId
-              ? { ...msg, status: delivered ? "delivered" : "sent" }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.id === localMessageId) {
+              // If server timestamp is provided, update message ID and timestamp to match server
+              if (serverTimestamp) {
+                const newMessageId = `${serverTimestamp}-${msg.senderId}`;
+                return {
+                  ...msg,
+                  id: newMessageId,
+                  timestamp: serverTimestamp,
+                  status: delivered ? "delivered" : "sent",
+                };
+              }
+              return {
+                ...msg,
+                status: delivered ? "delivered" : "sent",
+              };
+            }
+            return msg;
+          }),
         );
+
+        // Update lastFetchTimestampRef to include the server timestamp
+        // This prevents polling from adding the message again
+        if (serverTimestamp) {
+          lastFetchTimestampRef.current = Math.max(
+            lastFetchTimestampRef.current,
+            serverTimestamp,
+          );
+        }
       }
     },
     [],
