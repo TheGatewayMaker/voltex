@@ -244,7 +244,7 @@ export default function Conversations() {
               username: username,
               avatar: displayName.charAt(0).toUpperCase(),
               lastMessage: conv.lastMessage || "(No messages)",
-              timestamp: formatTimestamp(conv.timestamp),
+              timestamp: conv.timestamp, // Keep original timestamp, format during display
               unread: conv.unread || 0,
               unreadCount: conv.unread || 0,
               online: false,
