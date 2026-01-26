@@ -391,15 +391,25 @@ export async function createServer(): Promise<{
               return;
             }
 
+            // Generate server timestamp NOW - this is the authoritative timestamp for the message
+            // CRITICAL: Must match HTTP route behavior to ensure consistency across WebSocket and HTTP sends
+            const serverTimestamp = Date.now();
+
+            // Create message with server-generated timestamp for storage
+            const messageWithServerTimestamp: EncryptedMessage = {
+              ...encryptedMessage,
+              timestamp: serverTimestamp,
+            };
+
             // Store message in shared conversation history (in-memory)
             // This ensures both WebSocket and HTTP routes access the same data
             storeMessage(
               userId,
               encryptedMessage.recipientId,
-              encryptedMessage,
+              messageWithServerTimestamp,
             );
             console.log(
-              `[WS] Message stored in memory for conversation ${userId}:${encryptedMessage.recipientId}`,
+              `[WS] Message stored in memory with server timestamp ${serverTimestamp} for conversation ${userId}:${encryptedMessage.recipientId}`,
             );
 
             // Generate unique message ID
@@ -424,14 +434,14 @@ export async function createServer(): Promise<{
                     nonce: encryptedMessage.nonce,
                     ciphertext: encryptedMessage.ciphertext,
                     signature: encryptedMessage.signature,
-                    timestamp: encryptedMessage.timestamp,
+                    timestamp: serverTimestamp, // Use server-generated timestamp
                   },
                 )
                   .then((success) => {
                     dbStorageSuccess = success;
                     if (success) {
                       console.log(
-                        `[WS] Message ${messageId} stored in PostgreSQL for ${userId} -> ${encryptedMessage.recipientId}`,
+                        `[WS] Message ${messageId} stored in PostgreSQL with server timestamp ${serverTimestamp} for ${userId} -> ${encryptedMessage.recipientId}`,
                       );
                     }
                     return success;
@@ -460,12 +470,12 @@ export async function createServer(): Promise<{
                   nonce: encryptedMessage.nonce,
                   ciphertext: encryptedMessage.ciphertext,
                   signature: encryptedMessage.signature,
-                  timestamp: encryptedMessage.timestamp,
+                  timestamp: serverTimestamp, // Use server-generated timestamp
                 },
               )
                 .then(() => {
                   console.log(
-                    `[WS] Message ${messageId} stored in R2 for ${userId} -> ${encryptedMessage.recipientId}`,
+                    `[WS] Message ${messageId} stored in R2 with server timestamp ${serverTimestamp} for ${userId} -> ${encryptedMessage.recipientId}`,
                   );
                   r2StorageSuccess = true;
                 })
