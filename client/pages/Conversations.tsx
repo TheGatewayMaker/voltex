@@ -253,6 +253,15 @@ export default function Conversations() {
         console.log(
           `Successfully processed ${conversationList.length} conversations with profiles`,
         );
+
+        // Log sample of conversations to verify display names are correct
+        if (conversationList.length > 0) {
+          console.log(
+            "Sample conversation:",
+            conversationList[0],
+          );
+        }
+
         setConversations(conversationList);
       }
     } catch (error) {
