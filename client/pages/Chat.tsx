@@ -115,6 +115,7 @@ export default function Chat() {
           Authorization: `Bearer ${sessionToken}`,
         },
       });
+      console.log(`Conversation with ${otherUserId} marked as read`);
     } catch (error) {
       console.error("Failed to mark conversation as read:", error);
       // Don't show error to user as this is non-critical

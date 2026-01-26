@@ -41,6 +41,16 @@ export default function Conversations() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchTimestampRef = useRef<number>(0);
+  const profileCacheRef = useRef<
+    Map<
+      string,
+      {
+        displayName: string;
+        username: string;
+        fetched: number;
+      }
+    >
+  >(new Map());
 
   // Check authentication status and fetch user profile
   useEffect(() => {
@@ -61,11 +71,12 @@ export default function Conversations() {
     loadConversations(sessionToken);
   }, [navigate]);
 
-  // Refresh conversations when navigating back to this page
+  // Refresh conversations when navigating back to this page (to reset unread counts)
   useEffect(() => {
     if (location.pathname === "/") {
       const sessionToken = localStorage.getItem("session_token");
       if (sessionToken) {
+        console.log("Returned to conversations list, refreshing unread counts");
         loadConversations(sessionToken);
       }
     }
@@ -105,6 +116,106 @@ export default function Conversations() {
     }
   };
 
+  // Fetch user profile with caching and retry logic
+  const fetchUserProfileWithCache = async (
+    userId: string,
+    retryCount: number = 0,
+  ): Promise<{ displayName: string; username: string }> => {
+    const maxRetries = 2;
+    const cacheExpiry = 5 * 60 * 1000; // 5 minutes
+
+    // Check cache first
+    const cached = profileCacheRef.current.get(userId);
+    if (
+      cached &&
+      Date.now() - cached.fetched < cacheExpiry &&
+      cached.displayName !== "User" // Don't use failed cache entries
+    ) {
+      console.log(`Using cached profile for ${userId}`);
+      return {
+        displayName: cached.displayName,
+        username: cached.username,
+      };
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const profileRes = await fetch(`/api/profile/${userId}`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        const displayName = profileData.displayName || "User";
+        const username =
+          profileData.username || `user-${userId.substring(0, 8)}`;
+
+        // Cache the result
+        profileCacheRef.current.set(userId, {
+          displayName,
+          username,
+          fetched: Date.now(),
+        });
+
+        console.log(
+          `Fetched profile for ${userId}: ${displayName} (@${username})`,
+        );
+
+        return { displayName, username };
+      } else {
+        console.warn(
+          `Profile fetch failed for ${userId}: status ${profileRes.status}`,
+        );
+
+        // Retry on failure
+        if (retryCount < maxRetries) {
+          console.log(
+            `Retrying profile fetch for ${userId} (attempt ${retryCount + 1}/${maxRetries})...`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * Math.pow(2, retryCount)),
+          ); // Exponential backoff
+          return fetchUserProfileWithCache(userId, retryCount + 1);
+        }
+
+        // Fallback after retries
+        const fallbackUsername = `user-${userId.substring(0, 8)}`;
+        profileCacheRef.current.set(userId, {
+          displayName: "User",
+          username: fallbackUsername,
+          fetched: Date.now(),
+        });
+        return { displayName: "User", username: fallbackUsername };
+      }
+    } catch (error) {
+      console.error(`Error fetching profile for ${userId}:`, error);
+
+      // Retry on error (like timeout)
+      if (retryCount < maxRetries) {
+        console.log(
+          `Retrying profile fetch for ${userId} after error (attempt ${retryCount + 1}/${maxRetries})...`,
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * Math.pow(2, retryCount)),
+        );
+        return fetchUserProfileWithCache(userId, retryCount + 1);
+      }
+
+      // Fallback after retries
+      const fallbackUsername = `user-${userId.substring(0, 8)}`;
+      profileCacheRef.current.set(userId, {
+        displayName: "User",
+        username: fallbackUsername,
+        fetched: Date.now(),
+      });
+      return { displayName: "User", username: fallbackUsername };
+    }
+  };
+
   const loadConversations = async (sessionToken: string) => {
     try {
       const response = await fetch("/api/messages/conversations", {
@@ -115,23 +226,18 @@ export default function Conversations() {
 
       if (response.ok) {
         const data = await response.json();
-        // Convert server data to UI format with user profile info
-        const conversationList: Conversation[] = [];
+        console.log(
+          `Received ${data.conversations.length} conversations from server`,
+        );
 
-        for (const conv of data.conversations) {
-          try {
-            // Fetch user profile to get display name and username
-            const profileRes = await fetch(`/api/profile/${conv.userId}`);
-            let displayName = "User";
-            let username = conv.userId.substring(0, 8);
+        // Convert server data to UI format with user profile info (fetch profiles in parallel)
+        const conversationPromises = data.conversations.map(
+          async (conv: any) => {
+            const { displayName, username } = await fetchUserProfileWithCache(
+              conv.userId,
+            );
 
-            if (profileRes.ok) {
-              const profileData = await profileRes.json();
-              displayName = profileData.displayName || "User";
-              username = profileData.username || conv.userId.substring(0, 8);
-            }
-
-            conversationList.push({
+            return {
               id: conv.userId,
               name: displayName,
               username: username,
@@ -141,22 +247,19 @@ export default function Conversations() {
               unread: conv.unread || 0,
               unreadCount: conv.unread || 0,
               online: false,
-            });
-          } catch (error) {
-            console.error(`Failed to load profile for ${conv.userId}:`, error);
-            // Fallback to using user ID if profile fetch fails
-            conversationList.push({
-              id: conv.userId,
-              name: "User",
-              username: conv.userId.substring(0, 8),
-              avatar: conv.userId.substring(0, 2).toUpperCase(),
-              lastMessage: conv.lastMessage || "(No messages)",
-              timestamp: formatTimestamp(conv.timestamp),
-              unread: conv.unread || 0,
-              unreadCount: conv.unread || 0,
-              online: false,
-            });
-          }
+            };
+          },
+        );
+
+        // Wait for all profile fetches to complete in parallel
+        const conversationList = await Promise.all(conversationPromises);
+        console.log(
+          `Successfully processed ${conversationList.length} conversations with profiles`,
+        );
+
+        // Log sample of conversations to verify display names are correct
+        if (conversationList.length > 0) {
+          console.log("Sample conversation:", conversationList[0]);
         }
 
         setConversations(conversationList);
@@ -236,14 +339,48 @@ export default function Conversations() {
   };
 
   // WebSocket callbacks - memoized to prevent reconnection loops
-  const handleWebSocketMessage = useCallback((_message: any) => {
-    console.log("New message received");
-    // Refresh conversations list when a new message arrives
+  const handleWebSocketMessage = useCallback((message: any) => {
+    console.log("New message received, updating conversation list");
+    // When a new message arrives, update the specific conversation's unread count
+    // First check if conversation exists and update it, or refresh if it's new
+    if (message && message.senderId) {
+      setConversations((prev) => {
+        const conversationExists = prev.some(
+          (conv) => conv.id === message.senderId,
+        );
+
+        if (conversationExists) {
+          // Update unread count for existing conversation
+          return prev.map((conv) => {
+            if (conv.id === message.senderId) {
+              console.log(
+                `Incrementing unread count for conversation with ${message.senderId}`,
+              );
+              return {
+                ...conv,
+                unread: (conv.unread || 0) + 1,
+                unreadCount: (conv.unreadCount || 0) + 1,
+              };
+            }
+            return conv;
+          });
+        } else {
+          console.log(
+            `New conversation detected from ${message.senderId}, will refresh full list`,
+          );
+          // New conversation, will refresh in background
+          return prev;
+        }
+      });
+    }
+
+    // Always refresh the full list in the background to ensure all conversations are included
+    // This is especially important for new conversations
     const sessionToken = localStorage.getItem("session_token");
     if (sessionToken) {
+      console.log("Refreshing full conversation list from server");
       loadConversations(sessionToken);
     }
-    toast.success("New message received");
   }, []);
 
   const handleWebSocketConnected = useCallback(() => {
@@ -368,8 +505,10 @@ export default function Conversations() {
                     </p>
                     {conversation.unreadCount &&
                       conversation.unreadCount > 0 && (
-                        <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                          {conversation.unreadCount}
+                        <div className="flex-shrink-0 px-2.5 py-1 md:px-3 md:py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 min-w-max shadow-md animate-pulse">
+                          {conversation.unreadCount > 99
+                            ? "99+"
+                            : conversation.unreadCount}
                         </div>
                       )}
                   </div>
