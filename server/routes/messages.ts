@@ -310,24 +310,34 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
     // Also get conversation from in-memory cache to ensure real-time messages are included
     const inMemoryMessages = getStoredMessages(session.userId, recipientId);
     if (inMemoryMessages.length > 0) {
-      // Merge with DB messages, avoiding duplicates
-      const dbTimestamps = new Set(allMessages.map((m) => m.timestamp));
-      const newMessages = inMemoryMessages.filter(
-        (m) => !dbTimestamps.has(m.timestamp),
-      );
-      allMessages = [...allMessages, ...newMessages];
+      // Create a Map of all messages by a unique key (timestamp + senderId) to avoid duplicates
+      const messageMap = new Map<string, any>();
+
+      // Add existing messages to map
+      for (const msg of allMessages) {
+        const key = `${msg.timestamp}-${msg.senderId}`;
+        messageMap.set(key, msg);
+      }
+
+      // Add in-memory messages, newer ones overwrite older ones
+      for (const msg of inMemoryMessages) {
+        const key = `${msg.timestamp}-${msg.senderId}`;
+        messageMap.set(key, msg);
+      }
+
+      allMessages = Array.from(messageMap.values());
     }
 
-    // Sort all messages by timestamp
+    // Sort all messages by timestamp (oldest first)
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
 
-    // Apply pagination
+    // Apply pagination (newest first)
+    // Return the last (limit) messages, starting from the end minus offset
+    const startIndex = Math.max(0, allMessages.length - offset - limit);
+    const endIndex = Math.max(0, allMessages.length - offset);
     const paginatedMessages = allMessages
-      .slice(
-        Math.max(0, allMessages.length - (offset + limit)),
-        allMessages.length - offset,
-      )
-      .reverse(); // Newest first
+      .slice(startIndex, endIndex)
+      .reverse(); // Reverse to get newest first
 
     return res.status(200).json({
       recipientId,
