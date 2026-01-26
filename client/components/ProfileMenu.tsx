@@ -123,9 +123,6 @@ export default function ProfileMenu({
           <p className="text-sm font-semibold text-foreground truncate">
             {profileName}
           </p>
-          <p className="text-xs text-muted-foreground font-mono truncate">
-            {userId}
-          </p>
         </div>
 
         {/* Account Button */}
