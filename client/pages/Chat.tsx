@@ -259,9 +259,7 @@ export default function Chat() {
             console.error(
               `Failed to decrypt message from ${encMsg.senderId}: signature verification or decryption failed`,
             );
-            toast.error(
-              "Could not decrypt message from sender",
-            );
+            toast.error("Could not decrypt message from sender");
           }
         } catch (error) {
           console.error("Decryption error:", error);
