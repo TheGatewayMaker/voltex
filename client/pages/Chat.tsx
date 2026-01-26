@@ -700,11 +700,12 @@ export default function Chat() {
       const localMessageId = `${encrypted.timestamp}-${currentUserId}`;
 
       // Add message to local state optimistically with "sent" status
+      // Note: timestamp will be updated with server's authoritative timestamp
       const newMessage: ChatMessage = {
         senderId: currentUserId,
         recipientId: recipientId || "",
         content: messageInput,
-        timestamp: encrypted.timestamp,
+        timestamp: encrypted.timestamp, // Temporary client timestamp, will be replaced
         id: localMessageId,
         isOwn: true,
         status: "sent",
@@ -756,12 +757,28 @@ export default function Chat() {
           }
 
           const response = await sendRes.json();
+          const serverTimestamp = response.timestamp; // Get server's authoritative timestamp
+          const serverMessageId = `${serverTimestamp}-${currentUserId}`; // Use server timestamp for message ID
 
-          // Update message status to delivered
+          // Update message with server timestamp and delivered status
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === localMessageId ? { ...msg, status: "delivered" } : msg,
+              msg.id === localMessageId
+                ? {
+                    ...msg,
+                    id: serverMessageId, // Update ID to use server timestamp
+                    timestamp: serverTimestamp, // Use server-provided timestamp
+                    status: "delivered",
+                  }
+                : msg,
             ),
+          );
+
+          // Update the pending messages ref to use new message ID
+          pendingMessagesRef.current = pendingMessagesRef.current.map((m) =>
+            m.id === localMessageId
+              ? { ...m, id: serverMessageId, timestamp: serverTimestamp }
+              : m,
           );
 
           // Warn user if message wasn't persisted to R2 (but still delivered to memory)
