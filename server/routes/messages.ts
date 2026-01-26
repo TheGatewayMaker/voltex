@@ -246,10 +246,13 @@ export const handleGetConversation: RequestHandler = async (req, res) => {
 
     if (isDatabaseConnected()) {
       try {
+        // Load a reasonable number of recent messages from DB (enough to cover pagination needs)
+        // Load more than limit+offset to account for the fact that some might be duplicates with in-memory
+        const dbLoadLimit = Math.max(limit + offset, 100) + 50;
         const dbMessages = await getConversationMessagesFromDB(
           session.userId,
           recipientId,
-          1000, // Load up to 1000 recent messages from DB
+          dbLoadLimit,
           0,
         );
 
