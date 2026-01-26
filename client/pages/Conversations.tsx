@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { Lock, Search, X, RefreshCw } from "lucide-react";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { getServerTime } from "@/lib/serverTime";
+import { formatConversationTime } from "@/lib/dateFormatter";
 import { toast } from "sonner";
 
 interface Conversation {
@@ -12,7 +13,7 @@ interface Conversation {
   username: string;
   avatar: string;
   lastMessage: string;
-  timestamp: string;
+  timestamp: number; // Keep as raw timestamp for consistent formatting
   unread: number;
   online: boolean;
   unreadCount?: number;
@@ -243,7 +244,7 @@ export default function Conversations() {
               username: username,
               avatar: displayName.charAt(0).toUpperCase(),
               lastMessage: conv.lastMessage || "(No messages)",
-              timestamp: formatTimestamp(conv.timestamp),
+              timestamp: conv.timestamp, // Keep original timestamp, format during display
               unread: conv.unread || 0,
               unreadCount: conv.unread || 0,
               online: false,
@@ -266,39 +267,6 @@ export default function Conversations() {
       }
     } catch (error) {
       console.error("Failed to load conversations:", error);
-    }
-  };
-
-  const formatTimestamp = (timestamp: number) => {
-    // Handle invalid timestamps gracefully
-    if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
-      return "now";
-    }
-
-    try {
-      const date = new Date(timestamp);
-
-      // Validate date
-      if (isNaN(date.getTime())) {
-        return "now";
-      }
-
-      const now = new Date(getServerTime());
-
-      if (date.toDateString() === now.toDateString()) {
-        return date.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    } catch (error) {
-      console.error("Error formatting timestamp:", error);
-      return "now";
     }
   };
 
@@ -385,21 +353,19 @@ export default function Conversations() {
           });
         } else {
           console.log(
-            `New conversation detected from ${message.senderId}, will refresh full list`,
+            `New conversation detected from ${message.senderId}, will refresh full list on next poll`,
           );
-          // New conversation, will refresh in background
+          // New conversation, will be picked up by next polling cycle
           return prev;
         }
       });
     }
 
-    // Always refresh the full list in the background to ensure all conversations are included
-    // This is especially important for new conversations
-    const sessionToken = localStorage.getItem("session_token");
-    if (sessionToken) {
-      console.log("Refreshing full conversation list from server");
-      loadConversations(sessionToken);
-    }
+    // Note: We intentionally do NOT immediately call loadConversations() here
+    // because the server might not have fully processed the message yet,
+    // causing a race condition where the badge disappears.
+    // Instead, we rely on the existing polling mechanism (3-second interval)
+    // which will sync the updated unread counts from the server once the message is processed.
   }, []);
 
   const handleWebSocketConnected = useCallback(() => {
@@ -501,7 +467,7 @@ export default function Conversations() {
                 </div>
 
                 {/* Conversation Info */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground truncate text-sm md:text-base">
@@ -512,23 +478,25 @@ export default function Conversations() {
                       </p>
                     </div>
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
-                      {conversation.timestamp}
+                      {formatConversationTime(
+                        conversation.timestamp,
+                        getServerTime(),
+                      )}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2 mt-1">
-                    <p className="text-muted-foreground text-xs md:text-sm truncate">
-                      {conversation.lastMessage}
-                    </p>
-                    {conversation.unreadCount &&
-                      conversation.unreadCount > 0 && (
-                        <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
-                          {conversation.unreadCount > 99
-                            ? "99+"
-                            : conversation.unreadCount}
-                        </div>
-                      )}
-                  </div>
+                  <p className="text-muted-foreground text-xs md:text-sm truncate">
+                    {conversation.lastMessage}
+                  </p>
                 </div>
+
+                {/* Badge - Positioned on the right, vertically centered */}
+                {conversation.unreadCount && conversation.unreadCount > 0 && (
+                  <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 min-w-6 md:min-w-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
+                    {conversation.unreadCount > 99
+                      ? "99+"
+                      : conversation.unreadCount}
+                  </div>
+                )}
               </div>
             </Link>
           ))}
