@@ -1082,7 +1082,7 @@ export default function Chat() {
                   <div className="flex items-center gap-2 mt-1">
                     {/* Always show timestamp for all messages */}
                     <span className="text-xs text-muted-foreground">
-                      {formatTime(message.timestamp)}
+                      {formatMessageTimestamp(message.timestamp)}
                     </span>
                     {message.isOwn && message.status && (
                       <span className="text-xs text-muted-foreground">
