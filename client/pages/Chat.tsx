@@ -358,13 +358,40 @@ export default function Chat() {
               isOwn: encMsg.senderId === currentUserId,
             };
 
-            // Add only if not already present (by message ID)
+            // Add only if not already present (by message ID AND by content)
             setMessages((prev) => {
-              const exists = prev.some((m) => m.id === messageId);
-              if (exists) {
+              // Check for exact ID match first
+              const existsByID = prev.some((m) => m.id === messageId);
+              if (existsByID) {
                 console.log(`Polling: Skipping duplicate message ${messageId}`);
                 return prev;
               }
+
+              // CRITICAL: Also check if we have this message by content match
+              // This catches duplicates where timestamps differ between client/server versions
+              // (e.g., optimistic message with client timestamp vs polled message with server timestamp)
+              const existsByContent = prev.some((m) => {
+                // Same sender, same content, within a few seconds (timestamps may differ)
+                if (
+                  m.senderId === encMsg.senderId &&
+                  m.content === decrypted.content &&
+                  Math.abs(m.timestamp - encMsg.timestamp) < 5000 // Within 5 seconds
+                ) {
+                  console.log(
+                    `Polling: Found duplicate by content (sender: ${encMsg.senderId}, content: "${decrypted.content.substring(0, 20)}...", timestamps: ${m.timestamp} vs ${encMsg.timestamp})`,
+                  );
+                  return true;
+                }
+                return false;
+              });
+
+              if (existsByContent) {
+                console.log(
+                  `Polling: Skipping duplicate message by content match`,
+                );
+                return prev;
+              }
+
               console.log(`Polling: Adding new message ${messageId}`);
               return [...prev, newMessage];
             });
