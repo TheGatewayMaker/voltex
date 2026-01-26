@@ -270,17 +270,36 @@ export default function Conversations() {
   };
 
   const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date(getServerTime());
-
-    if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+    // Handle invalid timestamps gracefully
+    if (!timestamp || typeof timestamp !== "number" || timestamp <= 0) {
+      return "now";
     }
 
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    try {
+      const date = new Date(timestamp);
+
+      // Validate date
+      if (isNaN(date.getTime())) {
+        return "now";
+      }
+
+      const now = new Date(getServerTime());
+
+      if (date.toDateString() === now.toDateString()) {
+        return date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      console.error("Error formatting timestamp:", error);
+      return "now";
+    }
   };
 
   const handleSearchUsers = async (query: string) => {
@@ -505,7 +524,7 @@ export default function Conversations() {
                     </p>
                     {conversation.unreadCount &&
                       conversation.unreadCount > 0 && (
-                        <div className="flex-shrink-0 px-2.5 py-1 md:px-3 md:py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 min-w-max shadow-md animate-pulse">
+                        <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
                           {conversation.unreadCount > 99
                             ? "99+"
                             : conversation.unreadCount}

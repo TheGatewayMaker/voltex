@@ -1,6 +1,10 @@
 import { RequestHandler } from "express";
 import { getSessionFromToken } from "./auth";
-import { saveUserProfile, getUserProfile } from "../lib/r2-storage";
+import {
+  saveUserProfile,
+  getUserProfile,
+  getUserAccount,
+} from "../lib/r2-storage";
 
 /**
  * GET /api/profile/me
@@ -117,24 +121,27 @@ export const handleGetPublicProfile: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Invalid user ID" });
     }
 
-    // Get profile from R2
+    // Get both profile and account to include username
     const profile = await getUserProfile(userId);
+    const account = await getUserAccount(userId);
 
-    if (!profile) {
+    if (!profile && !account) {
       return res.status(200).json({
         userId,
         displayName: "User",
         bio: "",
+        username: null,
       });
     }
 
     // Only return public fields
     return res.status(200).json({
-      userId: profile.userId,
-      displayName: profile.displayName || "User",
-      bio: profile.bio || "",
-      avatar: profile.avatar || null,
-      showTimestamps: profile.showTimestamps ?? true,
+      userId,
+      displayName: profile?.displayName || "User",
+      bio: profile?.bio || "",
+      avatar: profile?.avatar || null,
+      username: account?.username || null,
+      showTimestamps: profile?.showTimestamps ?? true,
     });
   } catch (error) {
     console.error("Get public profile error:", error);
