@@ -499,7 +499,7 @@ export default function Conversations() {
                 </div>
 
                 {/* Conversation Info */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground truncate text-sm md:text-base">
@@ -513,20 +513,20 @@ export default function Conversations() {
                       {conversation.timestamp}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2 mt-1">
-                    <p className="text-muted-foreground text-xs md:text-sm truncate">
-                      {conversation.lastMessage}
-                    </p>
-                    {conversation.unreadCount &&
-                      conversation.unreadCount > 0 && (
-                        <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
-                          {conversation.unreadCount > 99
-                            ? "99+"
-                            : conversation.unreadCount}
-                        </div>
-                      )}
-                  </div>
+                  <p className="text-muted-foreground text-xs md:text-sm truncate">
+                    {conversation.lastMessage}
+                  </p>
                 </div>
+
+                {/* Badge - Positioned on the right, vertically centered */}
+                {conversation.unreadCount &&
+                  conversation.unreadCount > 0 && (
+                    <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 min-w-6 md:min-w-7 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
+                      {conversation.unreadCount > 99
+                        ? "99+"
+                        : conversation.unreadCount}
+                    </div>
+                  )}
               </div>
             </Link>
           ))}
