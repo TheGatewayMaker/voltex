@@ -1,6 +1,10 @@
 import { RequestHandler } from "express";
 import { getSessionFromToken } from "./auth";
-import { saveUserProfile, getUserProfile } from "../lib/r2-storage";
+import {
+  saveUserProfile,
+  getUserProfile,
+  getUserAccount,
+} from "../lib/r2-storage";
 
 /**
  * GET /api/profile/me
