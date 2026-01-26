@@ -501,13 +501,35 @@ export default function Chat() {
 
           setMessages((prev) => {
             // Check for exact duplicate by message ID
-            const isDuplicate = prev.some((m) => m.id === messageId);
-            if (isDuplicate) {
+            const isDuplicateByID = prev.some((m) => m.id === messageId);
+            if (isDuplicateByID) {
               console.log(
                 `Skipping duplicate message ${messageId} from WebSocket`,
               );
               return prev;
             }
+
+            // CRITICAL: Also check if we have this message by content match
+            // This catches duplicates where timestamps differ between client/server versions
+            const isDuplicateByContent = prev.some((m) => {
+              if (
+                m.senderId === encryptedMessage.senderId &&
+                m.content === decrypted.content &&
+                Math.abs(m.timestamp - encryptedMessage.timestamp) < 5000 // Within 5 seconds
+              ) {
+                console.log(
+                  `WebSocket: Found duplicate by content match: "${m.content.substring(0, 20)}..." (timestamps: ${m.timestamp} vs ${encryptedMessage.timestamp})`,
+                );
+                return true;
+              }
+              return false;
+            });
+
+            if (isDuplicateByContent) {
+              console.log(`Skipping duplicate message by content match from WebSocket`);
+              return prev;
+            }
+
             console.log(`Adding new message ${messageId} from WebSocket`);
             return [...prev, newMessage];
           });
