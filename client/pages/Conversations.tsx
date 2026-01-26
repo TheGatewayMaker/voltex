@@ -236,9 +236,25 @@ export default function Conversations() {
   };
 
   // WebSocket callbacks - memoized to prevent reconnection loops
-  const handleWebSocketMessage = useCallback((_message: any) => {
-    console.log("New message received, refreshing conversations with unread counts");
-    // Refresh conversations list when a new message arrives to update unread counts
+  const handleWebSocketMessage = useCallback((message: any) => {
+    console.log("New message received, updating unread counts");
+    // When a new message arrives, update the specific conversation's unread count
+    // First increment the unread count for the sender's conversation
+    if (message && message.senderId) {
+      setConversations((prev) =>
+        prev.map((conv) => {
+          if (conv.id === message.senderId) {
+            return {
+              ...conv,
+              unread: (conv.unread || 0) + 1,
+              unreadCount: (conv.unreadCount || 0) + 1,
+            };
+          }
+          return conv;
+        }),
+      );
+    }
+    // Also refresh the full list in the background to ensure accuracy
     const sessionToken = localStorage.getItem("session_token");
     if (sessionToken) {
       loadConversations(sessionToken);
