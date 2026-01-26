@@ -479,7 +479,7 @@ export default function Conversations() {
                       </p>
                     </div>
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
-                      {conversation.timestamp}
+                      {formatConversationTime(conversation.timestamp, getServerTime())}
                     </span>
                   </div>
                   <p className="text-muted-foreground text-xs md:text-sm truncate">
