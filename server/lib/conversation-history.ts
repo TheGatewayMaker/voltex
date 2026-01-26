@@ -30,7 +30,23 @@ export function storeMessage(
   }
 
   const messages = conversationHistory.get(conversationKey)!;
-  messages.push(message);
+
+  // CRITICAL FIX: Prevent duplicate messages from being stored in memory
+  // Check if a message with the same timestamp and sender already exists
+  // This prevents duplicates when the same message is received via multiple paths
+  // (e.g., stored via WebSocket and then fetched via HTTP)
+  const messageId = `${message.timestamp}-${message.senderId}`;
+  const isDuplicate = messages.some(
+    (m) => `${m.timestamp}-${m.senderId}` === messageId,
+  );
+
+  if (!isDuplicate) {
+    messages.push(message);
+  } else {
+    console.log(
+      `[MEMORY] Skipping duplicate message ${messageId} in conversation ${conversationKey}`,
+    );
+  }
 
   // Keep only last 100 messages per conversation in memory
   // Messages are persisted in PostgreSQL/R2, so this is just for real-time delivery
