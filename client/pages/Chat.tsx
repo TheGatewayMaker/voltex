@@ -52,6 +52,7 @@ export default function Chat() {
   const [recipientShowTimestamps, setRecipientShowTimestamps] = useState(true);
   const lastFetchTimestampRef = useRef<number>(0);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isSendingRef = useRef<boolean>(false); // Synchronous guard to prevent double-submit
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
