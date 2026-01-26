@@ -153,11 +153,36 @@ export default function Chat() {
         throw new Error("No public key found for current user");
       }
 
-      // Decrypt messages
-      const decryptedMessages: ChatMessage[] = [];
-      const currentSignPublicKey = localStorage.getItem(
+      // Get current user's sign public key (needed to decrypt our own messages)
+      // If not in localStorage, fetch from server
+      let currentSignPublicKey = localStorage.getItem(
         "current_sign_public_key",
       );
+      if (!currentSignPublicKey) {
+        try {
+          const currentUserKeyRes = await fetch(
+            `/api/auth/public-key/${userId}`,
+          );
+          if (currentUserKeyRes.ok) {
+            const currentUserKeyData = await currentUserKeyRes.json();
+            currentSignPublicKey = currentUserKeyData.signPublicKey;
+            if (currentSignPublicKey) {
+              localStorage.setItem(
+                "current_sign_public_key",
+                currentSignPublicKey,
+              );
+            }
+          }
+        } catch (error) {
+          console.warn(
+            "Failed to fetch current user's sign public key from server",
+            error,
+          );
+        }
+      }
+
+      // Decrypt messages
+      const decryptedMessages: ChatMessage[] = [];
 
       for (const encMsg of historyData.messages) {
         try {
@@ -173,7 +198,7 @@ export default function Chat() {
             senderSignPublicKey = currentSignPublicKey;
             if (!senderSignPublicKey) {
               console.warn(
-                `Cannot decrypt own message - current_sign_public_key not found in localStorage`,
+                `Cannot decrypt own message - current_sign_public_key not found`,
               );
               continue; // Skip this message
             }
